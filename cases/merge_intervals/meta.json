@@ -4,6 +4,5 @@
   "difficulty": "medium",
   "entry_point": "merge_intervals",
   "description": "Merge overlapping (and touching) intervals; returns sorted, merged [start, end] lists. Pure, deterministic.",
-  "constraints": "deterministic, pure, no I/O, no randomness, no global state",
-  "created": "2026-06-08T20:42:04.797076+00:00"
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
 }

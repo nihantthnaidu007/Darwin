@@ -9,13 +9,12 @@
 A seed dir holds: reference.py, test_suite.py, and spec.json
   { case_id?, category, difficulty, entry_point, description, arg_sets: [...] }
 
-Usage: python build_case.py <seed_dir>
+Usage: python build_case.py <seed_dir> [--force]
 """
 import json
 import shutil
 import sys
 import tempfile
-from datetime import datetime, timezone
 from pathlib import Path
 
 from bloat import bloat
@@ -32,7 +31,7 @@ CATEGORIES = {
 DIFFICULTIES = {"easy", "medium", "hard"}
 
 
-def build(seed_dir):
+def build(seed_dir, force=False):
     seed = Path(seed_dir)
     spec = json.load(open(seed / "spec.json", encoding="utf-8"))
     assert spec["category"] in CATEGORIES, f"bad category: {spec['category']}"
@@ -42,6 +41,16 @@ def build(seed_dir):
     test_suite = seed / "test_suite.py"
     entry = spec["entry_point"]
     case_id = spec.get("case_id", seed.name)
+    case_dir = CASES_DIR / case_id
+
+    # Protect a verified case: refuse to overwrite unless --force is given.
+    if case_dir.exists() and not force:
+        return "refused", case_id, (
+            f"case {case_id} already exists; pass --force to regenerate, "
+            "which will overwrite the verified case")
+    if case_dir.exists():  # force is True
+        print(f"WARNING: --force set — regenerating verified case {case_id}; files in "
+              f"{case_dir} will be overwritten only if the new candidate passes verification.")
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
@@ -58,7 +67,7 @@ def build(seed_dir):
         # (c) gate: pytest AND golden must both pass on original.py
         ok, reason = verify(str(original_path), str(test_suite), str(golden_path))
         if not ok:
-            return False, case_id, reason  # (d) stop, finalize nothing
+            return "failed", case_id, reason  # (d) stop, finalize nothing
 
         # (e) freeze metrics, write meta, assemble the case
         baseline = {
@@ -72,9 +81,7 @@ def build(seed_dir):
             "entry_point": entry,
             "description": spec["description"],
             "constraints": CONSTRAINTS,
-            "created": datetime.now(timezone.utc).isoformat(),
         }
-        case_dir = CASES_DIR / case_id
         case_dir.mkdir(parents=True, exist_ok=True)
         shutil.copy(reference, case_dir / "reference.py")
         shutil.copy(test_suite, case_dir / "test_suite.py")
@@ -82,16 +89,21 @@ def build(seed_dir):
         shutil.copy(golden_path, case_dir / "golden_io.json")
         (case_dir / "baseline_metrics.json").write_text(json.dumps(baseline, indent=2) + "\n")
         (case_dir / "meta.json").write_text(json.dumps(meta, indent=2) + "\n")
-        return True, case_id, reason
+        return "finalized", case_id, reason
 
 
 def main():
-    if len(sys.argv) != 2:
-        sys.exit("usage: python build_case.py <seed_dir>")
-    ok, case_id, reason = build(sys.argv[1])
-    if ok:
+    force = "--force" in sys.argv[1:]
+    args = [a for a in sys.argv[1:] if a != "--force"]
+    if len(args) != 1:
+        sys.exit("usage: python build_case.py <seed_dir> [--force]")
+    status, case_id, reason = build(args[0], force)
+    if status == "finalized":
         print(f"FINALIZED {case_id}: {reason}")
-    else:
+    elif status == "refused":
+        print(f"REFUSED {case_id}: {reason}")
+        sys.exit(2)
+    else:  # failed
         print(f"NOT FINALIZED {case_id}: verification failed — {reason}")
         sys.exit(1)
 

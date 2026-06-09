@@ -4,6 +4,5 @@
   "difficulty": "easy",
   "entry_point": "sum_evens",
   "description": "Sum of the even numbers in a list. Pure, deterministic.",
-  "constraints": "deterministic, pure, no I/O, no randomness, no global state",
-  "created": "2026-06-08T20:49:25.538649+00:00"
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
 }
