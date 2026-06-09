@@ -1,0 +1,423 @@
+{
+  "model": "claude-opus-4-8",
+  "config": {
+    "cap": 5,
+    "plateau_limit": 2
+  },
+  "n_cases": 5,
+  "improved": 5,
+  "baseline_returned": 0,
+  "needed_feedback_cases": [],
+  "feedback_load_bearing": false,
+  "total_cost_usd": 0.16157,
+  "total_input_tokens": 17274,
+  "total_output_tokens": 3008,
+  "by_category": {
+    "verbose_patterns": {
+      "n": 2,
+      "improved": 2,
+      "one_shot": 2,
+      "avg_bloat_removed_pct": 99.7
+    },
+    "duplication": {
+      "n": 1,
+      "improved": 1,
+      "one_shot": 1,
+      "avg_bloat_removed_pct": 100.0
+    },
+    "excessive_nesting": {
+      "n": 1,
+      "improved": 1,
+      "one_shot": 1,
+      "avg_bloat_removed_pct": 99.6
+    },
+    "over_abstraction": {
+      "n": 1,
+      "improved": 1,
+      "one_shot": 1,
+      "avg_bloat_removed_pct": 100.0
+    }
+  },
+  "by_difficulty": {
+    "hard": {
+      "n": 3,
+      "improved": 3,
+      "one_shot": 3,
+      "avg_bloat_removed_pct": 99.6
+    },
+    "medium": {
+      "n": 1,
+      "improved": 1,
+      "one_shot": 1,
+      "avg_bloat_removed_pct": 100.0
+    },
+    "easy": {
+      "n": 1,
+      "improved": 1,
+      "one_shot": 1,
+      "avg_bloat_removed_pct": 100.0
+    }
+  },
+  "cases": [
+    {
+      "case": "format_duration",
+      "category": "verbose_patterns",
+      "difficulty": "hard",
+      "verdict": "improved (best candidate returned)",
+      "improved_over_baseline": true,
+      "best_weighted_cost": 0.0069,
+      "bloat_removed_pct": 99.3,
+      "first_pass_bloat_removed_pct": 99.3,
+      "feedback_gain_pp": 0.0,
+      "generations_attempted": 3,
+      "best_generation": 1,
+      "first_scored_generation": 1,
+      "floor_reached": false,
+      "total_cost_usd": 0.05371,
+      "total_input_tokens": 6092,
+      "total_output_tokens": 930,
+      "best_flags": [],
+      "halted": null,
+      "structural_changes_from_first": [],
+      "per_metric": [
+        {
+          "metric": "cyclomatic_total",
+          "original": 51,
+          "best": 9,
+          "floor": 9,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "logical_loc",
+          "original": 94,
+          "best": 19,
+          "floor": 17,
+          "norm_cost": 0.025974025974025976,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "max_nesting_depth",
+          "original": 3,
+          "best": 3,
+          "floor": 3,
+          "norm_cost": null,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "dependency_count",
+          "original": 5,
+          "best": 0,
+          "floor": 0,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "dead_code_count",
+          "original": 9,
+          "best": 1,
+          "floor": 1,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "cyclomatic_max",
+          "original": 4,
+          "best": 9,
+          "floor": 9,
+          "norm_cost": -0.0,
+          "at_or_below_floor": true
+        }
+      ],
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Self Evolving Agent/runs/format_duration_20260609T201359Z"
+    },
+    {
+      "case": "income_tax",
+      "category": "duplication",
+      "difficulty": "hard",
+      "verdict": "improved (best candidate returned)",
+      "improved_over_baseline": true,
+      "best_weighted_cost": 0.0,
+      "bloat_removed_pct": 100.0,
+      "first_pass_bloat_removed_pct": 100.0,
+      "feedback_gain_pp": 0.0,
+      "generations_attempted": 1,
+      "best_generation": 1,
+      "first_scored_generation": 1,
+      "floor_reached": true,
+      "total_cost_usd": 0.01636,
+      "total_input_tokens": 1812,
+      "total_output_tokens": 292,
+      "best_flags": [],
+      "halted": null,
+      "structural_changes_from_first": [],
+      "per_metric": [
+        {
+          "metric": "cyclomatic_total",
+          "original": 37,
+          "best": 7,
+          "floor": 7,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "logical_loc",
+          "original": 72,
+          "best": 14,
+          "floor": 14,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "max_nesting_depth",
+          "original": 3,
+          "best": 3,
+          "floor": 3,
+          "norm_cost": null,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "dependency_count",
+          "original": 4,
+          "best": 0,
+          "floor": 0,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "dead_code_count",
+          "original": 6,
+          "best": 1,
+          "floor": 1,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "cyclomatic_max",
+          "original": 3,
+          "best": 7,
+          "floor": 7,
+          "norm_cost": -0.0,
+          "at_or_below_floor": true
+        }
+      ],
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Self Evolving Agent/runs/income_tax_20260609T201410Z"
+    },
+    {
+      "case": "int_to_words",
+      "category": "excessive_nesting",
+      "difficulty": "hard",
+      "verdict": "improved (best candidate returned)",
+      "improved_over_baseline": true,
+      "best_weighted_cost": 0.0038,
+      "bloat_removed_pct": 99.6,
+      "first_pass_bloat_removed_pct": 99.6,
+      "feedback_gain_pp": 0.0,
+      "generations_attempted": 3,
+      "best_generation": 1,
+      "first_scored_generation": 1,
+      "floor_reached": false,
+      "total_cost_usd": 0.077225,
+      "total_input_tokens": 7225,
+      "total_output_tokens": 1644,
+      "best_flags": [],
+      "halted": null,
+      "structural_changes_from_first": [],
+      "per_metric": [
+        {
+          "metric": "cyclomatic_total",
+          "original": 42,
+          "best": 13,
+          "floor": 13,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "logical_loc",
+          "original": 104,
+          "best": 34,
+          "floor": 33,
+          "norm_cost": 0.014084507042253521,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "max_nesting_depth",
+          "original": 3,
+          "best": 3,
+          "floor": 3,
+          "norm_cost": null,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "dependency_count",
+          "original": 3,
+          "best": 0,
+          "floor": 0,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "dead_code_count",
+          "original": 3,
+          "best": 0,
+          "floor": 0,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "cyclomatic_max",
+          "original": 5,
+          "best": 8,
+          "floor": 8,
+          "norm_cost": -0.0,
+          "at_or_below_floor": true
+        }
+      ],
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Self Evolving Agent/runs/int_to_words_20260609T201414Z"
+    },
+    {
+      "case": "merge_intervals",
+      "category": "over_abstraction",
+      "difficulty": "medium",
+      "verdict": "improved (best candidate returned)",
+      "improved_over_baseline": true,
+      "best_weighted_cost": 0.0,
+      "bloat_removed_pct": 100.0,
+      "first_pass_bloat_removed_pct": 100.0,
+      "feedback_gain_pp": 0.0,
+      "generations_attempted": 1,
+      "best_generation": 1,
+      "first_scored_generation": 1,
+      "floor_reached": true,
+      "total_cost_usd": 0.00813,
+      "total_input_tokens": 1121,
+      "total_output_tokens": 101,
+      "best_flags": [],
+      "halted": null,
+      "structural_changes_from_first": [],
+      "per_metric": [
+        {
+          "metric": "cyclomatic_total",
+          "original": 26,
+          "best": 4,
+          "floor": 4,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "logical_loc",
+          "original": 63,
+          "best": 8,
+          "floor": 8,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "max_nesting_depth",
+          "original": 4,
+          "best": 3,
+          "floor": 3,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "dependency_count",
+          "original": 4,
+          "best": 0,
+          "floor": 0,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "dead_code_count",
+          "original": 5,
+          "best": 1,
+          "floor": 1,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "cyclomatic_max",
+          "original": 3,
+          "best": 4,
+          "floor": 4,
+          "norm_cost": -0.0,
+          "at_or_below_floor": true
+        }
+      ],
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Self Evolving Agent/runs/merge_intervals_20260609T201431Z"
+    },
+    {
+      "case": "sum_evens",
+      "category": "verbose_patterns",
+      "difficulty": "easy",
+      "verdict": "improved (best candidate returned)",
+      "improved_over_baseline": true,
+      "best_weighted_cost": 0.0,
+      "bloat_removed_pct": 100.0,
+      "first_pass_bloat_removed_pct": 100.0,
+      "feedback_gain_pp": 0.0,
+      "generations_attempted": 1,
+      "best_generation": 1,
+      "first_scored_generation": 1,
+      "floor_reached": true,
+      "total_cost_usd": 0.006145,
+      "total_input_tokens": 1024,
+      "total_output_tokens": 41,
+      "best_flags": [],
+      "halted": null,
+      "structural_changes_from_first": [],
+      "per_metric": [
+        {
+          "metric": "cyclomatic_total",
+          "original": 25,
+          "best": 3,
+          "floor": 3,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "logical_loc",
+          "original": 56,
+          "best": 2,
+          "floor": 2,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "max_nesting_depth",
+          "original": 3,
+          "best": 1,
+          "floor": 1,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "dependency_count",
+          "original": 5,
+          "best": 0,
+          "floor": 0,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "dead_code_count",
+          "original": 5,
+          "best": 1,
+          "floor": 1,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "cyclomatic_max",
+          "original": 3,
+          "best": 3,
+          "floor": 3,
+          "norm_cost": null,
+          "at_or_below_floor": false
+        }
+      ],
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Self Evolving Agent/runs/sum_evens_20260609T201433Z"
+    }
+  ]
+}
