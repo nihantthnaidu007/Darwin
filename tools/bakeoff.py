@@ -20,10 +20,14 @@ from evaluator import HIGHER_BETTER, evaluate
 
 CASES = Path(__file__).resolve().parent.parent / "cases"
 
-# Pareto basket: the meaningful numeric metrics. source_loc is dropped (near-duplicate
-# of logical_loc — including it would double-count size in the dominance test too).
+# Pareto basket: the meaningful STRUCTURAL metrics. source_loc is dropped (near-duplicate
+# of logical_loc — would double-count size in the dominance test). maintainability_index
+# is dropped too: the audit showed it is cosmetic-gameable at single-function scale (a
+# docstring/rename raises MI with no real simplification), so it must not drive dominance
+# or the tiebreak — consistent with Method A weighting it 0. MI stays in the display table
+# below as informational only.
 PARETO_METRICS = [
-    "cyclomatic_total", "cyclomatic_max", "maintainability_index",
+    "cyclomatic_total", "cyclomatic_max",
     "logical_loc", "dependency_count", "dead_code_count", "max_nesting_depth",
 ]
 
@@ -212,7 +216,8 @@ def _evaluate_candidate(kind, payload, case_dir):
 
 # --- Method B: Pareto dominance --------------------------------------------
 def _oriented(metrics):
-    """Re-orient so lower is better on every axis (negate the higher-is-better MI)."""
+    """Re-orient so lower is better on every axis. HIGHER_BETTER members would be
+    negated, but the basket is now all lower-better (MI was dropped from scoring)."""
     return {m: (-metrics[m] if m in HIGHER_BETTER else metrics[m]) for m in PARETO_METRICS}
 
 
@@ -237,11 +242,12 @@ def _pareto_layers(scored):
 
 
 # Documented tiebreak for incomparable candidates (a small, explicit value judgment):
-# total branching first, then total lines, then maintainability (higher better), then
-# per-function max LAST. Deliberately anti-fragmentation: totals dominate the order.
+# total branching first, then total lines, then per-function max LAST. Deliberately
+# anti-fragmentation: totals dominate the order. (maintainability_index was removed
+# from the tiebreak too — cosmetic-gameable, see the PARETO_METRICS note.)
 def _tiebreak(metrics):
     return (metrics["cyclomatic_total"], metrics["logical_loc"],
-            -metrics["maintainability_index"], metrics["cyclomatic_max"])
+            metrics["cyclomatic_max"])
 
 
 def _method_b_order(scored):

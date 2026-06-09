@@ -38,17 +38,26 @@ from verify_case import classify
 # chosen so the score CANNOT be gamed by fragmentation — splitting one function
 # into many lowers per-function `cyclomatic_max` but not `cyclomatic_total` or
 # `logical_loc`, so we weight the totals heavily and `cyclomatic_max` lightly:
+#
+# maintainability_index is DROPPED from scoring (weight 0, informational only). An
+# independent audit showed it is gameable by cosmetics at single-function scale:
+# adding a docstring/comments or lengthening variable names raises radon's MI even
+# when the algorithm is byte-for-byte identical and NO real complexity was removed,
+# so cosmetic padding could score as "improvement" (on income_tax a padded copy of
+# the reference scored BELOW the clean floor). The structural metrics below are NOT
+# gameable that way — a docstring changes none of them — so they carry the score; MI
+# is still computed and logged in the basket for human observability, never scored.
 WEIGHTS = {
     "cyclomatic_total": 3.0,       # total branching; fragmentation does NOT reduce it
     "logical_loc": 2.0,            # total logical lines; fragmentation INCREASES it
-    "maintainability_index": 2.0,  # radon's readability composite (penalizes golfing)
+    "maintainability_index": 0.0,  # DROPPED: cosmetic-gameable at fn scale (see note); informational only
     "max_nesting_depth": 1.0,      # the "deeply nested" bloat pattern
     "dependency_count": 1.0,       # unnecessary imports (a core bloat category)
     "dead_code_count": 1.0,        # dead helpers (a core bloat category)
     "cyclomatic_max": 0.5,         # LOW on purpose: this is what fragmentation games
     "source_loc": 0.0,             # dropped: near-duplicate of logical_loc, no double count
 }
-HIGHER_BETTER = {"maintainability_index"}  # the one metric where up is good
+HIGHER_BETTER = {"maintainability_index"}  # up-is-good metric — but weight 0 now (informational only)
 
 
 def _cost(metric, cand, orig, floor):
