@@ -1,0 +1,28 @@
+{
+  "case_id": "format_duration",
+  "category": "verbose_patterns",
+  "difficulty": "hard",
+  "entry_point": "format_duration",
+  "description": "Format a non-negative integer number of seconds as a human-readable duration. 0 -> 'now'. Otherwise decompose greedily into years (365 days = 31536000 s), days (86400 s), hours (3600 s), minutes (60 s) and seconds (1 s); skip any unit whose count is zero. Each component reads '<count> <unit>' with the unit pluralized (trailing 's') when the count is not 1. Join the components with ', ' between all but the last and ' and ' before the last (e.g. '1 hour, 1 minute and 2 seconds'); a single component stands alone. Negative input raises ValueError; non-int input (including bool) raises TypeError. Pure and deterministic.",
+  "arg_sets": [
+    [0],
+    [1],
+    [2],
+    [30],
+    [62],
+    [90],
+    [119],
+    [3599],
+    [3661],
+    [7200],
+    [86400],
+    [100000],
+    [172800],
+    [1000000],
+    [5000000],
+    [31536000],
+    [31536001],
+    [31627810],
+    [200000000]
+  ]
+}

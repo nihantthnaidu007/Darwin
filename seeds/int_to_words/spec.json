@@ -1,0 +1,32 @@
+{
+  "case_id": "int_to_words",
+  "category": "excessive_nesting",
+  "difficulty": "hard",
+  "entry_point": "int_to_words",
+  "description": "Convert an integer to American-English words, lowercase, space-separated, no 'and'. 0 -> 'zero'. Negative -> 'negative ' followed by the words for the magnitude. Compound tens are hyphenated (e.g. 42 -> 'forty-two'). Uses scale words thousand/million/billion; groups whose value is zero are skipped (e.g. 1000001 -> 'one million one'). Supported magnitude is |n| <= 999999999999; anything larger raises ValueError. Non-int input (including bool) raises TypeError. Pure and deterministic.",
+  "arg_sets": [
+    [0],
+    [5],
+    [16],
+    [60],
+    [111],
+    [219],
+    [305],
+    [404],
+    [999],
+    [1234],
+    [7777],
+    [50000],
+    [250000],
+    [808080],
+    [1000000],
+    [13000000],
+    [1000000001],
+    [500000000000],
+    [999999999999],
+    [-7],
+    [-42],
+    [-100],
+    [-999]
+  ]
+}

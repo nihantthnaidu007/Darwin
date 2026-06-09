@@ -1,0 +1,166 @@
+{
+  "entry_point": "int_to_words",
+  "cases": [
+    {
+      "args": [
+        0
+      ],
+      "kwargs": {},
+      "output": "zero"
+    },
+    {
+      "args": [
+        5
+      ],
+      "kwargs": {},
+      "output": "five"
+    },
+    {
+      "args": [
+        16
+      ],
+      "kwargs": {},
+      "output": "sixteen"
+    },
+    {
+      "args": [
+        60
+      ],
+      "kwargs": {},
+      "output": "sixty"
+    },
+    {
+      "args": [
+        111
+      ],
+      "kwargs": {},
+      "output": "one hundred eleven"
+    },
+    {
+      "args": [
+        219
+      ],
+      "kwargs": {},
+      "output": "two hundred nineteen"
+    },
+    {
+      "args": [
+        305
+      ],
+      "kwargs": {},
+      "output": "three hundred five"
+    },
+    {
+      "args": [
+        404
+      ],
+      "kwargs": {},
+      "output": "four hundred four"
+    },
+    {
+      "args": [
+        999
+      ],
+      "kwargs": {},
+      "output": "nine hundred ninety-nine"
+    },
+    {
+      "args": [
+        1234
+      ],
+      "kwargs": {},
+      "output": "one thousand two hundred thirty-four"
+    },
+    {
+      "args": [
+        7777
+      ],
+      "kwargs": {},
+      "output": "seven thousand seven hundred seventy-seven"
+    },
+    {
+      "args": [
+        50000
+      ],
+      "kwargs": {},
+      "output": "fifty thousand"
+    },
+    {
+      "args": [
+        250000
+      ],
+      "kwargs": {},
+      "output": "two hundred fifty thousand"
+    },
+    {
+      "args": [
+        808080
+      ],
+      "kwargs": {},
+      "output": "eight hundred eight thousand eighty"
+    },
+    {
+      "args": [
+        1000000
+      ],
+      "kwargs": {},
+      "output": "one million"
+    },
+    {
+      "args": [
+        13000000
+      ],
+      "kwargs": {},
+      "output": "thirteen million"
+    },
+    {
+      "args": [
+        1000000001
+      ],
+      "kwargs": {},
+      "output": "one billion one"
+    },
+    {
+      "args": [
+        500000000000
+      ],
+      "kwargs": {},
+      "output": "five hundred billion"
+    },
+    {
+      "args": [
+        999999999999
+      ],
+      "kwargs": {},
+      "output": "nine hundred ninety-nine billion nine hundred ninety-nine million nine hundred ninety-nine thousand nine hundred ninety-nine"
+    },
+    {
+      "args": [
+        -7
+      ],
+      "kwargs": {},
+      "output": "negative seven"
+    },
+    {
+      "args": [
+        -42
+      ],
+      "kwargs": {},
+      "output": "negative forty-two"
+    },
+    {
+      "args": [
+        -100
+      ],
+      "kwargs": {},
+      "output": "negative one hundred"
+    },
+    {
+      "args": [
+        -999
+      ],
+      "kwargs": {},
+      "output": "negative nine hundred ninety-nine"
+    }
+  ]
+}

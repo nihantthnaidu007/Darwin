@@ -1,0 +1,138 @@
+{
+  "entry_point": "format_duration",
+  "cases": [
+    {
+      "args": [
+        0
+      ],
+      "kwargs": {},
+      "output": "now"
+    },
+    {
+      "args": [
+        1
+      ],
+      "kwargs": {},
+      "output": "1 second"
+    },
+    {
+      "args": [
+        2
+      ],
+      "kwargs": {},
+      "output": "2 seconds"
+    },
+    {
+      "args": [
+        30
+      ],
+      "kwargs": {},
+      "output": "30 seconds"
+    },
+    {
+      "args": [
+        62
+      ],
+      "kwargs": {},
+      "output": "1 minute and 2 seconds"
+    },
+    {
+      "args": [
+        90
+      ],
+      "kwargs": {},
+      "output": "1 minute and 30 seconds"
+    },
+    {
+      "args": [
+        119
+      ],
+      "kwargs": {},
+      "output": "1 minute and 59 seconds"
+    },
+    {
+      "args": [
+        3599
+      ],
+      "kwargs": {},
+      "output": "59 minutes and 59 seconds"
+    },
+    {
+      "args": [
+        3661
+      ],
+      "kwargs": {},
+      "output": "1 hour, 1 minute and 1 second"
+    },
+    {
+      "args": [
+        7200
+      ],
+      "kwargs": {},
+      "output": "2 hours"
+    },
+    {
+      "args": [
+        86400
+      ],
+      "kwargs": {},
+      "output": "1 day"
+    },
+    {
+      "args": [
+        100000
+      ],
+      "kwargs": {},
+      "output": "1 day, 3 hours, 46 minutes and 40 seconds"
+    },
+    {
+      "args": [
+        172800
+      ],
+      "kwargs": {},
+      "output": "2 days"
+    },
+    {
+      "args": [
+        1000000
+      ],
+      "kwargs": {},
+      "output": "11 days, 13 hours, 46 minutes and 40 seconds"
+    },
+    {
+      "args": [
+        5000000
+      ],
+      "kwargs": {},
+      "output": "57 days, 20 hours, 53 minutes and 20 seconds"
+    },
+    {
+      "args": [
+        31536000
+      ],
+      "kwargs": {},
+      "output": "1 year"
+    },
+    {
+      "args": [
+        31536001
+      ],
+      "kwargs": {},
+      "output": "1 year and 1 second"
+    },
+    {
+      "args": [
+        31627810
+      ],
+      "kwargs": {},
+      "output": "1 year, 1 day, 1 hour, 30 minutes and 10 seconds"
+    },
+    {
+      "args": [
+        200000000
+      ],
+      "kwargs": {},
+      "output": "6 years, 124 days, 19 hours, 33 minutes and 20 seconds"
+    }
+  ]
+}
