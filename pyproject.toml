@@ -1,0 +1,48 @@
+# Darwin — release metadata for the v1 (0.1.0) GitHub-tagged release.
+#
+# v1 is run FROM SOURCE: create a virtualenv and `pip install -r requirements.txt`
+# (see README "Install"). This file declares coherent, honest release metadata —
+# name, version, description, pinned runtime dependencies.
+#
+# It intentionally omits a [build-system] table: v1 is a set of flat scripts under
+# tools/ that are run with `cwd = tools/`, NOT yet structured as an importable /
+# pip-installable package. Adding a build backend now would advertise a
+# `pip install .` path that does not actually work. A pip-installable distribution
+# is deferred to a later release.
+
+[project]
+name = "darwin"
+version = "0.1.0"
+description = "A verified Python code simplifier with a never-worse-than-baseline guarantee (single-function, v1)."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Nihanth" }]
+keywords = [
+    "code-optimization",
+    "code-simplification",
+    "static-analysis",
+    "cyclomatic-complexity",
+    "llm",
+    "radon",
+    "vulture",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Code Generators",
+]
+
+# Runtime dependencies, version-pinned. Kept in sync with requirements.txt
+# (the source of truth for `pip install -r`). Transitive deps are not lock-pinned.
+dependencies = [
+    "radon==6.0.1",
+    "vulture==2.16",
+    "pytest==8.3.5",
+    "anthropic==0.107.1",
+]
+
+[project.urls]
+Repository = "https://github.com/nihanthnaidu007/Darwin"
