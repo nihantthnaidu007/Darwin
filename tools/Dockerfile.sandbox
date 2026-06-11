@@ -1,0 +1,28 @@
+# The sandbox image for the container primitive (Phase I0).
+#
+# Minimal, pinned base for running ONE untrusted Python candidate inside a
+# locked-down container (see sandbox_container.py for the lockdown flags applied
+# at run time: no network, read-only root, memory/CPU/PID caps, non-root).
+#
+# In-container dependency set = Python stdlib + pytest, pinned. That is exactly
+# what the cases need: every test_suite.py only does `from candidate import ...`
+# and uses pytest; the candidate code itself imports stdlib only. The host-side
+# tools (radon, vulture, anthropic) never run inside the container, so they are
+# intentionally absent. LIMITATION: a candidate that imports a package outside
+# this set (e.g. numpy) fails at import inside the container with
+# ModuleNotFoundError, surfaced as status=failed. To support more, add pinned
+# packages here and rebuild. For v2.0 the known case dependency set is enough.
+#
+# Build (one-time host setup; the Docker prerequisite must be met):
+#   docker build -f tools/Dockerfile.sandbox -t darwin-sandbox:py313 tools/
+FROM python:3.13-slim
+
+# pytest is the only runtime dependency the in-container code needs.
+RUN pip install --no-cache-dir pytest==8.3.5
+
+# Run untrusted code as a non-root user. uid 1000 is also passed via --user at
+# run time (defense in depth); HOME is overridden to the writable tmpfs at run
+# time so a read-only root filesystem does not block Python/pytest.
+RUN useradd --create-home --uid 1000 sandbox
+USER sandbox
+WORKDIR /sandbox
