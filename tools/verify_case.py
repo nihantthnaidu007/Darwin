@@ -1,29 +1,59 @@
 """The gatekeeper. A candidate passes ONLY if its test suite passes AND it
 reproduces every golden I/O pair exactly. Either alone is insufficient.
 
-The candidate is untrusted LLM output, so BOTH checks run inside the sandbox
-(sandbox.py): the test suite and the golden-I/O replay are each executed in an
-isolated temp dir under a hard timeout, never imported into this (parent) process.
+The candidate is untrusted LLM output, so BOTH checks run inside the I0 container
+(sandbox_container.py): the test suite and the golden-I/O replay each execute in a
+locked-down container (no network, no host filesystem, memory/CPU/PID caps, non-root,
+hard timeout), never imported into this (parent/host) process.
 
-Information flow for the golden replay: the sandbox receives the candidate and the
-golden INPUTS only — never the expected OUTPUTS. The in-sandbox driver calls the
-entry point and emits the actual results; this parent process holds the expected
-outputs and does the comparison. So a candidate cannot simply READ its own answer key.
+Information flow for the golden replay (the container is the boundary): the container
+receives the candidate and the golden INPUTS only — never the expected OUTPUTS. The
+in-container driver calls the entry point and emits the actual results; this HOST
+process holds the expected outputs and does the comparison. The golden outputs are
+never placed in the container and the comparison never happens inside it.
 
-THREAT MODEL / BOUNDARY (v1) — read this before trusting the behavior gate:
-  The driver runs in the SAME OS process as the untrusted candidate (Python `import`).
-  That means trusted result-handling (the serializer, the write, the driver's globals)
-  is co-resident with — and therefore reachable/replaceable by — candidate code. An
-  ADVERSARIAL candidate can forge a passing result, e.g. a one-line
-  `import __main__; __main__._dumps = <forged>` hijack, an fd-table rewrite, or a
-  `sys.excepthook`-based exit. Three audits established this surface is unbounded:
-  NO in-process scheme closes it. See test_behavior_gate_limits.py for live cheats.
-  - The gate IS relied upon as robust against GOOD-FAITH candidates: output from an
-    LLM trying to SIMPLIFY code. Forgery is self-defeating for that optimizer —
-    every forgery shim ADDS complexity and worsens the very score being minimized.
-  - The gate is NOT hardened against adversarial candidates. Closing that requires
-    OS-LEVEL ISOLATION (containers / namespaces / seccomp), deferred to v2.
-  Do NOT describe this gate as "forgery-proof." It is not, by design, in v1.
+THREAT MODEL / BOUNDARY (v2 / Phase I1) — read this before trusting the behavior gate.
+The boundary is the container, not a process group. The container walls off ACCESS
+(host filesystem, network, the golden oracle); it does NOT split the process, so the
+candidate and the trusted emitter are still CO-RESIDENT (`import candidate` runs
+untrusted code in the emitter's process, now inside the container). In-process
+interposition therefore remains possible. Do NOT describe this gate as "forgery-proof".
+
+CLOSED by the container boundary (access cut off):
+  - ORACLE-READ: a candidate that reads the golden answer key off disk and echoes it.
+    Closed: the container has no host filesystem access (read-only root; only the per-run
+    dir is mounted, holding candidate + inputs only), so the golden file is unreachable.
+    The candidate finds nothing -> its entry point returns wrong -> behavior-mismatch.
+  - HOST FILESYSTEM / SECRET ACCESS and NETWORK ACCESS: closed by the container lockdown.
+  - The LITERAL `import __main__; __main__._dumps = <forged>` (or `__main__._write`)
+    syntactic hijack: closed by local-capture. The driver body runs inside _run(), so
+    _write/_dumps/_fd are frame-locals, not __main__ module attributes; that literal form
+    writes a module attribute the trusted frame never reads. (Bounding the LITERAL form
+    only; see the OPEN item below — this is NOT a general close of serializer hijacking.)
+
+OPEN in-process — NOT closable at this layer, do NOT claim closed:
+  - TRUSTED-CODE / SERIALIZER HIJACK (frame-locals write-through). DEMONSTRATED on
+    Python 3.13: a candidate walks the stack frames (sys._getframe().f_back) to the
+    driver frame, finds the trusted _dumps LOCAL, and overwrites it via the PEP 667
+    write-through f_locals proxy with a lambda returning a HARDCODED correct answer. The
+    driver then emits the forged-correct frame and a behavior-wrong candidate is SCORED.
+    Local-capture does NOT stop this: a frame-local is reachable by frame-walking. This
+    is the general form of the hijack the literal `import __main__` line was only one
+    instance of. It is pinned as a known-open bypass in test_behavior_gate_limits.py.
+  - COMPUTE-AND-LIE: a candidate that computes the correct outputs from the inputs (the
+    inputs are necessarily in the container) and emits them while its declared entry
+    point is wrong. The container cannot distinguish a correct emission produced by the
+    real entry point from one produced by other in-process code.
+  Both stem from the candidate and the trusted emitter sharing a process; the in-process
+  interposition surface is fundamentally unbounded (the v1 audits stand), so NO in-process
+  scheme closes it. The real fix is an ARCHITECTURE change — split the trusted emitter out
+  of the candidate's process — deferred to a dedicated decision, NOT patched here.
+  NOTE on disincentive: the earlier argument that "forging requires adding real
+  computation, so it worsens the score the optimizer minimizes" is REFUTED for the
+  hijack — the demonstrated frame-locals hijack forges with a HARDCODED constant plus a
+  trivial, problem-independent frame walk: low complexity, NOT optimizer-disincentivized.
+  At most, that argument applies to genuine compute-and-lie (which does add computation);
+  it does NOT cover a hardcoded trusted-helper hijack.
 
 Usage: python verify_case.py <candidate.py> <test_suite.py> <golden_io.json>
 Prints "PASS" or "FAIL: <reason>" and exits 0 (pass) / 1 (fail).
@@ -35,7 +65,11 @@ Two entry points:
                                    Layer 1 + Layer 2 gates consume this.
   verify(...)   -> (ok, reason)  — the original boolean contract, kept intact for
                                    build_case.py; now a thin wrapper over classify.
-The two sandbox.run calls live here only; nothing downstream re-runs them.
+The two container runs live here only; nothing downstream re-runs them.
+
+PREREQUISITE (Phase I1): Docker must be running and the sandbox image built once
+(docker build -f tools/Dockerfile.sandbox -t darwin-sandbox:py313 tools/); the
+container run() raises RuntimeError with that hint if the image is missing.
 """
 import json
 import secrets
@@ -43,7 +77,13 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-import sandbox
+# Phase I1: the candidate now runs behind the I0 container boundary, not the v1
+# subprocess sandbox. sandbox_container exposes the SAME contract (run(); the
+# OK/FAILED/CRASHED/TIMED_OUT taxonomy; a result with status/exit_code/stdout/
+# stderr/duration/timed_out), so the gate logic below is unchanged — only WHERE
+# the candidate executes moved across the OS boundary. Aliased to `sandbox` so the
+# two run-sites and the status checks read identically to v1.
+import sandbox_container as sandbox
 
 # Rejection taxonomy (Phase 1). A passing candidate has code == None.
 TESTS_FAILED = "tests-failed"            # pytest ran and an assertion failed (exit 1)
@@ -60,9 +100,12 @@ class VerifyResult:
     gate: str | None     # which gate decided it: "tests" / "golden" / None if ok
     reason: str          # human-readable detail (pytest output / mismatch / status)
 
-# The trusted in-sandbox golden driver. The candidate is untrusted code running in
-# THIS SAME process, so the two DEMONSTRATED stdout forgeries (atexit print after the
-# driver; replacing sys.stdout to swallow the driver's line) are closed here:
+# The trusted in-container golden driver. The candidate is untrusted code that this
+# driver `import`s, so it runs in THE SAME process as this trusted emission. The
+# container is the security boundary for ACCESS (no host FS -> closes oracle-read; see
+# docstring), but it does NOT split the process, so in-process interposition stays open.
+# The emission has these properties (they raise the bar for naive cheats; they do NOT
+# make it forgery-proof, see the closing note):
 #   1. bind os.write + json.dumps and LOAD the inputs BEFORE `import candidate`, so a
 #      monkeypatched json (or tampered inputs) can't hijack what or how we emit;
 #   2. emit the entry point's actual RETURN VALUES (objects), not candidate-printed text;
@@ -73,35 +116,52 @@ class VerifyResult:
 #      also drops the candidate's own buffered stdout, so it can't even add noise via
 #      print(); only a direct os.write at import could, which makes a 2nd frame -> the
 #      parent fails closed below.)
-# The parent holds the expected outputs and compares there; the sandbox never sees them.
-# These defenses harden the gate against good-faith candidates and the demonstrated
-# stdout vectors. They do NOT make it forgery-proof against an adversarial candidate
-# (see the module docstring's THREAT MODEL / BOUNDARY note and test_behavior_gate_limits.py);
-# that needs OS-level isolation (v2).
+#   5. (Phase I1) run the body INSIDE _run(), so _write/_dumps/_fd are frame-locals, not
+#      __main__ module attributes. This closes ONLY the LITERAL
+#      `import __main__; __main__._dumps = <forged>` form (it would set a module attribute
+#      the trusted frame never reads). It does NOT close serializer hijacking in general.
+# The HOST holds the expected outputs and compares there; the container never sees them.
+# OPEN, NOT closed (do not claim otherwise): the TRUSTED-CODE / SERIALIZER HIJACK in its
+# general form. On Python 3.13 a candidate can walk stack frames to this frame and
+# overwrite the _dumps LOCAL via the PEP 667 write-through f_locals proxy (with a
+# HARDCODED answer), forging a passing frame for a behavior-wrong entry point. So can
+# COMPUTE-AND-LIE. Both follow from the candidate and emitter sharing a process; the
+# interposition surface is unbounded (the v1 audits stand). Closing them needs a process
+# split (architecture change), not a patch. See test_behavior_gate_limits.py for the
+# pinned, known-open bypasses.
 def _golden_driver(token):
+    # Body lives in _run() so the trusted helpers are frame-locals. This closes ONLY the
+    # literal `import __main__; __main__._dumps = ...` form (which sets a module attribute);
+    # it does NOT stop a frame-walk that overwrites the _dumps local (PEP 667), which is
+    # an OPEN bypass — see test_behavior_gate_limits.py. Not a general anti-hijack defense.
     return (
         "import json, os\n"
+        "def _run():\n"
         # Keep a PRIVATE dup of the result pipe taken BEFORE the untrusted import, so a
         # candidate that redirects fd 1 (dup2 /dev/null over stdout) cannot suppress our
         # frame — at worst it adds a second one, which the parent rejects (fail closed).
-        "_write, _dumps, _fd = os.write, json.dumps, os.dup(1)\n"
-        "inputs = json.load(open('inputs.json', encoding='utf-8'))\n"
-        "import candidate\n"
-        "fn = getattr(candidate, inputs['entry_point'])\n"
+        "    _write, _dumps, _fd = os.write, json.dumps, os.dup(1)\n"
+        "    inputs = json.load(open('inputs.json', encoding='utf-8'))\n"
+        "    import candidate\n"
+        "    fn = getattr(candidate, inputs['entry_point'])\n"
         # json.dumps (pre-bound) does the tuple->list normalization golden relies on.
-        "results = [fn(*c['args'], **c['kwargs']) for c in inputs['cases']]\n"
-        "_write(_fd, ('\\n' + " + repr(token) + " + _dumps({'results': results}) + '\\n').encode())\n"
-        "os._exit(0)\n"
+        "    results = [fn(*c['args'], **c['kwargs']) for c in inputs['cases']]\n"
+        "    _write(_fd, ('\\n' + " + repr(token) + " + _dumps({'results': results}) + '\\n').encode())\n"
+        "    os._exit(0)\n"
+        "_run()\n"
     )
 
 
 def _extract_results(stdout, token):
     """Read the trusted driver's result frame. Fail CLOSED unless EXACTLY ONE
     token-prefixed line is present: zero means the candidate suppressed/never wrote
-    it, two-or-more means it injected a forged frame alongside the real one — either
-    way we cannot trust the result, so we reject. (Forging requires a direct os.write
-    at import, which adds a second frame; replacing sys.stdout or scheduling atexit
-    no longer works against raw-fd-write + os._exit.)"""
+    it, two-or-more means it injected a forged frame ALONGSIDE the real one — either
+    way we cannot trust the result, so we reject. This catches the add-a-second-frame
+    cheats (a direct os.write at import; atexit/sys.stdout tricks no longer work against
+    raw-fd-write + os._exit). It does NOT catch a hijack that forges the SINGLE
+    legitimate frame in place — e.g. overwriting the driver's _dumps local via a
+    frame-walk (PEP 667) emits exactly one (forged) frame and passes this check. That
+    is an OPEN bypass; see the module docstring and test_behavior_gate_limits.py."""
     frames = [line[len(token):] for line in stdout.splitlines() if line.startswith(token)]
     if len(frames) != 1:
         return None
@@ -112,7 +172,7 @@ def _extract_results(stdout, token):
 
 
 def _classify_run(res, mismatch_code):
-    """Map a SandboxResult to a taxonomy code. The sandbox stays test-agnostic, so
+    """Map a container result to a taxonomy code. The container stays test-agnostic, so
     a broken-on-import candidate arrives here as `failed` (non-zero exit), same as a
     real assertion/mismatch. Knowing the program, we reconcile: exit 1 means it ran
     and produced a wrong answer (tests failed / golden mismatch); anything else
@@ -139,16 +199,19 @@ def classify(candidate_path, test_suite_path, golden_path, timeout=10.0):
     test_src = Path(test_suite_path).read_text(encoding="utf-8")
     golden_src = Path(golden_path).read_text(encoding="utf-8")
 
-    # Accepted v1 residual: test_suite.py is readable by the candidate here (pytest
-    # needs the file present), so a candidate could memorize the exact test inputs'
-    # outputs. Layer 2's golden replay catches such a memorizer whenever the golden
-    # set contains inputs the suite lacks (e.g. sum_evens' golden has a length-20 list
-    # no test uses). Phase-0 mitigation: build cases so each golden input set is NOT a
-    # subset of its test inputs. Fully hiding the spec from the test runner needs
-    # OS-level isolation (v2) and is out of scope for this gate.
+    # Accepted residual: test_suite.py is readable by the candidate here (pytest
+    # needs the file present, and it goes INTO the container with the candidate), so a
+    # candidate could memorize the exact test inputs' outputs. Layer 2's golden replay
+    # catches such a memorizer whenever the golden set contains inputs the suite lacks
+    # (e.g. sum_evens' golden has a length-20 list no test uses). Phase-0 mitigation:
+    # build cases so each golden input set is NOT a subset of its test inputs. The
+    # candidate seeing its own tests is accepted, as in v1.
+    # The container's python (not the host sys.executable, which does not exist inside
+    # the image) runs pytest; -p no:cacheprovider avoids a .pytest_cache write against
+    # the read-only root filesystem. Pass/fail semantics are unchanged.
     pytest_res = sandbox.run(
         {"candidate.py": candidate_src, "test_suite.py": test_src},
-        [sys.executable, "-m", "pytest", "-q", "test_suite.py"],
+        ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "test_suite.py"],
         timeout,
     )
     if pytest_res.status != sandbox.OK:
@@ -158,7 +221,7 @@ def classify(candidate_path, test_suite_path, golden_path, timeout=10.0):
                             f"pytest: {_LABEL[code]}:\n" + detail)
 
     # Layer 2 (golden replay). Send the candidate the INPUTS only; keep the expected
-    # outputs here in the parent. The driver prints actual results; we compare.
+    # outputs here on the HOST. The in-container driver emits actual results; we compare.
     golden = json.loads(golden_src)
     token = secrets.token_hex(16)
     inputs = {"entry_point": golden["entry_point"],
@@ -168,7 +231,7 @@ def classify(candidate_path, test_suite_path, golden_path, timeout=10.0):
         {"candidate.py": candidate_src,
          "inputs.json": json.dumps(inputs),
          "driver.py": _golden_driver(token)},
-        [sys.executable, "driver.py"],
+        ["python", "driver.py"],
         timeout,
     )
     if golden_res.status != sandbox.OK:
