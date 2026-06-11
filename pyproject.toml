@@ -1,19 +1,27 @@
-# Darwin — release metadata for the v1 (0.1.0) GitHub-tagged release.
+# Darwin — release metadata for the v2.0 (0.2.0) GitHub-tagged release.
 #
-# v1 is run FROM SOURCE: create a virtualenv and `pip install -r requirements.txt`
-# (see README "Install"). This file declares coherent, honest release metadata —
-# name, version, description, pinned runtime dependencies.
+# Version is 0.2.0, not 2.0.0, on purpose: 2.0.0 would signal a stable,
+# production-grade release. v2.0 adds a real OS-level isolation boundary, but it
+# still carries the in-process verdict-forgery residual (SECURITY.md), its
+# isolation is verified on Docker Desktop and NOT yet on native Linux, and it is
+# still single-function. 0.2.0 honestly signals "real isolation added, still early."
 #
-# It intentionally omits a [build-system] table: v1 is a set of flat scripts under
-# tools/ that are run with `cwd = tools/`, NOT yet structured as an importable /
-# pip-installable package. Adding a build backend now would advertise a
+# Darwin is run FROM SOURCE: create a virtualenv and `pip install -r requirements.txt`,
+# then build the sandbox image once (see README "Install"; Docker is now a
+# prerequisite). This file declares coherent, honest release metadata — name,
+# version, description, pinned runtime dependencies. It is a GitHub-tagged release;
+# it is NOT published to PyPI.
+#
+# It intentionally omits a [build-system] table: Darwin is a set of flat scripts
+# under tools/ that are run with `cwd = tools/`, NOT yet structured as an importable
+# / pip-installable package. Adding a build backend now would advertise a
 # `pip install .` path that does not actually work. A pip-installable distribution
 # is deferred to a later release.
 
 [project]
 name = "darwin"
-version = "0.1.0"
-description = "A verified Python code simplifier with a never-worse-than-baseline guarantee (single-function, v1)."
+version = "0.2.0"
+description = "A verified single-function Python code simplifier with a never-worse-than-baseline guarantee; v2.0 runs each candidate in a locked-down container (access-isolated, not a forgery-proof gate; native Linux not yet verified)."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Nihanth" }]
