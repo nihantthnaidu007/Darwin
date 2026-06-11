@@ -1,6 +1,6 @@
 # Self-Evolving Code-Optimization Engine — Validation Results
 
-_Generated 2026-06-09 20:14 UTC · model `claude-opus-4-8` · loop config cap=5, plateau=2 · run UNMODIFIED over every case in `cases/`._
+_Generated 2026-06-11 20:16 UTC · model `claude-opus-4-8` · loop config cap=5, plateau=2 · run UNMODIFIED over every case in `cases/`, each candidate executed inside the I0 locked-down container (v2 OS isolation)._
 
 ## Headline finding
 
@@ -31,14 +31,14 @@ Every `best` candidate below passed the correctness gate (test suite) and the be
 
 | case | weighted cost (orig→best) | bloat removed | cost (USD) |
 |------|:-------------------------:|:-------------:|-----------:|
-| `format_duration` | 1.0 → 0.0069 | 99.3% | $0.05371 |
+| `format_duration` | 1.0 → 0.0035 | 99.7% | $0.052945 |
 | `income_tax` | 1.0 → 0.0 | 100.0% | $0.01636 |
 | `int_to_words` | 1.0 → 0.0038 | 99.6% | $0.077225 |
 | `merge_intervals` | 1.0 → 0.0 | 100.0% | $0.00813 |
 | `sum_evens` | 1.0 → 0.0 | 100.0% | $0.006145 |
 
 
-**Totals:** $0.16157 across 5 cases (17274 input / 3008 output tokens), real API token counts straight from the loop's own logs.
+**Totals:** $0.160805 across 5 cases (17256 input / 2981 output tokens), real API token counts straight from the loop's own logs.
 
 ## Per-metric structural reduction
 
@@ -50,7 +50,7 @@ Per case, the structural metrics that drive the score (original → best, with t
 | metric | original | best | floor | to floor | norm cost |
 |--------|---------:|-----:|------:|---------:|----------:|
 | cyclomatic_total | 51 | 9 | 9 | 0 | 0.000 |
-| logical_loc | 94 | 19 | 17 | 2 | 0.026 |
+| logical_loc | 94 | 18 | 17 | 1 | 0.013 |
 | max_nesting_depth | 3 | 3 | 3 | 0 | n/a |
 | dependency_count | 5 | 0 | 0 | 0 | 0.000 |
 | dead_code_count | 9 | 1 | 1 | 0 | 0.000 |
@@ -111,7 +111,7 @@ Per case, the structural metrics that drive the score (original → best, with t
 | duplication | 1 | 1 | 1 | 100.0% |
 | excessive_nesting | 1 | 1 | 1 | 99.6% |
 | over_abstraction | 1 | 1 | 1 | 100.0% |
-| verbose_patterns | 2 | 2 | 2 | 99.7% |
+| verbose_patterns | 2 | 2 | 2 | 99.8% |
 
 
 **By difficulty:**
@@ -119,7 +119,7 @@ Per case, the structural metrics that drive the score (original → best, with t
 | difficulty | cases | improved | one-shot | avg bloat removed (vs floor) |
 |------|------:|---------:|---------:|----------------------------:|
 | easy | 1 | 1 | 1 | 100.0% |
-| hard | 3 | 3 | 3 | 99.6% |
+| hard | 3 | 3 | 3 | 99.8% |
 | medium | 1 | 1 | 1 | 100.0% |
 
 ## A note on run-to-run variance (stochastic loop)
@@ -131,7 +131,7 @@ The generator is a stochastic LLM, so a single live run is one sample, not a fix
 - **Small corpus.** 5 cases is a validation set, not a benchmark; numbers here establish that the machinery works, not a population-level claim. Benchmark-grade claims need ~25-30 cases across categories/difficulties (next step).
 - **Single-function scope.** Every case is one function. At this scope a capable model reaches the structural floor in a single pass, which is why the feedback loop is not load-bearing here.
 - **Directed feedback is a v2 lever.** Multi-generation feedback is expected to matter at multi-file / system scope (cross-module refactors that cannot be one-shot), which is out of scope for v1 and deferred to v2.
-- **Behavior-gate forgery boundary (documented).** The behavior gate replays golden I/O in a sandbox; it is not a cryptographically isolated environment, so a candidate that deliberately detects and special-cases the harness is a residual boundary. Hardening this with OS-level isolation is deferred to v2.
+- **Behavior-gate forgery boundary (v2 — under OS isolation).** Every candidate in these runs executes inside the I0 locked-down container (no network, no host filesystem, memory/CPU/PID caps, non-root). That OS boundary CLOSES the access-based vectors: oracle-read (the golden file is not in the container), host-filesystem/secret reads, network, and the literal `import __main__` serializer-attribute form. It does NOT split the process, so the untrusted candidate and the trusted result emitter stay co-resident; in-process forgery (the frame-locals serializer hijack and compute-and-lie) is therefore still OPEN and is pinned, known-open, in `tools/test_behavior_gate_limits.py`. Closing it needs a process split (architecture change), deferred by decision — not patched here.
 - **No objective readability oracle.** The `suspiciously-simple` / `fragmentation-smell` guards FLAG golfed-but-correct candidates rather than rejecting them, because there is no LLM-free readability oracle and rejecting a genuinely simpler correct answer would violate "objective only."
 
 ## What these results do NOT claim

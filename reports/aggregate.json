@@ -9,15 +9,15 @@
   "baseline_returned": 0,
   "needed_feedback_cases": [],
   "feedback_load_bearing": false,
-  "total_cost_usd": 0.16157,
-  "total_input_tokens": 17274,
-  "total_output_tokens": 3008,
+  "total_cost_usd": 0.160805,
+  "total_input_tokens": 17256,
+  "total_output_tokens": 2981,
   "by_category": {
     "verbose_patterns": {
       "n": 2,
       "improved": 2,
       "one_shot": 2,
-      "avg_bloat_removed_pct": 99.7
+      "avg_bloat_removed_pct": 99.8
     },
     "duplication": {
       "n": 1,
@@ -43,7 +43,7 @@
       "n": 3,
       "improved": 3,
       "one_shot": 3,
-      "avg_bloat_removed_pct": 99.6
+      "avg_bloat_removed_pct": 99.8
     },
     "medium": {
       "n": 1,
@@ -65,17 +65,17 @@
       "difficulty": "hard",
       "verdict": "improved (best candidate returned)",
       "improved_over_baseline": true,
-      "best_weighted_cost": 0.0069,
-      "bloat_removed_pct": 99.3,
-      "first_pass_bloat_removed_pct": 99.3,
+      "best_weighted_cost": 0.0035,
+      "bloat_removed_pct": 99.7,
+      "first_pass_bloat_removed_pct": 99.7,
       "feedback_gain_pp": 0.0,
       "generations_attempted": 3,
       "best_generation": 1,
       "first_scored_generation": 1,
       "floor_reached": false,
-      "total_cost_usd": 0.05371,
-      "total_input_tokens": 6092,
-      "total_output_tokens": 930,
+      "total_cost_usd": 0.052945,
+      "total_input_tokens": 6074,
+      "total_output_tokens": 903,
       "best_flags": [],
       "halted": null,
       "structural_changes_from_first": [],
@@ -91,9 +91,9 @@
         {
           "metric": "logical_loc",
           "original": 94,
-          "best": 19,
+          "best": 18,
           "floor": 17,
-          "norm_cost": 0.025974025974025976,
+          "norm_cost": 0.012987012987012988,
           "at_or_below_floor": false
         },
         {
@@ -129,7 +129,7 @@
           "at_or_below_floor": true
         }
       ],
-      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Self Evolving Agent/runs/format_duration_20260609T201359Z"
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/format_duration_20260611T201513Z"
     },
     {
       "case": "income_tax",
@@ -201,7 +201,7 @@
           "at_or_below_floor": true
         }
       ],
-      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Self Evolving Agent/runs/income_tax_20260609T201410Z"
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/income_tax_20260611T201526Z"
     },
     {
       "case": "int_to_words",
@@ -273,7 +273,7 @@
           "at_or_below_floor": true
         }
       ],
-      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Self Evolving Agent/runs/int_to_words_20260609T201414Z"
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/int_to_words_20260611T201537Z"
     },
     {
       "case": "merge_intervals",
@@ -345,7 +345,7 @@
           "at_or_below_floor": true
         }
       ],
-      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Self Evolving Agent/runs/merge_intervals_20260609T201431Z"
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/merge_intervals_20260611T201556Z"
     },
     {
       "case": "sum_evens",
@@ -417,7 +417,7 @@
           "at_or_below_floor": false
         }
       ],
-      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Self Evolving Agent/runs/sum_evens_20260609T201433Z"
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/sum_evens_20260611T201559Z"
     }
   ]
 }

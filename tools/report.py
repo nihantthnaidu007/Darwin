@@ -135,7 +135,8 @@ def build_markdown(agg, generated_at):
     md.append("# Self-Evolving Code-Optimization Engine — Validation Results\n")
     md.append(f"_Generated {generated_at} · model `{agg['model']}` · "
               f"loop config cap={cap}, plateau={plateau} · run UNMODIFIED over "
-              f"every case in `cases/`._\n")
+              f"every case in `cases/`, each candidate executed inside the I0 "
+              f"locked-down container (v2 OS isolation)._\n")
 
     md.append("## Headline finding\n")
     md.append(_headline(agg) + "\n")
@@ -237,10 +238,17 @@ def build_markdown(agg, generated_at):
         "- **Directed feedback is a v2 lever.** Multi-generation feedback is expected to "
         "matter at multi-file / system scope (cross-module refactors that cannot be "
         "one-shot), which is out of scope for v1 and deferred to v2.\n"
-        "- **Behavior-gate forgery boundary (documented).** The behavior gate replays "
-        "golden I/O in a sandbox; it is not a cryptographically isolated environment, so "
-        "a candidate that deliberately detects and special-cases the harness is a residual "
-        "boundary. Hardening this with OS-level isolation is deferred to v2.\n"
+        "- **Behavior-gate forgery boundary (v2 — under OS isolation).** Every candidate "
+        "in these runs executes inside the I0 locked-down container (no network, no host "
+        "filesystem, memory/CPU/PID caps, non-root). That OS boundary CLOSES the "
+        "access-based vectors: oracle-read (the golden file is not in the container), "
+        "host-filesystem/secret reads, network, and the literal `import __main__` "
+        "serializer-attribute form. It does NOT split the process, so the untrusted "
+        "candidate and the trusted result emitter stay co-resident; in-process forgery "
+        "(the frame-locals serializer hijack and compute-and-lie) is therefore still OPEN "
+        "and is pinned, known-open, in `tools/test_behavior_gate_limits.py`. Closing it "
+        "needs a process split (architecture change), deferred by decision — not patched "
+        "here.\n"
         "- **No objective readability oracle.** The `suspiciously-simple` / "
         "`fragmentation-smell` guards FLAG golfed-but-correct candidates rather than "
         "rejecting them, because there is no LLM-free readability oracle and rejecting a "
