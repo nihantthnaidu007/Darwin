@@ -32,6 +32,8 @@ never-worse-than-baseline guarantee holds throughout.
 - differential testing at the public API: multi-file correctness check. For the same call sequence, original and candidate must produce identical per-call observables on fresh instances.
 - the catch-test: an mcase is sound only if its corpus catches every planted break in breaks.py, except breaks marked expect_caught=False (documented irreducible misses). tools/validate_mcase.py.
 - comparator conventions: typed equality via canon() (True is not 1), list order observable, dict key order not observable, exception type and message observable. tools/mdiffer.py.
+- multi-file evaluator: the multi-file objective scorer. Mirrors the single-function three-layer contract (correctness gate, equivalence gate, complexity scoring) across the container boundary, no LLM. tools/mevaluator.py.
+- multi-file metric basket: structural-complexity metrics aggregated across a multi-file unit, the Layer 3 input to the multi-file evaluator. tools/mcase_metrics.py.
 
 ## Architecture
 
@@ -51,12 +53,14 @@ Multi-file stack (v3):
 - tools/mdiffer.py : the differential equivalence core. Promoted from the M0 spike. Reused, not reimplemented, by the verifiers.
 - tools/validate_mcase.py : the V0 case validator. Suite, self-equivalence, reference-equivalence, and the catch-test. Trusts both units (in-process).
 - tools/mverify.py : the V1 equivalence gate. The candidate is untrusted, so it executes across the container boundary while the original replays host-side and the comparison stays host-side.
+- tools/mcase_metrics.py : the V1 multi-file metric basket. Aggregates structural metrics across a unit (the Layer 3 input).
+- tools/mevaluator.py : the V1 multi-file evaluator. Three layers in strict order: correctness gate (the case suite inside the container), equivalence gate (mverify), complexity scoring (mcase_metrics against the reference floor). Scored only when both gates pass. No LLM.
 
 ## Current state
 
 - Version: v3. Branch v3-v1-multifile-evaluator.
-- Last completed work: V1 Prompt 1, the multi-file equivalence check across the container boundary, tools/mverify.py.
-- Working today: v1 single-function simplifier (tagged v0.1.0); v2.0 OS isolation (tagged v0.2.0); v3 in progress (M0 equivalence spike done, V0 multi-file case store done, V1 Prompt 1 done).
+- Last completed work: V1 Prompt 2, the full multi-file evaluator, tools/mevaluator.py (correctness gate, containerized equivalence gate, structural scoring, specific feedback), plus tools/mcase_metrics.py for the metric basket.
+- Working today: v1 single-function simplifier (tagged v0.1.0); v2.0 OS isolation (tagged v0.2.0); v3 in progress (M0 equivalence spike done, V0 multi-file case store done, V1 multi-file evaluator done across both prompts). Verified: validate_mcase --all reports ALL CASES SOUND, and the 20 container-backed multi-file tests pass.
 
 Open deferred items (honest ledger):
 
@@ -64,7 +68,7 @@ Open deferred items (honest ledger):
 - Native-Linux isolation verification is pending. Isolation was verified on macOS Docker Desktop only. SECURITY.md.
 - Multi-file equivalence is a strong-but-not-total signal, strictly weaker than single-function golden I/O. The guarantee is sequence-relative and API-relative. reports/M0_EQUIVALENCE.md.
 - Per-unit sequence-domain authoring (the corpus reach envelope) is real per-case work, not engineered away. reports/M0_EQUIVALENCE.md, mcases/README.md.
-- mverify reads back container stdout capped at 1 MB per stream, used as-is at V1 scope; an output-cap test is not yet present. tools/mverify.py, tools/sandbox_container.py.
+- mverify reads back container stdout capped at 1 MB per stream, used as-is at V1 scope. The fail-closed-on-overflow path is tested (test_mevaluator.py test_outcome_bloated_candidate_fails_closed). tools/mverify.py, tools/sandbox_container.py.
 - Module-global load counters (_LOAD) in tools/mverify.py and tools/validate_mcase.py make those importers not concurrency-safe within one process.
 - Container startup and teardown adds measured overhead (about 0.174 s fixed per spin-up). reports/ISOLATION.md.
 
