@@ -58,9 +58,10 @@ Multi-file stack (v3):
 
 ## Current state
 
-- Version: v3. Branch v3-v1-multifile-evaluator.
-- Last completed work: V1 Prompt 2, the full multi-file evaluator, tools/mevaluator.py (correctness gate, containerized equivalence gate, structural scoring, specific feedback), plus tools/mcase_metrics.py for the metric basket.
-- Working today: v1 single-function simplifier (tagged v0.1.0); v2.0 OS isolation (tagged v0.2.0); v3 in progress (M0 equivalence spike done, V0 multi-file case store done, V1 multi-file evaluator done across both prompts). Verified: validate_mcase --all reports ALL CASES SOUND, and the 20 container-backed multi-file tests pass.
+- Version: v3. Branch v3-phase-v2-loop (off main at a75fe92, the merged M0+V0+V1 foundation).
+- Last completed work: V1, the multi-file evaluator (tools/mevaluator.py, tools/mcase_metrics.py), merged to main at a75fe92 and confirmed STABLE ON MAIN by post-merge audit.
+- In progress: V2, the directed multi-file loop. Building a multi-file generator (emits a candidate unit as several files) and a multi-file loop (generate, evaluate through mevaluator, feed sanitized feedback back, never worse than baseline), the multi-file analogue of tools/generator.py and tools/loop.py.
+- Working today: v1 single-function simplifier (tagged v0.1.0); v2.0 OS isolation (tagged v0.2.0); v3 multi-file evaluator done (M0 spike, V0 case store, V1 evaluator). Verified on main: validate_mcase --all reports ALL CASES SOUND, the 20 container-backed multi-file tests pass, and the single-function smoke test exits 0.
 
 Open deferred items (honest ledger):
 
@@ -70,6 +71,7 @@ Open deferred items (honest ledger):
 - Per-unit sequence-domain authoring (the corpus reach envelope) is real per-case work, not engineered away. reports/M0_EQUIVALENCE.md, mcases/README.md.
 - mverify reads back container stdout capped at 1 MB per stream, used as-is at V1 scope. The fail-closed-on-overflow path is tested (test_mevaluator.py test_outcome_bloated_candidate_fails_closed). tools/mverify.py, tools/sandbox_container.py.
 - Module-global load counters (_LOAD) in tools/mverify.py and tools/validate_mcase.py make those importers not concurrency-safe within one process.
+- Host Python may range 3.12 to 3.14; the sandbox container is pinned to 3.13 (tools/Dockerfile.sandbox). Cross-version determinism of the canonical equivalence outcomes was verified: the per-call canonical reference outcomes are byte-identical across host 3.12 and 3.14 for all three mcases, so the host-replays-original, container-replays-candidate split is safe across this range. README and tools/mverify.py still phrase the guarantee as 3.13-specific; broadening that wording is a v3-close documentation item.
 - Container startup and teardown adds measured overhead (about 0.174 s fixed per spin-up). reports/ISOLATION.md.
 
 ## Conventions
