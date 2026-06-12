@@ -1,0 +1,10 @@
+{
+  "case_id": "task_scheduler",
+  "kind": "priority job scheduler (retry/state-machine statefulness)",
+  "entry": "Scheduler",
+  "public_api": ["submit", "next_job", "complete", "fail", "cancel", "status", "pending", "stats"],
+  "stateful_because": "job states persist across calls; pop order depends on the full submit/fail history (FIFO tie-break, requeue-to-back); retry exhaustion is deep state; counters digest the whole history",
+  "bloat_character": "validation rule-engine + duplicated standalone checks, state-transition table indirection, mirrored queue index/size, write-only history, unused helper + import, verbose loops",
+  "difficulty": "medium",
+  "constraints": "deterministic, no I/O, no wall clock, no randomness"
+}

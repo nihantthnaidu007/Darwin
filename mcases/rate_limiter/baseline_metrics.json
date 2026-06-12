@@ -1,0 +1,88 @@
+{
+  "original": {
+    "aggregate": {
+      "file_count": 5,
+      "cyclomatic_total": 73,
+      "cyclomatic_max": 5,
+      "logical_loc": 173,
+      "source_loc": 167,
+      "dependency_count": 0,
+      "dependencies": [],
+      "dead_code_count": 9,
+      "max_nesting_depth": 4
+    },
+    "per_file": {
+      "__init__.py": {
+        "cyclomatic_total": 0,
+        "cyclomatic_max": 0,
+        "logical_loc": 2,
+        "source_loc": 2,
+        "max_nesting_depth": 0,
+        "maintainability_index": 100.0
+      },
+      "buckets.py": {
+        "cyclomatic_total": 18,
+        "cyclomatic_max": 2,
+        "logical_loc": 31,
+        "source_loc": 30,
+        "max_nesting_depth": 3,
+        "maintainability_index": 55.93
+      },
+      "checks.py": {
+        "cyclomatic_total": 21,
+        "cyclomatic_max": 5,
+        "logical_loc": 54,
+        "source_loc": 52,
+        "max_nesting_depth": 4,
+        "maintainability_index": 44.7
+      },
+      "limiter.py": {
+        "cyclomatic_total": 22,
+        "cyclomatic_max": 3,
+        "logical_loc": 60,
+        "source_loc": 59,
+        "max_nesting_depth": 3,
+        "maintainability_index": 45.65
+      },
+      "refill.py": {
+        "cyclomatic_total": 12,
+        "cyclomatic_max": 2,
+        "logical_loc": 26,
+        "source_loc": 24,
+        "max_nesting_depth": 3,
+        "maintainability_index": 55.19
+      }
+    }
+  },
+  "reference": {
+    "aggregate": {
+      "file_count": 2,
+      "cyclomatic_total": 37,
+      "cyclomatic_max": 4,
+      "logical_loc": 68,
+      "source_loc": 73,
+      "dependency_count": 0,
+      "dependencies": [],
+      "dead_code_count": 6,
+      "max_nesting_depth": 3
+    },
+    "per_file": {
+      "__init__.py": {
+        "cyclomatic_total": 0,
+        "cyclomatic_max": 0,
+        "logical_loc": 2,
+        "source_loc": 2,
+        "max_nesting_depth": 0,
+        "maintainability_index": 100.0
+      },
+      "limiter.py": {
+        "cyclomatic_total": 37,
+        "cyclomatic_max": 4,
+        "logical_loc": 66,
+        "source_loc": 71,
+        "max_nesting_depth": 3,
+        "maintainability_index": 66.86
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "case_id": "doc_history",
+  "kind": "document store with bounded undo/redo (history statefulness)",
+  "entry": "DocStore",
+  "public_api": ["set", "remove", "get", "fields", "undo", "redo", "depth", "stats"],
+  "stateful_because": "every mutation appends to a bounded undo journal; undo/redo outcomes depend on the entire mutation history and on cap-trimming; redo is invalidated by new mutations but survives no-op removes; insertion order interacts with undo conventions",
+  "bloat_character": "operation-object polymorphism (SetOperation/RemoveOperation), journal classes with depth mirrors, verbose validators with flag variables, unused summarize_rules helper, manual loops for list copies",
+  "difficulty": "medium",
+  "constraints": "deterministic, no I/O, no wall clock, no randomness"
+}

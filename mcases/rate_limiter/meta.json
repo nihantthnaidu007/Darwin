@@ -1,0 +1,10 @@
+{
+  "case_id": "rate_limiter",
+  "kind": "token-bucket rate limiter (logical-time statefulness)",
+  "entry": "Limiter",
+  "public_api": ["allow", "remaining", "tick", "reset", "active_clients", "stats"],
+  "stateful_because": "per-client token counts evolve with the interleaving of allow() and tick(); lazy refill makes behavior depend on when each bucket was last touched; denial at exactly zero tokens and clamping at exactly burst are deep boundary states",
+  "bloat_character": "refill strategy class + double clamp, bucket registry with population and creation-order mirrors, verbose validators with flag variables, unused describe_limits helper",
+  "difficulty": "medium",
+  "constraints": "deterministic, no I/O, no wall clock, no randomness"
+}
