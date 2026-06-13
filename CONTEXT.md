@@ -62,9 +62,9 @@ Multi-file stack (v3):
 
 ## Current state
 
-- Version: v3. Branch v3-phase-v2-loop (off main at a75fe92), ready for the V2 pre-merge audit.
-- Last completed work: V2, the directed multi-file loop. tools/mgenerator.py (the multi-file generator) and tools/mloop.py (the loop), the multi-file analogue of tools/generator.py and tools/loop.py.
-- Working today: v1 single-function simplifier (tagged v0.1.0); v2.0 OS isolation (tagged v0.2.0); v3 multi-file evaluator done and merged to main; V2 generator and loop built and tested on branch. Verified: the mgenerator and mloop unit tests pass with no API key, with the loop's feedback sanitization and fresh-per-generation directories proven by test; validate_mcase --all reports ALL CASES SOUND; the container-backed tests and the single-function smoke pass when the sandbox image is built.
+- Version: v3. On main: M0+V0+V1 and V2 are merged, and the multi-file benchmark harness (V3) is also on main, which reached main early through the inverted-span fix branch (acknowledged; V3 completes from here).
+- Last completed work: the evaluator inverted-span scoring fix (decision 0013) and the regenerated single-function benchmark record on the corrected scorer.
+- Working today: v1 single-function simplifier (tagged v0.1.0); v2.0 OS isolation (tagged v0.2.0); v3 multi-file generator, loop, and benchmark harness built; inverted-span fix applied. The multi-file benchmark has been run on the fixed scorer and shows all three cases one-shot at generation 1 (feedback not load-bearing at this scope); the honest V3 report and its decision record are next. Verified: validate_mcase --all reports ALL CASES SOUND, the multi-file and single-function suites pass, and the single-function smoke exits 0.
 
 Open deferred items (honest ledger):
 
@@ -77,6 +77,7 @@ Open deferred items (honest ledger):
 - Host Python may range 3.12 to 3.14; the sandbox container is pinned to 3.13 (tools/Dockerfile.sandbox). Cross-version determinism of the canonical equivalence outcomes was verified: the per-call canonical reference outcomes are byte-identical across host 3.12 and 3.14 for all three mcases, so the host-replays-original, container-replays-candidate split is safe across this range. README and tools/mverify.py still phrase the guarantee as 3.13-specific; broadening that wording is a v3-close documentation item.
 - The multi-file loop's feedback sanitizer strips the oracle by matching mevaluator's exact feedback strings (the "original :" line). This is a load-bearing contract between tools/mloop.py and tools/mevaluator.py, not enforced by a shared constant; a regression test in test_mloop guards it by building feedback through the real mevaluator helper. The tests-failed vs could-not-run classifier boundary is part of the same contract.
 - Container startup and teardown adds measured overhead (about 0.174 s fixed per spin-up). reports/ISOLATION.md.
+- The inverted-span no-signal rule means a candidate that regresses a metric above the original on an inverted-span metric is unscored rather than penalized (decision 0013). A guard flag for "regressed above original" is a future enhancement. tools/evaluator.py.
 
 ## Conventions
 
