@@ -34,6 +34,8 @@ never-worse-than-baseline guarantee holds throughout.
 - comparator conventions: typed equality via canon() (True is not 1), list order observable, dict key order not observable, exception type and message observable. tools/mdiffer.py.
 - multi-file evaluator: the multi-file objective scorer. Mirrors the single-function three-layer contract (correctness gate, equivalence gate, complexity scoring) across the container boundary, no LLM. tools/mevaluator.py.
 - multi-file metric basket: structural-complexity metrics aggregated across a multi-file unit, the Layer 3 input to the multi-file evaluator. tools/mcase_metrics.py.
+- multi-file generator: one model call that rewrites a bloated unit into a candidate package, parsed and statically validated from the model output, never executed on the host. tools/mgenerator.py.
+- multi-file loop: the directed generate-evaluate-feedback loop on a multi-file unit. Sanitizes feedback so the generator never sees the oracle. tools/mloop.py.
 
 ## Architecture
 
@@ -55,12 +57,14 @@ Multi-file stack (v3):
 - tools/mverify.py : the V1 equivalence gate. The candidate is untrusted, so it executes across the container boundary while the original replays host-side and the comparison stays host-side.
 - tools/mcase_metrics.py : the V1 multi-file metric basket. Aggregates structural metrics across a unit (the Layer 3 input).
 - tools/mevaluator.py : the V1 multi-file evaluator. Three layers in strict order: correctness gate (the case suite inside the container), equivalence gate (mverify), complexity scoring (mcase_metrics against the reference floor). Scored only when both gates pass. No LLM.
+- tools/mgenerator.py : the V2 multi-file generator. One model call rewrites the bloated unit into a candidate package, parsed and statically validated from the model output (never executed on the host), path-safe. Reuses generator.py's call machinery.
+- tools/mloop.py : the V2 directed multi-file loop. Mirrors loop.py: baseline as guaranteed fallback, generate via mgenerator, score via mevaluator, feed sanitized feedback back (no oracle to the generator), best-kept, never worse than baseline, stop on cap, floor, or plateau.
 
 ## Current state
 
-- Version: v3. Branch v3-v1-multifile-evaluator.
-- Last completed work: V1 Prompt 2, the full multi-file evaluator, tools/mevaluator.py (correctness gate, containerized equivalence gate, structural scoring, specific feedback), plus tools/mcase_metrics.py for the metric basket.
-- Working today: v1 single-function simplifier (tagged v0.1.0); v2.0 OS isolation (tagged v0.2.0); v3 in progress (M0 equivalence spike done, V0 multi-file case store done, V1 multi-file evaluator done across both prompts). Verified: validate_mcase --all reports ALL CASES SOUND, and the 20 container-backed multi-file tests pass.
+- Version: v3. Branch v3-phase-v2-loop (off main at a75fe92), ready for the V2 pre-merge audit.
+- Last completed work: V2, the directed multi-file loop. tools/mgenerator.py (the multi-file generator) and tools/mloop.py (the loop), the multi-file analogue of tools/generator.py and tools/loop.py.
+- Working today: v1 single-function simplifier (tagged v0.1.0); v2.0 OS isolation (tagged v0.2.0); v3 multi-file evaluator done and merged to main; V2 generator and loop built and tested on branch. Verified: the mgenerator and mloop unit tests pass with no API key, with the loop's feedback sanitization and fresh-per-generation directories proven by test; validate_mcase --all reports ALL CASES SOUND; the container-backed tests and the single-function smoke pass when the sandbox image is built.
 
 Open deferred items (honest ledger):
 
@@ -70,6 +74,8 @@ Open deferred items (honest ledger):
 - Per-unit sequence-domain authoring (the corpus reach envelope) is real per-case work, not engineered away. reports/M0_EQUIVALENCE.md, mcases/README.md.
 - mverify reads back container stdout capped at 1 MB per stream, used as-is at V1 scope. The fail-closed-on-overflow path is tested (test_mevaluator.py test_outcome_bloated_candidate_fails_closed). tools/mverify.py, tools/sandbox_container.py.
 - Module-global load counters (_LOAD) in tools/mverify.py and tools/validate_mcase.py make those importers not concurrency-safe within one process.
+- Host Python may range 3.12 to 3.14; the sandbox container is pinned to 3.13 (tools/Dockerfile.sandbox). Cross-version determinism of the canonical equivalence outcomes was verified: the per-call canonical reference outcomes are byte-identical across host 3.12 and 3.14 for all three mcases, so the host-replays-original, container-replays-candidate split is safe across this range. README and tools/mverify.py still phrase the guarantee as 3.13-specific; broadening that wording is a v3-close documentation item.
+- The multi-file loop's feedback sanitizer strips the oracle by matching mevaluator's exact feedback strings (the "original :" line). This is a load-bearing contract between tools/mloop.py and tools/mevaluator.py, not enforced by a shared constant; a regression test in test_mloop guards it by building feedback through the real mevaluator helper. The tests-failed vs could-not-run classifier boundary is part of the same contract.
 - Container startup and teardown adds measured overhead (about 0.174 s fixed per spin-up). reports/ISOLATION.md.
 
 ## Conventions
