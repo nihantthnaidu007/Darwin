@@ -34,7 +34,7 @@ jobs:
         run: docker build -f tools/Dockerfile.sandbox -t darwin-sandbox:py313 tools/
 
       # Run from tools/ so imports resolve as every other invocation does.
-      # Expected: 68 passed, 2 xfailed (the decision-0008 in-process forgery
+      # Expected: 75 passed, 2 xfailed (the decision-0008 in-process forgery
       # vectors). pytest's default exit codes fail CI on any failure or XPASS.
       - name: Run the suite
         working-directory: tools

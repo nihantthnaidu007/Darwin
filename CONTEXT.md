@@ -65,7 +65,7 @@ Multi-file stack (v3):
 - Version: v4 (CI and hardening), in progress. v3 is merged to main (commit 865ec57): the honest multi-file validation report, the six-run variance dataset, and decision 0014 are on main, and the V3 pre-merge and post-merge audits both passed (MAIN HEALTHY).
 - Last completed work: the v3 merge and its post-merge audit. main is green (68 passed, 2 known decision-0008 xfail), all mcases sound, single-function smoke invariants hold.
 - Working today: v4 opens the project's first test-running CI (.github/workflows/ci.yml: build the sandbox image, run the full suite, gating pushes and PRs), plus three hardening items: a pytest-presence guard in validate_mcase; broadening the 3.13-specific wording in README and mverify to the verified 3.12 to 3.14 host range; and a Linux-portability staging fix in tools/sandbox_container.py that makes the per-run read-only bind mount readable and traversable by the container's uid 1000 so the suite runs on native Linux Docker hosts (it previously ran only on macOS Docker Desktop), with the container isolation flags unchanged. The branch suite is green at 75 passed, 2 xfailed (the 68 above is main's count before v4 added 7 tests).
-- Next: V4-P2 (validate_mcase pytest guard), V4-P3 (3.13 wording), then the V4 pre-merge audit, merge, post-merge audit, and tag 0.3.0 as the final act of v4.
+- Next: the v4 build items (CI, pytest guard, 3.13 wording, Linux staging fix) are complete; the remaining steps are the V4 pre-merge audit, the merge to main, the post-merge audit, and tagging 0.3.0 (with the pyproject version bump) as the final act of v4.
 
 Open deferred items (honest ledger):
 
