@@ -11,8 +11,9 @@ behavior-preserving, and structurally simpler, or returns the original unchanged
 No LLM judges correctness or quality anywhere in the scoring path.
 
 Scope, stated honestly: single-function (v1, tagged v0.1.0) plus OS isolation
-(v2.0, tagged v0.2.0), extending to multi-file (v3, in progress). The
-never-worse-than-baseline guarantee holds throughout.
+(v2.0, tagged v0.2.0); multi-file is merged (v3) and CI plus Linux portability
+are merged and tagged 0.3.0 (v4). The never-worse-than-baseline guarantee holds
+throughout.
 
 ## Domain language
 
@@ -62,10 +63,10 @@ Multi-file stack (v3):
 
 ## Current state
 
-- Version: v4 (CI and hardening), in progress. v3 is merged to main (commit 865ec57): the honest multi-file validation report, the six-run variance dataset, and decision 0014 are on main, and the V3 pre-merge and post-merge audits both passed (MAIN HEALTHY).
-- Last completed work: the v3 merge and its post-merge audit. main is green (68 passed, 2 known decision-0008 xfail), all mcases sound, single-function smoke invariants hold.
-- Working today: v4 opens the project's first test-running CI (.github/workflows/ci.yml: build the sandbox image, run the full suite, gating pushes and PRs), plus three hardening items: a pytest-presence guard in validate_mcase; broadening the 3.13-specific wording in README and mverify to the verified 3.12 to 3.14 host range; and a Linux-portability staging fix in tools/sandbox_container.py that makes the per-run read-only bind mount readable and traversable by the container's uid 1000 so the suite runs on native Linux Docker hosts (it previously ran only on macOS Docker Desktop), with the container isolation flags unchanged. The branch suite is green at 75 passed, 2 xfailed (the 68 above is main's count before v4 added 7 tests).
-- Next: the v4 build items (CI, pytest guard, 3.13 wording, Linux staging fix) are complete; the remaining steps are the V4 pre-merge audit, the merge to main, the post-merge audit, and tagging 0.3.0 (with the pyproject version bump) as the final act of v4.
+- Version: v4 (CI and hardening), complete and released as 0.3.0. v3 is merged to main (commit 865ec57): the honest multi-file validation report, the six-run variance dataset, and decision 0014 are on main, and the V3 pre-merge and post-merge audits both passed (MAIN HEALTHY).
+- Last completed work: the v4 merge to main and its post-merge audit. main is green (75 passed, 2 known decision-0008 xfail), all mcases sound, single-function smoke invariants hold.
+- v4 (0.3.0) delivered the project's first test-running CI (.github/workflows/ci.yml: build the sandbox image, run the full suite, gating pushes and PRs), plus three hardening items: a pytest-presence guard in validate_mcase; broadening the 3.13-specific wording in README and mverify to the verified 3.12 to 3.14 host range; and a Linux-portability staging fix in tools/sandbox_container.py that makes the per-run read-only bind mount readable and traversable by the container's uid 1000 so the suite runs on native Linux Docker hosts (it previously ran only on macOS Docker Desktop), with the container isolation flags unchanged. v4 added 7 tests, taking the suite from 68 (main before v4) to the current 75 passed, 2 xfailed.
+- Next: the v4 build items, the V4 pre-merge audit, the merge to main, and the post-merge audit are all done; the release act (the pyproject version bump to 0.3.0 and the v0.3.0 tag) is the current step. Beyond 0.3.0 the next version is not yet scoped; known-deferred candidates include splitting the trusted result-emitter out of the candidate process (the in-process forgery residual, decision 0008), tightening the soft multi-file references, and growing the corpus toward a benchmark-grade multi-file claim.
 
 Open deferred items (honest ledger):
 
