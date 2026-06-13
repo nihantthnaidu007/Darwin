@@ -62,10 +62,10 @@ Multi-file stack (v3):
 
 ## Current state
 
-- Version: v3, build phases complete. On main: M0+V0+V1, V2, and the inverted-span scoring fix (decision 0013) are merged. The multi-file benchmark harness (V3) is also on main, having reached it early through the fix branch (acknowledged; the remaining V3 artifacts complete from the branch). The V3 report, variance dataset, and decision 0014 are on branch v3-phase-v3-benchmark (commit c5e3b7a), pushed, awaiting the V3 pre-merge audit.
-- Last completed work: V3-P2, the honest multi-file validation report (reports/MRESULTS.md), the six-run variance dataset (reports/mvariance.json), and decision 0014.
-- The V3 finding: at multi-file scope, over six post-fix runs with claude-opus-4-8, generation 1 removes roughly 79 to 104 percent of the original-to-floor span on every run, but reaching the floor in a single pass is run-dependent. The directed loop opportunistically closes the remainder when generation 1 falls short, with feedback_gain_pp ranging 0 to about 24 percentage points for the same case across runs. Feedback is not reliably load-bearing at this scope, but not zero. One-shot rate per case over six runs: doc_history 3/6, rate_limiter 1/6, task_scheduler 2/6; only 1 of 6 runs had all three one-shot. This is distinct from the single-function one-shot finding (decision 0006) and from the hoped-for dependable multi-generation payoff. The references are soft: 17 of 18 case-runs landed at or below the floor (exception: task_scheduler run 1 at 98.2 percent), so bloat-removed above 100 percent reflects reference looseness, not candidate excellence. n=3, medium difficulty only: directional, not a benchmark.
-- Next: V3 pre-merge audit (covering the harness already on main plus the branch artifacts), then merge to main, post-merge audit, then V4 (CI workflow and the validate_mcase pytest-presence guard), then tag 0.3.0 as the final act of V4.
+- Version: v4 (CI and hardening), in progress. v3 is merged to main (commit 865ec57): the honest multi-file validation report, the six-run variance dataset, and decision 0014 are on main, and the V3 pre-merge and post-merge audits both passed (MAIN HEALTHY).
+- Last completed work: the v3 merge and its post-merge audit. main is green (68 passed, 2 known decision-0008 xfail), all mcases sound, single-function smoke invariants hold.
+- Working today: v4 opens the project's first test-running CI (.github/workflows/ci.yml: build the sandbox image, run the full suite, gating pushes and PRs), plus two hardening items: a pytest-presence guard in validate_mcase, and broadening the 3.13-specific wording in README and mverify to the verified 3.12 to 3.14 host range.
+- Next: V4-P2 (validate_mcase pytest guard), V4-P3 (3.13 wording), then the V4 pre-merge audit, merge, post-merge audit, and tag 0.3.0 as the final act of v4.
 
 Open deferred items (honest ledger):
 

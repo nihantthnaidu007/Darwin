@@ -1,0 +1,41 @@
+name: CI
+
+# Build the sandbox image and run the full suite. Runs on push to any branch
+# (so a phase branch can be seen green before merge) and on pull requests to
+# main (so main is gated). No secrets: the suite uses fakes and the container,
+# never a live ANTHROPIC_API_KEY.
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # Host deps: radon, vulture, pytest, anthropic (httpx arrives transitively
+      # via anthropic). anthropic is required even with no API call, because
+      # tools/test_mloop.py imports generator, which imports anthropic at
+      # collection time.
+      - name: Install host dependencies
+        run: pip install -r requirements.txt
+
+      # The suite runs candidates via docker run, so the image must exist first.
+      # Exact command from the README.
+      - name: Build the sandbox image
+        run: docker build -f tools/Dockerfile.sandbox -t darwin-sandbox:py313 tools/
+
+      # Run from tools/ so imports resolve as every other invocation does.
+      # Expected: 68 passed, 2 xfailed (the decision-0008 in-process forgery
+      # vectors). pytest's default exit codes fail CI on any failure or XPASS.
+      - name: Run the suite
+        working-directory: tools
+        run: python -m pytest -q -p no:cacheprovider
