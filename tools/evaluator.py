@@ -61,13 +61,23 @@ HIGHER_BETTER = {"maintainability_index"}  # up-is-good metric — but weight 0 
 
 
 def _cost(metric, cand, orig, floor):
-    """Normalized cost for one metric, or None if this case gives it no signal
-    (original == floor, so there is nothing to improve and we must not divide by 0)."""
+    """Normalized cost for one metric, or None when this case gives it no signal.
+
+    Signal requires the original to be strictly WORSE than the reference floor on
+    this metric, so the original-to-floor improvement span (den) is strictly
+    positive. That reading holds in both branches: lower-is-better "worse" is a
+    higher value (den = orig - floor), higher-is-better "worse" is a lower value
+    (den = floor - orig). When that span is zero (original == floor, nothing to
+    improve) OR inverted (original already better than the floor, den < 0), there
+    is nothing to normalize against; dividing would flip the sign so a candidate
+    worse than both anchors would score below the floor. The existing "no signal,
+    do not divide" rule therefore extends from den == 0 to den <= 0: we return
+    None and weighted_cost excludes the metric."""
     if metric in HIGHER_BETTER:
         num, den = floor - cand, floor - orig
     else:
         num, den = cand - floor, orig - floor
-    if den == 0:
+    if den <= 0:
         return None
     return num / den
 
