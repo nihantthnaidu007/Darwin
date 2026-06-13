@@ -11,9 +11,12 @@ witness shape are mdiffer's, reused, not reimplemented.
 Information flow across the boundary (the Phase I1 pattern from verify_case.py):
 INTO the container go only the candidate source (under candidate/), the case's
 corpus.py (the sequence inputs, in their deterministic seeded generator form --
-stdlib-only, so host and container build bit-identical sequences on CPython
-3.13), mdiffer.py (the replay + canonicalization machinery the in-container
-driver reuses; it contains no case data), and the generated driver.py. The
+stdlib-only, so host and container build bit-identical sequences: the host that
+replays the original may be any of CPython 3.12 to 3.14, verified byte-identical
+in canonical equivalence outcomes across that range for all three mcases, while
+the sandbox container stays pinned to 3.13), mdiffer.py (the replay +
+canonicalization machinery the in-container driver reuses; it contains no case
+data), and the generated driver.py. The
 reference outcomes, the original source, and the comparison NEVER enter the
 container. The driver replays each batch sequence against the candidate on
 fresh instances and emits one token-framed frame of per-call canonical

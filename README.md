@@ -125,7 +125,7 @@ genuinely simpler correct answer would violate "objective only."
 Darwin is run **from source** (it is not pip-installable yet; see
 [pyproject.toml](pyproject.toml)).
 
-Requirements: **Python ≥ 3.10** (developed and validated on **3.13.2**).
+Requirements: **Python ≥ 3.10** (developed on **3.13.2**; the host that replays the reference is verified across **Python 3.12–3.14** — canonical equivalence outcomes byte-identical for all three mcases — while the sandbox container stays pinned to **3.13**).
 
 ```bash
 # from the repository root
