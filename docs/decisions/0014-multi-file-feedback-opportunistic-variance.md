@@ -1,0 +1,11 @@
+# 0014 Multi-file optimization: generation 1 does the bulk, feedback is opportunistic and high-variance
+
+Decision: On the v3 three-case multi-file validation corpus, measured over six post-fix runs (the inverted-span fix, decision 0013) with claude-opus-4-8, generation 1 removes most of the bloat on every run (roughly 79 to 104 percent of the original-to-floor span), but reliably reaching the floor in a single pass is run-dependent. The directed feedback loop opportunistically closes the remaining gap when generation 1 falls short, with feedback_gain_pp varying from 0 to about 24 percentage points for the same case across runs. Feedback is therefore not reliably load-bearing at this scope, but it is not zero either. This is distinct from the single-function finding (decision 0006, mostly one-shot) and from the hoped-for payoff of dependable multi-generation improvement.
+
+Context: A single live run is one stochastic sample. Early single runs landed both "all three one-shot" and "all three needed generation 2", which would have supported opposite headlines. Six runs were taken to characterize the variance rather than report a coin flip as a finding. One-shot rate per case over six runs: doc_history 3/6, rate_limiter 1/6, task_scheduler 2/6; only 1 of 6 runs had all three one-shot.
+
+Alternatives rejected:
+- Reporting a single run's headline (load-bearing or not): the binary flips run to run, so either claim would be sampling noise dressed as a result.
+- Claiming feedback is load-bearing on multi-file as a system property: the magnitude is unstable and inherits the soft-reference looseness, so the loop's contribution is opportunistic, not dependable.
+
+Consequences: whether the feedback loop becomes dependably load-bearing remains open and points to larger scope (more files, more entangled state, harder cases). The references are soft (every best landed at or below the floor in 17 of 18 case-runs; the one exception, task_scheduler run 1, came within about 2 percent of it), so bloat-removed above 100 percent reflects reference looseness, not candidate excellence, and feedback_gain_pp magnitudes are upper bounds. Tightening the references and growing the corpus are prerequisites for any benchmark-grade multi-file claim. The variance data is recorded in reports/mvariance.json.
