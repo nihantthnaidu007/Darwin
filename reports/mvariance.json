@@ -1,5 +1,5 @@
 {
-  "note": "Six post-inverted-span-fix runs of mbenchmark.py over the 3-case multi-file corpus (model claude-opus-4-8, cap 5, plateau 2), 2026-06-13. Recorded to characterize run-to-run variance: a single live run is one stochastic sample, not the result.",
+  "note": "Six post-inverted-span-fix runs of mbenchmark.py over the 3-case multi-file corpus (model claude-opus-4-8, cap 5, plateau 2), 2026-06-13. Recorded to characterize run-to-run variance: a single live run is one stochastic sample, not the result. These six rows are hand-recorded from the printed mbenchmark.py output, not auto-emitted; only the most recent run is independently corroborable from the gitignored on-disk maggregate.json, and the other five rows are not regenerable from a retained artifact. Retaining per-run snapshots or a fixed seed is a v3.1 item.",
   "model": "claude-opus-4-8",
   "config": {"cap": 5, "plateau_limit": 2},
   "n_runs": 6,
