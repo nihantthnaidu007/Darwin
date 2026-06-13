@@ -121,7 +121,22 @@ def validate_case(case_name):
     return failures == 0
 
 
+def _require_pytest(find_spec=importlib.util.find_spec):
+    """Fail fast if pytest is not importable in the interpreter running this
+    script. Each case suite is run via `python -m pytest` in a subprocess (see
+    _run_suite); without pytest that surfaces downstream as a confusing case
+    failure rather than a missing dependency. Called at the start of main()."""
+    if find_spec("pytest") is None:
+        print(
+            f"validate_mcase: pytest is not installed in this interpreter "
+            f"({sys.executable}). Install requirements: pip install -r requirements.txt",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
 def main():
+    _require_pytest()
     if len(sys.argv) != 2:
         sys.exit("usage: python validate_mcase.py <case_name>|--all")
     names = (sorted(p.name for p in MCASES.iterdir() if (p / "meta.json").exists())
