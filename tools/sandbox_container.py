@@ -45,6 +45,7 @@ SCOPE: this is the primitive only. Wiring the evaluator across the boundary is I
 """
 import os
 import shutil
+import stat
 import subprocess
 import tempfile
 import time
@@ -104,7 +105,6 @@ def run(files, command, timeout=10.0, image=IMAGE,
     always removed before returning, even on timeout or crash.
     """
     _require_image(image)
-    workdir = Path(tempfile.mkdtemp(prefix="darwin_sbx_"))
     name = "darwin_sbx_" + uuid.uuid4().hex  # unique; the teardown handle
     # Output goes to host files OUTSIDE the mounted dir (the container never sees
     # them), so a full pipe can never deadlock us and we read back only a capped
@@ -113,12 +113,9 @@ def run(files, command, timeout=10.0, image=IMAGE,
     err_fd, err_path = tempfile.mkstemp(prefix="darwin_sbx_err_")
     os.close(out_fd)
     os.close(err_fd)
+    workdir = None
     try:
-        for fname, content in files.items():
-            path = workdir / fname
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(content, encoding="utf-8")
-
+        workdir = _stage(files)
         argv = _run_argv(name, workdir, command, image, memory, cpus, pids)
         start = time.monotonic()
         with open(out_path, "wb") as out_f, open(err_path, "wb") as err_f:
@@ -165,12 +162,47 @@ def run(files, command, timeout=10.0, image=IMAGE,
         # Idempotent: a "No such container" from an already-removed container is
         # fine. Bounded so a wedged daemon cannot hang cleanup.
         _docker(["rm", "-f", name])
-        shutil.rmtree(workdir, ignore_errors=True)
+        if workdir is not None:
+            shutil.rmtree(workdir, ignore_errors=True)
         for p in (out_path, err_path):
             try:
                 os.unlink(p)
             except OSError:
                 pass
+
+
+def _stage(files):
+    """Write `files` (name -> text) into a fresh host temp dir and return its Path.
+
+    mkdtemp creates the dir mode 0o700 by design. On a Linux Docker host a
+    read-only bind mount preserves the host directory's owner and mode, so the
+    container's uid 1000 (a different uid than ours) cannot traverse or read a
+    0o700 dir we own: every run fails with "Permission denied: /sandbox/driver.py".
+    We widen the staged tree so a non-owner uid can traverse and read it -
+    directories get o+rx, files get o+r - and only ADD those bits, never narrowing
+    the owner's. The staged files are the candidate's own code, not secret, in a
+    short-lived temp dir removed by run()'s finally block.
+
+    This is host-side only and changes no container isolation flag: the mount stays
+    read-only (:ro) and --user stays 1000:1000 in _run_argv, so the candidate gains
+    nothing it could not already do (it was always meant to read /sandbox); this
+    only fixes the host-side permission so that intended read works on Linux. macOS
+    Docker Desktop ignores host uid/mode, so the widening is harmless there.
+    """
+    workdir = Path(tempfile.mkdtemp(prefix="darwin_sbx_"))
+    for fname, content in files.items():
+        path = workdir / fname
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+    # Walk top-down (os.walk yields workdir itself first) granting non-owner
+    # traverse/read on every directory and read on every file, regardless of the
+    # host umask.
+    for root, _dirs, fnames in os.walk(workdir):
+        os.chmod(root, stat.S_IMODE(os.stat(root).st_mode) | 0o055)
+        for fname in fnames:
+            fpath = os.path.join(root, fname)
+            os.chmod(fpath, stat.S_IMODE(os.stat(fpath).st_mode) | 0o044)
+    return workdir
 
 
 def _run_argv(name, workdir, command, image, memory, cpus, pids):
