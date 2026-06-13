@@ -1,0 +1,11 @@
+# 0013 Inverted original-to-floor spans give no scoring signal
+
+Decision: _cost returns None (no signal) whenever the original-to-floor improvement span is zero or inverted (den <= 0), not only when it is exactly zero. When the bloated original is already at or better than the clean reference floor on a metric, that metric offers no distance-toward-clean signal and is excluded from the weighted cost.
+
+Context: The normalization (cand - floor)/(orig - floor) guarded only den == 0. When the original is better than the floor on a metric (orig < floor), the denominator went negative and the cost sign flipped, so a candidate worse than both the original and the floor scored as below floor. The multi-file benchmark surfaced this on task_scheduler: a gen-2 candidate with cyclomatic_max 11 (original 5, floor 6) scored -5.0 on that metric, drove a spurious below-floor weighted cost, and produced a false "feedback load-bearing, +48pp" result. The loop's own feedback had named cyclomatic_max as the largest cost to reduce, a value that was already better than the floor. The same inverted span exists on cyclomatic_max in four of the five single-function cases, where it stayed small because no candidate pushed that metric to an extreme. This is a fragmentation artifact: a consolidated clean reference can legitimately have a higher max-function complexity than a bloated original that fragmented logic across many trivial functions.
+
+Alternatives rejected:
+- A separate inverted-span penalty or a clamp: both change the score surface, and the defect is the formula, not the references.
+- Editing the references so the original is never better than the floor on any metric: the references are not wrong; a clean consolidated unit may legitimately exceed a fragmented bloated one on cyclomatic_max.
+
+Consequences: a candidate that regresses an inverted-span metric above the original is now scored as no-signal rather than penalized. Catching that needs a separate guard flag with its own anchor, logged as a future enhancement, not built here. The fix is in the shared evaluator, so it applies to both single-function and multi-file scoring; the single-function benchmark of record was regenerated on the corrected scorer.
