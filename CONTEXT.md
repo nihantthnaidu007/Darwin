@@ -62,9 +62,10 @@ Multi-file stack (v3):
 
 ## Current state
 
-- Version: v3. On main: M0+V0+V1 and V2 are merged, and the multi-file benchmark harness (V3) is also on main, which reached main early through the inverted-span fix branch (acknowledged; V3 completes from here).
-- Last completed work: the evaluator inverted-span scoring fix (decision 0013) and the regenerated single-function benchmark record on the corrected scorer.
-- Working today: v1 single-function simplifier (tagged v0.1.0); v2.0 OS isolation (tagged v0.2.0); v3 multi-file generator, loop, and benchmark harness built; inverted-span fix applied. The multi-file benchmark has been run on the fixed scorer and shows all three cases one-shot at generation 1 (feedback not load-bearing at this scope); the honest V3 report and its decision record are next. Verified: validate_mcase --all reports ALL CASES SOUND, the multi-file and single-function suites pass, and the single-function smoke exits 0.
+- Version: v3, build phases complete. On main: M0+V0+V1, V2, and the inverted-span scoring fix (decision 0013) are merged. The multi-file benchmark harness (V3) is also on main, having reached it early through the fix branch (acknowledged; the remaining V3 artifacts complete from the branch). The V3 report, variance dataset, and decision 0014 are on branch v3-phase-v3-benchmark (commit c5e3b7a), pushed, awaiting the V3 pre-merge audit.
+- Last completed work: V3-P2, the honest multi-file validation report (reports/MRESULTS.md), the six-run variance dataset (reports/mvariance.json), and decision 0014.
+- The V3 finding: at multi-file scope, over six post-fix runs with claude-opus-4-8, generation 1 removes roughly 79 to 104 percent of the original-to-floor span on every run, but reaching the floor in a single pass is run-dependent. The directed loop opportunistically closes the remainder when generation 1 falls short, with feedback_gain_pp ranging 0 to about 24 percentage points for the same case across runs. Feedback is not reliably load-bearing at this scope, but not zero. One-shot rate per case over six runs: doc_history 3/6, rate_limiter 1/6, task_scheduler 2/6; only 1 of 6 runs had all three one-shot. This is distinct from the single-function one-shot finding (decision 0006) and from the hoped-for dependable multi-generation payoff. The references are soft: 17 of 18 case-runs landed at or below the floor (exception: task_scheduler run 1 at 98.2 percent), so bloat-removed above 100 percent reflects reference looseness, not candidate excellence. n=3, medium difficulty only: directional, not a benchmark.
+- Next: V3 pre-merge audit (covering the harness already on main plus the branch artifacts), then merge to main, post-merge audit, then V4 (CI workflow and the validate_mcase pytest-presence guard), then tag 0.3.0 as the final act of V4.
 
 Open deferred items (honest ledger):
 
@@ -78,6 +79,8 @@ Open deferred items (honest ledger):
 - The multi-file loop's feedback sanitizer strips the oracle by matching mevaluator's exact feedback strings (the "original :" line). This is a load-bearing contract between tools/mloop.py and tools/mevaluator.py, not enforced by a shared constant; a regression test in test_mloop guards it by building feedback through the real mevaluator helper. The tests-failed vs could-not-run classifier boundary is part of the same contract.
 - Container startup and teardown adds measured overhead (about 0.174 s fixed per spin-up). reports/ISOLATION.md.
 - The inverted-span no-signal rule means a candidate that regresses a metric above the original on an inverted-span metric is unscored rather than penalized (decision 0013). A guard flag for "regressed above original" is a future enhancement. tools/evaluator.py.
+- The six-run variance dataset (reports/mvariance.json) is hand-recorded summary data, not auto-emitted by the harness. Only the most recent run is independently corroborable from an on-disk artifact (the gitignored maggregate.json); the other five rows are not reproducible from anything retained. Retaining per-run snapshots or a fixed regeneration seed would make all six reproducible if challenged. A v3.1 item. reports/mvariance.json, tools/mbenchmark.py.
+- The multi-file references are soft (17 of 18 best candidates at or below floor across the six runs). Tightening them is a prerequisite for any benchmark-grade multi-file claim. reports/MRESULTS.md.
 
 ## Conventions
 
