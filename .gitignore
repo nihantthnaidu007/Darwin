@@ -6,3 +6,4 @@ runs/
 .DS_Store
 node_modules/
 .pytest_cache/
+reports/maggregate.json

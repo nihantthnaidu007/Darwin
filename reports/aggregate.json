@@ -7,17 +7,48 @@
   "n_cases": 5,
   "improved": 5,
   "baseline_returned": 0,
-  "needed_feedback_cases": [],
-  "feedback_load_bearing": false,
-  "total_cost_usd": 0.160805,
-  "total_input_tokens": 17256,
-  "total_output_tokens": 2981,
+  "needed_feedback_cases": [
+    {
+      "case": "format_duration",
+      "best_generation": 2,
+      "first_scored_generation": 1,
+      "first_pass_bloat_removed_pct": 99.6,
+      "best_bloat_removed_pct": 100.0,
+      "feedback_gain_pp": 0.37,
+      "structural_changes_from_first": [
+        {
+          "metric": "logical_loc",
+          "first_pass": 18,
+          "best": 17
+        }
+      ]
+    },
+    {
+      "case": "int_to_words",
+      "best_generation": 2,
+      "first_scored_generation": 1,
+      "first_pass_bloat_removed_pct": 99.2,
+      "best_bloat_removed_pct": 99.6,
+      "feedback_gain_pp": 0.4,
+      "structural_changes_from_first": [
+        {
+          "metric": "logical_loc",
+          "first_pass": 35,
+          "best": 34
+        }
+      ]
+    }
+  ],
+  "feedback_load_bearing": true,
+  "total_cost_usd": 0.16912,
+  "total_input_tokens": 17709,
+  "total_output_tokens": 3223,
   "by_category": {
     "verbose_patterns": {
       "n": 2,
       "improved": 2,
-      "one_shot": 2,
-      "avg_bloat_removed_pct": 99.8
+      "one_shot": 1,
+      "avg_bloat_removed_pct": 100.0
     },
     "duplication": {
       "n": 1,
@@ -28,7 +59,7 @@
     "excessive_nesting": {
       "n": 1,
       "improved": 1,
-      "one_shot": 1,
+      "one_shot": 0,
       "avg_bloat_removed_pct": 99.6
     },
     "over_abstraction": {
@@ -42,8 +73,8 @@
     "hard": {
       "n": 3,
       "improved": 3,
-      "one_shot": 3,
-      "avg_bloat_removed_pct": 99.8
+      "one_shot": 1,
+      "avg_bloat_removed_pct": 99.9
     },
     "medium": {
       "n": 1,
@@ -65,20 +96,26 @@
       "difficulty": "hard",
       "verdict": "improved (best candidate returned)",
       "improved_over_baseline": true,
-      "best_weighted_cost": 0.0035,
-      "bloat_removed_pct": 99.7,
-      "first_pass_bloat_removed_pct": 99.7,
-      "feedback_gain_pp": 0.0,
-      "generations_attempted": 3,
-      "best_generation": 1,
+      "best_weighted_cost": 0.0,
+      "bloat_removed_pct": 100.0,
+      "first_pass_bloat_removed_pct": 99.6,
+      "feedback_gain_pp": 0.37,
+      "generations_attempted": 2,
+      "best_generation": 2,
       "first_scored_generation": 1,
-      "floor_reached": false,
-      "total_cost_usd": 0.052945,
-      "total_input_tokens": 6074,
-      "total_output_tokens": 903,
+      "floor_reached": true,
+      "total_cost_usd": 0.034015,
+      "total_input_tokens": 3898,
+      "total_output_tokens": 581,
       "best_flags": [],
       "halted": null,
-      "structural_changes_from_first": [],
+      "structural_changes_from_first": [
+        {
+          "metric": "logical_loc",
+          "first_pass": 18,
+          "best": 17
+        }
+      ],
       "per_metric": [
         {
           "metric": "cyclomatic_total",
@@ -91,10 +128,10 @@
         {
           "metric": "logical_loc",
           "original": 94,
-          "best": 18,
+          "best": 17,
           "floor": 17,
-          "norm_cost": 0.012987012987012988,
-          "at_or_below_floor": false
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
         },
         {
           "metric": "max_nesting_depth",
@@ -125,11 +162,11 @@
           "original": 4,
           "best": 9,
           "floor": 9,
-          "norm_cost": -0.0,
-          "at_or_below_floor": true
+          "norm_cost": null,
+          "at_or_below_floor": false
         }
       ],
-      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/format_duration_20260611T201513Z"
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/format_duration_20260613T171926Z"
     },
     {
       "case": "income_tax",
@@ -145,9 +182,9 @@
       "best_generation": 1,
       "first_scored_generation": 1,
       "floor_reached": true,
-      "total_cost_usd": 0.01636,
+      "total_cost_usd": 0.016285,
       "total_input_tokens": 1812,
-      "total_output_tokens": 292,
+      "total_output_tokens": 289,
       "best_flags": [],
       "halted": null,
       "structural_changes_from_first": [],
@@ -197,11 +234,11 @@
           "original": 3,
           "best": 7,
           "floor": 7,
-          "norm_cost": -0.0,
-          "at_or_below_floor": true
+          "norm_cost": null,
+          "at_or_below_floor": false
         }
       ],
-      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/income_tax_20260611T201526Z"
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/income_tax_20260613T171936Z"
     },
     {
       "case": "int_to_words",
@@ -209,20 +246,26 @@
       "difficulty": "hard",
       "verdict": "improved (best candidate returned)",
       "improved_over_baseline": true,
-      "best_weighted_cost": 0.0038,
+      "best_weighted_cost": 0.004,
       "bloat_removed_pct": 99.6,
-      "first_pass_bloat_removed_pct": 99.6,
-      "feedback_gain_pp": 0.0,
-      "generations_attempted": 3,
-      "best_generation": 1,
+      "first_pass_bloat_removed_pct": 99.2,
+      "feedback_gain_pp": 0.4,
+      "generations_attempted": 4,
+      "best_generation": 2,
       "first_scored_generation": 1,
       "floor_reached": false,
-      "total_cost_usd": 0.077225,
-      "total_input_tokens": 7225,
-      "total_output_tokens": 1644,
+      "total_cost_usd": 0.104545,
+      "total_input_tokens": 9854,
+      "total_output_tokens": 2211,
       "best_flags": [],
       "halted": null,
-      "structural_changes_from_first": [],
+      "structural_changes_from_first": [
+        {
+          "metric": "logical_loc",
+          "first_pass": 35,
+          "best": 34
+        }
+      ],
       "per_metric": [
         {
           "metric": "cyclomatic_total",
@@ -269,11 +312,11 @@
           "original": 5,
           "best": 8,
           "floor": 8,
-          "norm_cost": -0.0,
-          "at_or_below_floor": true
+          "norm_cost": null,
+          "at_or_below_floor": false
         }
       ],
-      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/int_to_words_20260611T201537Z"
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/int_to_words_20260613T171940Z"
     },
     {
       "case": "merge_intervals",
@@ -341,11 +384,11 @@
           "original": 3,
           "best": 4,
           "floor": 4,
-          "norm_cost": -0.0,
-          "at_or_below_floor": true
+          "norm_cost": null,
+          "at_or_below_floor": false
         }
       ],
-      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/merge_intervals_20260611T201556Z"
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/merge_intervals_20260613T172006Z"
     },
     {
       "case": "sum_evens",
@@ -417,7 +460,7 @@
           "at_or_below_floor": false
         }
       ],
-      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/sum_evens_20260611T201559Z"
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/sum_evens_20260613T172010Z"
     }
   ]
 }
