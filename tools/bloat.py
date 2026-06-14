@@ -70,7 +70,8 @@ def main():
         sys.exit("usage: python bloat.py <reference.py> [-o original.py]")
     bloated = bloat(sys.argv[1])
     if len(sys.argv) == 4 and sys.argv[2] == "-o":
-        open(sys.argv[3], "w", encoding="utf-8").write(bloated)
+        with open(sys.argv[3], "w", encoding="utf-8") as fh:
+            fh.write(bloated)
     else:
         print(bloated, end="")
 
