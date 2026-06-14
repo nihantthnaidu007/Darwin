@@ -21,12 +21,13 @@ jobs:
         with:
           python-version: '3.13'
 
-      # Host deps: radon, vulture, pytest, anthropic (httpx arrives transitively
-      # via anthropic). anthropic is required even with no API call, because
-      # tools/test_mloop.py imports generator, which imports anthropic at
-      # collection time.
+      # Host deps via requirements-dev.txt: the runtime deps (radon, vulture,
+      # pytest, anthropic; httpx arrives transitively via anthropic) plus
+      # pytest-cov for the coverage report below. anthropic is required even
+      # with no API call, because tools/test_mloop.py imports generator, which
+      # imports anthropic at collection time.
       - name: Install host dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
 
       # The suite runs candidates via docker run, so the image must exist first.
       # Exact command from the README.
@@ -36,6 +37,9 @@ jobs:
       # Run from tools/ so imports resolve as every other invocation does.
       # Expected: 75 passed, 2 xfailed (the decision-0008 in-process forgery
       # vectors). pytest's default exit codes fail CI on any failure or XPASS.
-      - name: Run the suite
+      # Coverage is reported (term-missing) but NOT gated: there is no
+      # --cov-fail-under, so the gate still fails only on a test failure or an
+      # unexpected pass. The exit behavior is unchanged by the coverage addition.
+      - name: Run the suite (with coverage, reported not gated)
         working-directory: tools
-        run: python -m pytest -q -p no:cacheprovider
+        run: python -m pytest -q -p no:cacheprovider --cov=. --cov-report=term-missing --cov-config=../pyproject.toml

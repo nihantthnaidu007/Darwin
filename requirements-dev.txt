@@ -1,0 +1,11 @@
+# Development and CI tooling for Darwin's advisory quality gates (P0.2).
+#
+# Includes the runtime requirements plus the dev tools. Each dev tool is pinned
+# to the stable version resolved at authoring time (2026-06-14). All three
+# quality gates are advisory in CI (.github/workflows/quality.yml); coverage is
+# reported, not gated (.github/workflows/ci.yml). Current baseline finding
+# counts are recorded in docs/quality-baseline.md. The blocking flip is P7.2.
+-r requirements.txt
+ruff==0.15.17
+mypy==2.1.0
+pytest-cov==7.1.0

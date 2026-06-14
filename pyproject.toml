@@ -71,3 +71,28 @@ dependencies = [
 
 [project.urls]
 Repository = "https://github.com/nihanthnaidu007/Darwin"
+
+# Quality tooling config (P0.2). Advisory only: CI surfaces findings without
+# blocking (.github/workflows/quality.yml); the blocking flip is P7.2. ruff and
+# mypy target the production code in tools/; cases/ (bloated benchmark fixtures)
+# and spikes/ (experiments) are excluded so they generate no meaningless findings.
+
+[tool.ruff]
+# Default rule selection (E/F), no custom select. target-version matches
+# requires-python (>=3.12).
+target-version = "py312"
+extend-exclude = ["cases", "spikes"]
+
+[tool.mypy]
+# Lenient baseline: tolerate unresolved third-party imports, no strict mode.
+# The tools/ scripts are untyped; this records a baseline, it does not enforce.
+ignore_missing_imports = true
+exclude = ['^cases/', '^spikes/']
+
+[tool.coverage.run]
+# Coverage is reported, not gated. Omit the test files themselves (the suite
+# runs from tools/, so paths are relative to that directory).
+omit = [
+    "test_*.py",
+    "*/test_*.py",
+]
