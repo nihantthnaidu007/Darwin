@@ -51,7 +51,8 @@ def _strip_fences(text):
 
 
 def bloat(reference_path):
-    code = open(reference_path, encoding="utf-8").read()
+    with open(reference_path, encoding="utf-8") as fh:
+        code = fh.read()
     client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
     resp = client.messages.create(
         model=MODEL,
