@@ -287,11 +287,36 @@ def _read_capped(path, limit):
     return data.decode("utf-8", "replace")
 
 
+def _image_present_by_listing(image):
+    """Secondary presence check via `docker image ls`, a DIFFERENT resolution path
+    than inspect-by-tag: it reads the local image list rather than resolving the
+    tag, so it does not inherit the containerd tag-resolution quirk where
+    inspect-by-tag false-negatives on a present image. True iff `image` (repo:tag)
+    appears in the listing. Goes through _docker, so it is bounded by the same
+    _OP_TIMEOUT as the inspect and rm calls and can never block longer than that."""
+    rc, out, _ = _docker(["image", "ls", "--format", "{{.Repository}}:{{.Tag}}"])
+    if rc != 0:
+        return False
+    return image in out.splitlines()
+
+
 def _require_image(image):
     """Fail fast with a build hint if the sandbox image is missing, instead of
-    letting `docker run` return an opaque 125 later."""
+    letting `docker run` return an opaque 125 later.
+
+    inspect-by-tag is the primary check and the happy path (no extra docker call
+    when it succeeds). Under containerd image storage that check can false-negative,
+    returning non-zero even though the image is present (the tag-resolution quirk
+    that recurred throughout development). So a non-zero inspect does NOT abort the
+    run: we fall back to a second, different resolution path (listing the local
+    images and confirming the tag is present) before concluding the image is truly
+    absent. Only when BOTH the inspect and the listing fail to find it do we raise,
+    with the same precise build-command remediation as before."""
     rc, _, _ = _docker(["image", "inspect", image])
-    if rc != 0:
-        raise RuntimeError(
-            f"sandbox image {image!r} not found. Build it once with:\n"
-            f"    docker build -f tools/Dockerfile.sandbox -t {image} tools/")
+    if rc == 0:
+        return                                  # present by tag: happy path, no extra call
+    if _image_present_by_listing(image):        # runs only on inspect failure
+        return                                  # inspect false-negatived; image is present
+    raise RuntimeError(
+        f"sandbox image {image!r} not found. Build it once with:\n"
+        f"    docker build -f tools/Dockerfile.sandbox -t {image} tools/")

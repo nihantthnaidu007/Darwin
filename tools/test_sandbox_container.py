@@ -86,3 +86,106 @@ def test_stage_writes_content_and_structure(staged):
     # The chmod walk must not damage staging: content and nested layout intact.
     assert (staged / "driver.py").read_text(encoding="utf-8").startswith("import pkg.mod")
     assert (staged / "pkg" / "mod.py").read_text(encoding="utf-8") == FILES["pkg/mod.py"]
+
+
+# ---------------------------------------------------------------------------
+# Image preflight robustness (P4.3): a false-negative `docker image inspect` by
+# tag (the containerd tag-resolution quirk) must not abort the run. These tests
+# stub sandbox_container._docker, so NO real docker is required.
+# ---------------------------------------------------------------------------
+
+IMG = sandbox_container.IMAGE
+
+
+def _stub_docker(monkeypatch, handler):
+    """Replace sandbox_container._docker with `handler` and record every call.
+    Returns the calls list (each entry is the args list passed to _docker)."""
+    calls = []
+
+    def fake(args):
+        calls.append(list(args))
+        return handler(list(args))
+
+    monkeypatch.setattr(sandbox_container, "_docker", fake)
+    return calls
+
+
+def test_require_image_present_by_tag_makes_no_extra_call(monkeypatch):
+    # Happy path: inspect-by-tag succeeds, so the run proceeds with exactly one
+    # docker call and never reaches the secondary listing.
+    def handler(args):
+        if args[:2] == ["image", "inspect"]:
+            return (0, "[]", "")
+        raise AssertionError(f"no extra docker call expected on success: {args}")
+
+    calls = _stub_docker(monkeypatch, handler)
+    sandbox_container._require_image(IMG)                 # must not raise
+    assert calls == [["image", "inspect", IMG]]          # exactly the one inspect call
+
+
+def test_require_image_false_negative_proceeds_via_listing(monkeypatch):
+    # The defect from finding B2: inspect-by-tag returns non-zero on a PRESENT
+    # image. The secondary listing resolves it, so the run proceeds, not aborts.
+    def handler(args):
+        if args[:2] == ["image", "inspect"]:
+            return (1, "", f"Error: No such image: {IMG}")   # false negative
+        if args[:2] == ["image", "ls"]:
+            return (0, f"python:3.13\n{IMG}\nbusybox:latest", "")
+        return (1, "", "")
+
+    calls = _stub_docker(monkeypatch, handler)
+    sandbox_container._require_image(IMG)                 # must NOT raise
+    assert calls[0][:2] == ["image", "inspect"]          # primary tried first
+    assert any(c[:2] == ["image", "ls"] for c in calls)  # secondary, different path, ran
+    # The secondary call is NOT a second inspect-by-tag (it is a genuinely
+    # different resolution mechanism).
+    assert not any(c[:3] == ["image", "inspect", IMG] for c in calls[1:])
+
+
+def test_require_image_genuinely_absent_raises_build_hint(monkeypatch):
+    # Both checks fail to find it -> still fail fast with the precise build hint.
+    def handler(args):
+        if args[:2] == ["image", "inspect"]:
+            return (1, "", "No such image")
+        if args[:2] == ["image", "ls"]:
+            return (0, "python:3.13\nbusybox:latest", "")    # tag absent from listing
+        return (1, "", "")
+
+    _stub_docker(monkeypatch, handler)
+    with pytest.raises(RuntimeError) as ei:
+        sandbox_container._require_image(IMG)
+    msg = str(ei.value)
+    assert "not found" in msg
+    assert f"docker build -f tools/Dockerfile.sandbox -t {IMG} tools/" in msg
+    assert IMG in msg
+
+
+def test_require_image_secondary_check_is_timeout_bounded(monkeypatch):
+    # The secondary listing goes through _docker (bounded by _OP_TIMEOUT). If it
+    # times out, _docker returns the 124 sentinel, the fallback yields "absent",
+    # and the run fails fast with the build hint rather than blocking.
+    def handler(args):
+        if args[:2] == ["image", "inspect"]:
+            return (1, "", "")
+        if args[:2] == ["image", "ls"]:
+            return (124, "", "docker timed out")             # _docker timeout sentinel
+        return (1, "", "")
+
+    _stub_docker(monkeypatch, handler)
+    with pytest.raises(RuntimeError):
+        sandbox_container._require_image(IMG)
+
+
+def test_image_present_by_listing_matches_exact_tag(monkeypatch):
+    # The listing check confirms the exact repo:tag, not a loose substring.
+    def handler(args):
+        return (0, f"python:3.13\n{IMG}\nbusybox:latest", "")
+
+    _stub_docker(monkeypatch, handler)
+    assert sandbox_container._image_present_by_listing(IMG) is True
+
+    def handler_absent(args):
+        return (0, "python:3.13\nbusybox:latest", "")
+
+    _stub_docker(monkeypatch, handler_absent)
+    assert sandbox_container._image_present_by_listing(IMG) is False
