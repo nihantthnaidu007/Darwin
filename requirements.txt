@@ -1,4 +1,4 @@
 radon==6.0.1
 vulture==2.16
-pytest==8.3.5
+pytest==9.1.0
 anthropic==0.107.1
