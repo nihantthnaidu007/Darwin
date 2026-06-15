@@ -56,7 +56,8 @@ def main():
     golden = record(ref, entry, arg_sets)
     text = json.dumps(golden, indent=2)
     if len(sys.argv) == 6 and sys.argv[4] == "-o":
-        open(sys.argv[5], "w", encoding="utf-8").write(text + "\n")
+        with open(sys.argv[5], "w", encoding="utf-8") as fh:
+            fh.write(text + "\n")
     else:
         print(text)
 

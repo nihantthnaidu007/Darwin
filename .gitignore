@@ -7,3 +7,6 @@ runs/
 node_modules/
 .pytest_cache/
 reports/maggregate.json
+.coverage
+coverage.xml
+htmlcov/

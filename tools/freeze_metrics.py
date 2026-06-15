@@ -56,7 +56,8 @@ def _dependencies(tree):
 
 
 def freeze(path):
-    code = open(path, encoding="utf-8").read()
+    with open(path, encoding="utf-8") as fh:
+        code = fh.read()
     tree = ast.parse(code)
 
     comps = [f.complexity for f in _leaf_functions(cc_visit(code))]

@@ -36,7 +36,7 @@ name = "darwin"
 version = "0.3.0"
 description = "A verified Python code simplifier for single-function and multi-file units with a never-worse-than-baseline guarantee; each candidate runs in a locked-down container that runs on Linux Docker hosts (CI-verified on ubuntu-latest), access-isolated but not a forgery-proof gate (in-process forgery residual open); still early (0.x)."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = "Apache-2.0"
 authors = [{ name = "Nihanth" }]
 keywords = [
@@ -53,7 +53,9 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Quality Assurance",
     "Topic :: Software Development :: Code Generators",
 ]
@@ -69,3 +71,28 @@ dependencies = [
 
 [project.urls]
 Repository = "https://github.com/nihanthnaidu007/Darwin"
+
+# Quality tooling config (P0.2). Advisory only: CI surfaces findings without
+# blocking (.github/workflows/quality.yml); the blocking flip is P7.2. ruff and
+# mypy target the production code in tools/; cases/ (bloated benchmark fixtures)
+# and spikes/ (experiments) are excluded so they generate no meaningless findings.
+
+[tool.ruff]
+# Default rule selection (E/F), no custom select. target-version matches
+# requires-python (>=3.12).
+target-version = "py312"
+extend-exclude = ["cases", "spikes"]
+
+[tool.mypy]
+# Lenient baseline: tolerate unresolved third-party imports, no strict mode.
+# The tools/ scripts are untyped; this records a baseline, it does not enforce.
+ignore_missing_imports = true
+exclude = ['^cases/', '^spikes/']
+
+[tool.coverage.run]
+# Coverage is reported, not gated. Omit the test files themselves (the suite
+# runs from tools/, so paths are relative to that directory).
+omit = [
+    "test_*.py",
+    "*/test_*.py",
+]

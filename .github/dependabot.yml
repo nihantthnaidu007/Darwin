@@ -1,0 +1,17 @@
+# Dependabot configuration (P0.2). Keeps the pinned pip dependencies
+# (requirements.txt, requirements-dev.txt, pyproject.toml) and the pinned
+# GitHub Actions versions current via automated weekly update PRs.
+#
+# Dependabot activates only on the default branch, so the first update PR
+# appears after M0 merges to main, not on a phase branch.
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
