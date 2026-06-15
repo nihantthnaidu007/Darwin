@@ -16,7 +16,7 @@ tools/generator.py and tools/mgenerator.py so neither duplicates them:
 Retry/backoff is handled by exactly one mechanism — the SDK's own. The Anthropic
 SDK already retries connection errors, 408/409/429, and >=500 with exponential
 backoff, jitter, and Retry-After handling; we set max_retries to a tuned value
-and document the resulting ceiling rather than hand-rolling a second loop that
+and describe the SDK's actual backoff rather than hand-rolling a second loop that
 would duplicate the SDK and risk dropping Retry-After.
 """
 import re
@@ -37,20 +37,19 @@ LLM_CONNECT_TIMEOUT_SECONDS = 10.0
 LLM_READ_TIMEOUT_SECONDS = 600.0
 LLM_TIMEOUT = httpx.Timeout(LLM_READ_TIMEOUT_SECONDS, connect=LLM_CONNECT_TIMEOUT_SECONDS)
 
-# --- Retries + backoff ceiling ----------------------------------------------
+# --- Retries + backoff -------------------------------------------------------
 # Tuned above the SDK default of 2 so a brief blip (a couple of 429s, or a
 # transient 5xx during a deploy) is ridden out automatically, without retrying
 # so persistently that a real outage stalls the loop for long. The SDK retries
 # only connection errors, 408/409/429, and >=500.
+#
+# Backoff is the SDK's own; we do not add a second schedule. The SDK retries up
+# to LLM_MAX_RETRIES times with exponential backoff that starts near 0.5s and
+# doubles each attempt, capped at the SDK's 8s per-attempt maximum, with jitter,
+# and honors a server Retry-After header (up to the SDK's 60s cap) when present.
+# We own the retry count and let the SDK own the timing, rather than asserting a
+# single cumulative figure that would not match the SDK's actual schedule.
 LLM_MAX_RETRIES = 4
-
-# Documented backoff ceiling (the SDK does the actual backoff; we do not add a
-# second loop). The SDK sleeps min(0.5 * 2**n, 8.0) seconds before retry n,
-# minus up to 25% jitter, and honors Retry-After (up to 60s) when present. With
-# LLM_MAX_RETRIES=4 the four inter-attempt sleeps are ~1s + 2s + 4s + 8s, so the
-# cumulative backoff is bounded at roughly 15s (jitter only lowers it; a server
-# Retry-After header can extend an individual wait up to the SDK's 60s cap).
-BACKOFF_CEILING_SECONDS = 15
 
 
 def build_client():
@@ -86,10 +85,11 @@ def _is_retryable_status(status):
 def _retryable(what, e):
     return LLMCallError(
         f"Anthropic generation failed after {LLM_MAX_RETRIES} automatic retries: "
-        f"{what}. This is transient and retryable (the client already applied "
-        f"exponential backoff with jitter, cumulative ceiling ~{BACKOFF_CEILING_SECONDS}s, "
-        f"honoring Retry-After); retry the run later or check "
-        f"https://status.anthropic.com. Underlying SDK error -> {type(e).__name__}: {e}",
+        f"{what}. This is transient and retryable; the SDK already retried with "
+        f"exponential backoff (starting near 0.5s and doubling, capped at 8s per "
+        f"attempt, with jitter, honoring any server Retry-After up to 60s). Retry "
+        f"the run later or check https://status.anthropic.com. Underlying SDK error "
+        f"-> {type(e).__name__}: {e}",
         request=getattr(e, "request", None),
     )
 

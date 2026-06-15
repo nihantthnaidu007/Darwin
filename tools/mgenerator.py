@@ -39,8 +39,6 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import anthropic
-
 # Reuse generator.py's machinery by import: the pricing table, the token budget,
 # the effort knob, and the .env key loader. None of these are re-implemented here
 # (out-of-scope rule 1).
@@ -51,11 +49,11 @@ from generator import (
     PRICING,
     _load_dotenv,
 )
-# The one-call hardening (timeout, retry budget, failure classification, and the
-# model-capability check) is shared with generator via llm_client.
+# The one-call hardening (client construction with the explicit timeout + retry
+# budget, failure classification, and the model-capability check) is shared with
+# generator via llm_client.
 from llm_client import (
-    LLM_MAX_RETRIES,
-    LLM_TIMEOUT,
+    build_client,
     create_message,
     supports_adaptive_thinking,
 )
@@ -287,9 +285,10 @@ def generate(meta, original_files, prev_files=None, prev_feedback=None,
     """
     if client is None:
         # The key is needed only now, when constructing the real client (an
-        # injected client needs neither the key nor the .env side effect).
+        # injected client needs neither the key nor the .env side effect). The
+        # env load stays explicit at this call site; build_client does not load it.
         _load_dotenv()
-        client = anthropic.Anthropic(timeout=LLM_TIMEOUT, max_retries=LLM_MAX_RETRIES)
+        client = build_client()
     extra = ({"thinking": {"type": "adaptive"}, "output_config": {"effort": EFFORT}}
              if supports_adaptive_thinking(model) else {})
     resp = create_message(

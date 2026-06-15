@@ -20,14 +20,11 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-import anthropic
-
-# The one-call hardening (timeout, retry budget, failure classification, and the
-# model-capability check) lives in llm_client and is shared with mgenerator, so
-# neither generator duplicates it.
+# The one-call hardening (client construction with the explicit timeout + retry
+# budget, failure classification, and the model-capability check) lives in
+# llm_client and is shared with mgenerator, so neither generator duplicates it.
 from llm_client import (
-    LLM_MAX_RETRIES,
-    LLM_TIMEOUT,
+    build_client,
     create_message,
     supports_adaptive_thinking,
 )
@@ -138,9 +135,10 @@ def generate(meta, original_code, prev_code=None, prev_feedback=None,
     the SDK's own retries); the loop treats that as the single halting condition."""
     if client is None:
         # The key is needed only now, when constructing the real client (an
-        # injected client needs neither the key nor the .env side effect).
+        # injected client needs neither the key nor the .env side effect). The
+        # env load stays explicit at this call site; build_client does not load it.
         _load_dotenv()
-        client = anthropic.Anthropic(timeout=LLM_TIMEOUT, max_retries=LLM_MAX_RETRIES)
+        client = build_client()
     extra = ({"thinking": {"type": "adaptive"}, "output_config": {"effort": EFFORT}}
              if supports_adaptive_thinking(model) else {})
     resp = create_message(

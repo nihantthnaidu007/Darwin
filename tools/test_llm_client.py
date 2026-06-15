@@ -108,6 +108,11 @@ def test_rate_limit_exhausted_raises_classified():
     assert "transient and retryable" in msg
     assert "HTTP 429" in msg
     assert "Traceback" not in msg               # a clean message, not a stack trace
+    # Describes the SDK's actual backoff, not a fabricated single ceiling figure.
+    assert "exponential backoff" in msg
+    assert "Retry-After" in msg
+    assert "cumulative ceiling" not in msg      # the removed fabricated phrasing
+    assert "15s" not in msg                     # the removed fabricated figure
     # Still an anthropic.APIError so the loops' `except anthropic.APIError` still halts.
     assert isinstance(ei.value, anthropic.APIError)
 
@@ -189,6 +194,12 @@ def test_timeout_and_retries_are_explicit_named_constants():
     c = llm_client.build_client()
     assert c.max_retries == llm_client.LLM_MAX_RETRIES
     assert c.timeout == llm_client.LLM_TIMEOUT
+
+
+def test_no_fabricated_backoff_ceiling_constant():
+    # The cumulative-ceiling constant enforced nothing and was numerically wrong;
+    # it was removed in favor of describing the SDK's real backoff.
+    assert not hasattr(llm_client, "BACKOFF_CEILING_SECONDS")
 
 
 # --------------------------------------------------- model capability
