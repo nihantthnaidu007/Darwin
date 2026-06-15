@@ -76,8 +76,11 @@ import secrets
 import sys
 from pathlib import Path
 
+import logsetup
 import sandbox_container as sandbox
 from mdiffer import canon_outcome, load_unit, run_sequence
+
+log = logsetup.get_logger("mverify")  # operational log -> stderr (configured at the entry point)
 
 TOOLS = Path(__file__).parent.resolve()
 
@@ -261,17 +264,21 @@ def check_equivalence_containerized(case_dir, candidate_dir, timeout=30.0):
 def main():
     if len(sys.argv) != 3:
         sys.exit("usage: python mverify.py <case_dir> <candidate_unit_dir>")
+    logsetup.configure()   # entry point: wire logging once (never at import)
     eq, witness, stats = check_equivalence_containerized(sys.argv[1], sys.argv[2])
-    print(f"{'EQUIVALENT' if eq else 'NOT EQUIVALENT'} "
-          f"({stats['calls_compared']} calls compared, "
-          f"{stats['sequences']} sequences, {stats['container_runs']} container runs)")
+    log.info("%s (%s calls compared, %s sequences, %s container runs)",
+             "EQUIVALENT" if eq else "NOT EQUIVALENT", stats["calls_compared"],
+             stats["sequences"], stats["container_runs"],
+             extra={"equivalent": eq, "calls_compared": stats["calls_compared"],
+                    "sequences": stats["sequences"],
+                    "container_runs": stats["container_runs"]})
     if witness:
-        print(f"  first divergence: seq={witness['sequence']} "
-              f"call#{witness['call_index']} {witness['call']}")
-        print(f"    original : {witness['original']}")
-        print(f"    candidate: {witness['candidate']}")
+        log.info("  first divergence: seq=%s call#%s %s",
+                 witness["sequence"], witness["call_index"], witness["call"])
+        log.info("    original : %s", witness["original"])
+        log.info("    candidate: %s", witness["candidate"])
     if "error" in stats:
-        print(f"  error: {stats['error']}")
+        log.warning("  error: %s", stats["error"], extra={"error": stats["error"]})
     sys.exit(0 if eq else 1)
 
 

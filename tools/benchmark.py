@@ -30,6 +30,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import generator
+import logsetup
 import loop
 import report
 import runstate
@@ -39,6 +40,8 @@ ROOT = Path(__file__).resolve().parent.parent
 CASES = ROOT / "cases"
 REPORTS = ROOT / "reports"
 RUNS = ROOT / "runs"
+
+log = logsetup.get_logger("benchmark")  # operational log -> stderr (configured at the entry point)
 # Per-case checkpoint of completed cases (under the gitignored runs/). A fresh run
 # clears this and rewrites it; --resume reads it to skip already-completed cases.
 RUN_STATE = RUNS / "benchmark_runstate.jsonl"
@@ -85,12 +88,12 @@ def run_benchmark(cases, cap, plateau, model, run_loop=loop.run_loop,
     rows = []
     for i, case in enumerate(cases, 1):
         if case in done:                                 # resumed: reuse persisted result
-            print(f"[{i}/{len(cases)}] {case} already complete -> skipped (resumed)",
-                  flush=True)
+            log.info("[%s/%s] %s already complete -> skipped (resumed)",
+                     i, len(cases), case, extra={"case": case, "resumed": True})
             rows.append(done[case])
             continue
-        print(f"[{i}/{len(cases)}] running loop on {case} "
-              f"(cap={cap}, plateau={plateau}, model={model}) ...", flush=True)
+        log.info("[%s/%s] running loop on %s (cap=%s, plateau=%s, model=%s) ...",
+                 i, len(cases), case, cap, plateau, model)
         _summary, run_dir = run_loop(case, cap, plateau, model)  # loop UNMODIFIED
         s = summarize_run(run_dir)                                # read its own logs
         category, difficulty = _case_meta(case)
@@ -98,9 +101,16 @@ def run_benchmark(cases, cap, plateau, model, run_loop=loop.run_loop,
         if state is not None:
             state.append(case, s)                        # persist the moment it completes
         rows.append(s)
-        print(f"      -> {s['verdict']}; best gen {s['best_generation']}; "
-              f"bloat removed {s['bloat_removed_pct']}%; ${s['total_cost_usd']}",
-              flush=True)
+        log.info("      -> %s; best gen %s; bloat removed %s%%; $%s",
+                 s["verdict"], s["best_generation"], s["bloat_removed_pct"],
+                 s["total_cost_usd"],
+                 extra={"case": case, "model": model, "verdict": s["verdict"],
+                        "improved_over_baseline": s["improved_over_baseline"],
+                        "best_generation": s["best_generation"],
+                        "bloat_removed_pct": s["bloat_removed_pct"],
+                        "total_cost_usd": s["total_cost_usd"],
+                        "total_input_tokens": s["total_input_tokens"],
+                        "total_output_tokens": s["total_output_tokens"]})
     return rows
 
 
@@ -167,34 +177,45 @@ def aggregate(rows, model, cap, plateau):
 
 
 def print_table(agg):
-    print("\n" + "=" * 92)
-    print(f"AGGREGATE  model={agg['model']}  cap={agg['config']['cap']} "
-          f"plateau={agg['config']['plateau_limit']}  cases={agg['n_cases']}")
-    print("=" * 92)
-    print(f"  {'case':<18}{'category':<18}{'diff':<8}{'result':<16}"
-          f"{'bestgen':>8}{'gens':>6}{'bloat%':>8}{'cost$':>9}")
-    print("  " + "-" * 88)
+    # Pre-built aligned lines are passed as a single "%s" arg so the column layout
+    # and any literal "%" survive untouched; the message-only console handler then
+    # renders the table exactly as the old print did (on stderr now).
+    log.info("%s", "\n" + "=" * 92)
+    log.info("AGGREGATE  model=%s  cap=%s plateau=%s  cases=%s",
+             agg["model"], agg["config"]["cap"], agg["config"]["plateau_limit"],
+             agg["n_cases"],
+             extra={"model": agg["model"], "cap": agg["config"]["cap"],
+                    "plateau_limit": agg["config"]["plateau_limit"],
+                    "n_cases": agg["n_cases"]})
+    log.info("=" * 92)
+    log.info("%s", f"  {'case':<18}{'category':<18}{'diff':<8}{'result':<16}"
+                   f"{'bestgen':>8}{'gens':>6}{'bloat%':>8}{'cost$':>9}")
+    log.info("%s", "  " + "-" * 88)
     for c in agg["cases"]:
         result = "improved" if c["improved_over_baseline"] else "baseline-kept"
-        print(f"  {c['case']:<18}{c['category']:<18}{c['difficulty']:<8}{result:<16}"
-              f"{c['best_generation']:>8}{c['generations_attempted']:>6}"
-              f"{c['bloat_removed_pct']:>8}{c['total_cost_usd']:>9}")
-    print("  " + "-" * 88)
+        log.info("%s", f"  {c['case']:<18}{c['category']:<18}{c['difficulty']:<8}{result:<16}"
+                       f"{c['best_generation']:>8}{c['generations_attempted']:>6}"
+                       f"{c['bloat_removed_pct']:>8}{c['total_cost_usd']:>9}")
+    log.info("%s", "  " + "-" * 88)
     one_shot = agg["improved"] - len(agg["needed_feedback_cases"])
-    print(f"  improved {agg['improved']}/{agg['n_cases']}   "
-          f"baseline-returned {agg['baseline_returned']}/{agg['n_cases']}   "
-          f"one-shot {one_shot}/{agg['improved']}   "
-          f"needed gen2+ {len(agg['needed_feedback_cases'])}/{agg['improved']}")
-    print(f"  total cost ${agg['total_cost_usd']}  "
-          f"(tokens in/out {agg['total_input_tokens']}/{agg['total_output_tokens']})")
+    log.info("%s", f"  improved {agg['improved']}/{agg['n_cases']}   "
+                   f"baseline-returned {agg['baseline_returned']}/{agg['n_cases']}   "
+                   f"one-shot {one_shot}/{agg['improved']}   "
+                   f"needed gen2+ {len(agg['needed_feedback_cases'])}/{agg['improved']}")
+    log.info("  total cost $%s  (tokens in/out %s/%s)",
+             agg["total_cost_usd"], agg["total_input_tokens"], agg["total_output_tokens"],
+             extra={"total_cost_usd": agg["total_cost_usd"],
+                    "total_input_tokens": agg["total_input_tokens"],
+                    "total_output_tokens": agg["total_output_tokens"],
+                    "improved": agg["improved"], "n_cases": agg["n_cases"]})
     if agg["needed_feedback_cases"]:
-        print("  feedback reached best at gen 2+ for: " + ", ".join(
+        log.info("%s", "  feedback reached best at gen 2+ for: " + ", ".join(
             f"{c['case']}(gen{c['best_generation']}, gen1 already "
             f"{c['first_pass_bloat_removed_pct']}%, +{c['feedback_gain_pp']}pp)"
             for c in agg["needed_feedback_cases"]))
     else:
-        print("  feedback NOT load-bearing: every improved case best at generation 1")
-    print("=" * 92 + "\n")
+        log.info("  feedback NOT load-bearing: every improved case best at generation 1")
+    log.info("%s", "=" * 92 + "\n")
 
 
 def main():
@@ -213,6 +234,7 @@ def main():
                          "and run only the rest (same corpus and config). Default is a fresh "
                          "run that clears prior state first.")
     args = ap.parse_args()
+    logsetup.configure()   # entry point: wire logging once (never at import)
 
     out = Path(args.out)
     if args.report_only:  # re-render the report from the last aggregate; runs NO loop
@@ -221,14 +243,15 @@ def main():
         (out / "RESULTS.md").write_text(report.build_markdown(agg, generated_at),
                                         encoding="utf-8")
         print_table(agg)
-        print(f"re-rendered {out / 'RESULTS.md'} from {out / 'aggregate.json'} (no API calls)")
+        log.info("re-rendered %s from %s (no API calls)",
+                 out / "RESULTS.md", out / "aggregate.json")
         return
 
     cases = args.cases or discover_cases()
     if not cases:
         raise SystemExit(f"no complete cases found under {CASES}")
-    print(f"corpus: {len(cases)} case(s) -> {', '.join(cases)}"
-          f"{'  [resume]' if args.resume else ''}\n")
+    log.info("corpus: %s case(s) -> %s%s",
+             len(cases), ", ".join(cases), "  [resume]" if args.resume else "")
 
     state = runstate.RunState(RUN_STATE)
     try:
@@ -244,8 +267,8 @@ def main():
     (out / "aggregate.json").write_text(json.dumps(agg, indent=2), encoding="utf-8")
     (out / "RESULTS.md").write_text(report.build_markdown(agg, generated_at),
                                     encoding="utf-8")
-    print(f"wrote {out / 'aggregate.json'}")
-    print(f"wrote {out / 'RESULTS.md'}")
+    log.info("wrote %s", out / "aggregate.json")
+    log.info("wrote %s", out / "RESULTS.md")
 
 
 if __name__ == "__main__":

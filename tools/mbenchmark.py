@@ -29,6 +29,7 @@ import argparse
 import json
 from pathlib import Path
 
+import logsetup
 import mgenerator
 import mloop
 import runstate
@@ -38,6 +39,8 @@ ROOT = Path(__file__).resolve().parent.parent
 MCASES = ROOT / "mcases"
 REPORTS = ROOT / "reports"
 RUNS = ROOT / "runs"
+
+log = logsetup.get_logger("mbenchmark")  # operational log -> stderr (configured at the entry point)
 # Per-case checkpoint of completed mcases (under the gitignored runs/). A fresh run
 # clears this and rewrites it; --resume reads it to skip already-completed mcases.
 RUN_STATE = RUNS / "mbenchmark_runstate.jsonl"
@@ -92,12 +95,12 @@ def run_benchmark(cases, cap, plateau, model, run_loop=mloop.run_loop,
     rows = []
     for i, case in enumerate(cases, 1):
         if case in done:                                 # resumed: reuse persisted result
-            print(f"[{i}/{len(cases)}] {case} already complete -> skipped (resumed)",
-                  flush=True)
+            log.info("[%s/%s] %s already complete -> skipped (resumed)",
+                     i, len(cases), case, extra={"case": case, "resumed": True})
             rows.append(done[case])
             continue
-        print(f"[{i}/{len(cases)}] running mloop on {case} "
-              f"(cap={cap}, plateau={plateau}, model={model}) ...", flush=True)
+        log.info("[%s/%s] running mloop on %s (cap=%s, plateau=%s, model=%s) ...",
+                 i, len(cases), case, cap, plateau, model)
         _summary, run_dir = run_loop(case, cap, plateau, model)   # loop UNMODIFIED
         s = summarize_mrun(run_dir)                               # read its own logs
         kind, difficulty = _case_meta(case)
@@ -105,9 +108,16 @@ def run_benchmark(cases, cap, plateau, model, run_loop=mloop.run_loop,
         if state is not None:
             state.append(case, s)                        # persist the moment it completes
         rows.append(s)
-        print(f"      -> {s['verdict']}; best gen {s['best_generation']}; "
-              f"bloat removed {s['bloat_removed_pct']}%; ${s['total_cost_usd']}",
-              flush=True)
+        log.info("      -> %s; best gen %s; bloat removed %s%%; $%s",
+                 s["verdict"], s["best_generation"], s["bloat_removed_pct"],
+                 s["total_cost_usd"],
+                 extra={"case": case, "model": model, "verdict": s["verdict"],
+                        "improved_over_baseline": s["improved_over_baseline"],
+                        "best_generation": s["best_generation"],
+                        "bloat_removed_pct": s["bloat_removed_pct"],
+                        "total_cost_usd": s["total_cost_usd"],
+                        "total_input_tokens": s["total_input_tokens"],
+                        "total_output_tokens": s["total_output_tokens"]})
     return rows
 
 
@@ -188,33 +198,44 @@ def write_aggregate(agg, out_dir):
 
 
 def print_table(agg):
-    print("\n" + "=" * 100)
-    print(f"MAGGREGATE  model={agg['model']}  cap={agg['config']['cap']} "
-          f"plateau={agg['config']['plateau_limit']}  cases={agg['n_cases']}")
-    print("=" * 100)
-    print(f"  {'case':<16}{'kind':<30}{'diff':<8}{'result':<16}"
-          f"{'bestgen':>8}{'gens':>6}{'bloat%':>8}{'cost$':>9}")
-    print("  " + "-" * 96)
+    # Pre-built aligned lines are passed as a single "%s" arg so the column layout
+    # and any literal "%" survive untouched; the message-only console handler then
+    # renders the table exactly as the old print did (on stderr now).
+    log.info("%s", "\n" + "=" * 100)
+    log.info("MAGGREGATE  model=%s  cap=%s plateau=%s  cases=%s",
+             agg["model"], agg["config"]["cap"], agg["config"]["plateau_limit"],
+             agg["n_cases"],
+             extra={"model": agg["model"], "cap": agg["config"]["cap"],
+                    "plateau_limit": agg["config"]["plateau_limit"],
+                    "n_cases": agg["n_cases"]})
+    log.info("=" * 100)
+    log.info("%s", f"  {'case':<16}{'kind':<30}{'diff':<8}{'result':<16}"
+                   f"{'bestgen':>8}{'gens':>6}{'bloat%':>8}{'cost$':>9}")
+    log.info("%s", "  " + "-" * 96)
     for c in agg["cases"]:
         result = "improved" if c["improved_over_baseline"] else "baseline-kept"
-        print(f"  {c['case']:<16}{c['kind'][:28]:<30}{c['difficulty']:<8}{result:<16}"
-              f"{c['best_generation']:>8}{c['generations_attempted']:>6}"
-              f"{c['bloat_removed_pct']:>8}{c['total_cost_usd']:>9}")
-    print("  " + "-" * 96)
-    print(f"  improved {agg['improved']}/{agg['n_cases']}   "
-          f"baseline-returned {agg['baseline_returned']}/{agg['n_cases']}   "
-          f"one-shot {agg['one_shot']}/{agg['improved']}   "
-          f"needed gen2+ {agg['needed_feedback']}/{agg['improved']}")
-    print(f"  total cost ${agg['total_cost_usd']}  "
-          f"(tokens in/out {agg['total_input_tokens']}/{agg['total_output_tokens']})")
+        log.info("%s", f"  {c['case']:<16}{c['kind'][:28]:<30}{c['difficulty']:<8}{result:<16}"
+                       f"{c['best_generation']:>8}{c['generations_attempted']:>6}"
+                       f"{c['bloat_removed_pct']:>8}{c['total_cost_usd']:>9}")
+    log.info("%s", "  " + "-" * 96)
+    log.info("%s", f"  improved {agg['improved']}/{agg['n_cases']}   "
+                   f"baseline-returned {agg['baseline_returned']}/{agg['n_cases']}   "
+                   f"one-shot {agg['one_shot']}/{agg['improved']}   "
+                   f"needed gen2+ {agg['needed_feedback']}/{agg['improved']}")
+    log.info("  total cost $%s  (tokens in/out %s/%s)",
+             agg["total_cost_usd"], agg["total_input_tokens"], agg["total_output_tokens"],
+             extra={"total_cost_usd": agg["total_cost_usd"],
+                    "total_input_tokens": agg["total_input_tokens"],
+                    "total_output_tokens": agg["total_output_tokens"],
+                    "improved": agg["improved"], "n_cases": agg["n_cases"]})
     if agg["needed_feedback_cases"]:
-        print("  feedback reached best at gen 2+ for: " + ", ".join(
+        log.info("%s", "  feedback reached best at gen 2+ for: " + ", ".join(
             f"{c['case']}(gen{c['best_generation']}, gen1 already "
             f"{c['first_pass_bloat_removed_pct']}%, +{c['feedback_gain_pp']}pp)"
             for c in agg["needed_feedback_cases"]))
     else:
-        print("  feedback NOT load-bearing: every improved case best at generation 1")
-    print("=" * 100 + "\n")
+        log.info("  feedback NOT load-bearing: every improved case best at generation 1")
+    log.info("%s", "=" * 100 + "\n")
 
 
 def main():
@@ -232,12 +253,13 @@ def main():
                          "and run only the rest (same corpus and config). Default is a fresh "
                          "run that clears prior state first.")
     args = ap.parse_args()
+    logsetup.configure()   # entry point: wire logging once (never at import)
 
     cases = args.cases or discover_mcases()
     if not cases:
         raise SystemExit(f"no complete mcases found under {MCASES}")
-    print(f"corpus: {len(cases)} mcase(s) -> {', '.join(cases)}"
-          f"{'  [resume]' if args.resume else ''}\n")
+    log.info("corpus: %s mcase(s) -> %s%s",
+             len(cases), ", ".join(cases), "  [resume]" if args.resume else "")
 
     state = runstate.RunState(RUN_STATE)
     try:
@@ -249,7 +271,7 @@ def main():
     print_table(agg)
 
     path = write_aggregate(agg, args.out)
-    print(f"wrote {path}")
+    log.info("wrote %s", path)
 
 
 if __name__ == "__main__":

@@ -32,11 +32,14 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import logsetup
 import sandbox_container as sandbox
 from evaluator import WEIGHTS, _cost, guard_flags, weighted_cost
 from mcase_metrics import unit_metrics
 from mverify import _unit_files, check_equivalence_containerized
 from verify_case import TESTS_FAILED, _classify_run, _LABEL
+
+log = logsetup.get_logger("mevaluator")  # operational log -> stderr (configured at the entry point)
 
 NON_EQUIVALENT = "non-equivalent"  # the equivalence gate's rejection code
 
@@ -203,14 +206,16 @@ def _top_files(metrics, metric):
 def main():
     if len(sys.argv) != 3:
         sys.exit("usage: python mevaluator.py <case_dir> <candidate_unit_dir>")
+    logsetup.configure()   # entry point: wire logging once (never at import)
     e = evaluate(sys.argv[1], sys.argv[2])
-    print(json.dumps({
-        "verdict": e.verdict, "reason_code": e.reason_code, "gate": e.gate,
-        "weighted_cost": e.weighted_cost, "flags": e.flags,
-        "metric_costs": e.metric_costs,
-        "aggregate": e.metrics["aggregate"] if e.metrics else None,
-    }, indent=2))
-    print("\nFEEDBACK:\n" + e.feedback)
+    result = {"verdict": e.verdict, "reason_code": e.reason_code, "gate": e.gate,
+              "weighted_cost": e.weighted_cost, "flags": e.flags,
+              "metric_costs": e.metric_costs,
+              "aggregate": e.metrics["aggregate"] if e.metrics else None}
+    log.info(json.dumps(result, indent=2),
+             extra={"verdict": e.verdict, "reason_code": e.reason_code, "gate": e.gate,
+                    "weighted_cost": e.weighted_cost, "flags": e.flags})
+    log.info("\nFEEDBACK:\n%s", e.feedback)
 
 
 if __name__ == "__main__":

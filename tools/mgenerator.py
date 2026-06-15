@@ -57,6 +57,9 @@ from llm_client import (
     create_message,
     supports_adaptive_thinking,
 )
+import logsetup
+
+log = logsetup.get_logger("mgenerator")  # operational log -> stderr (configured at the entry point)
 
 DEFAULT_MODEL = os.environ.get("MGENERATOR_MODEL", _GEN_DEFAULT_MODEL)
 
@@ -320,18 +323,21 @@ def main():
     import sys
     if len(sys.argv) not in (3, 4):
         sys.exit("usage: python mgenerator.py <case_dir> <out_dir> [model]")
+    logsetup.configure()   # entry point: wire logging once (never at import)
     case_dir = Path(sys.argv[1])
     out_dir = sys.argv[2]
     model = sys.argv[3] if len(sys.argv) == 4 else DEFAULT_MODEL
     meta = json.loads((case_dir / "meta.json").read_text(encoding="utf-8"))
     original_files = read_unit(case_dir / "original")
     r = generate(meta, original_files, model=model, out_dir=out_dir)
-    print(json.dumps({
-        "valid": r.valid, "error": r.error, "files": sorted(r.files),
-        "candidate_dir": r.candidate_dir, "model": r.model,
-        "input_tokens": r.input_tokens, "output_tokens": r.output_tokens,
-        "cost_usd": r.cost_usd,
-    }, indent=2))
+    result = {"valid": r.valid, "error": r.error, "files": sorted(r.files),
+              "candidate_dir": r.candidate_dir, "model": r.model,
+              "input_tokens": r.input_tokens, "output_tokens": r.output_tokens,
+              "cost_usd": r.cost_usd}
+    log.info(json.dumps(result, indent=2),
+             extra={"model": r.model, "valid": r.valid,
+                    "input_tokens": r.input_tokens, "output_tokens": r.output_tokens,
+                    "cost_usd": r.cost_usd})
 
 
 # The API key is loaded by generate() (via generator._load_dotenv) at the point the
