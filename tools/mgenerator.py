@@ -41,16 +41,23 @@ from pathlib import Path
 
 import anthropic
 
-# Reuse generator.py's machinery by import: the pricing table, the model-
-# capability (adaptive-thinking) gate, the token budget, the effort knob, and the
-# .env key loader. None of these are re-implemented here (out-of-scope rule 1).
+# Reuse generator.py's machinery by import: the pricing table, the token budget,
+# the effort knob, and the .env key loader. None of these are re-implemented here
+# (out-of-scope rule 1).
 from generator import (
     DEFAULT_MODEL as _GEN_DEFAULT_MODEL,
     EFFORT,
     MAX_TOKENS,
     PRICING,
-    THINKS,
     _load_dotenv,
+)
+# The one-call hardening (timeout, retry budget, failure classification, and the
+# model-capability check) is shared with generator via llm_client.
+from llm_client import (
+    LLM_MAX_RETRIES,
+    LLM_TIMEOUT,
+    create_message,
+    supports_adaptive_thinking,
 )
 
 DEFAULT_MODEL = os.environ.get("MGENERATOR_MODEL", _GEN_DEFAULT_MODEL)
@@ -278,10 +285,15 @@ def generate(meta, original_files, prev_files=None, prev_feedback=None,
     `client` is injectable (default a real Anthropic client) so the parse,
     validation, and materialize paths are testable with no API call and no key.
     """
-    client = client or anthropic.Anthropic()
+    if client is None:
+        # The key is needed only now, when constructing the real client (an
+        # injected client needs neither the key nor the .env side effect).
+        _load_dotenv()
+        client = anthropic.Anthropic(timeout=LLM_TIMEOUT, max_retries=LLM_MAX_RETRIES)
     extra = ({"thinking": {"type": "adaptive"}, "output_config": {"effort": EFFORT}}
-             if model in THINKS else {})
-    resp = client.messages.create(
+             if supports_adaptive_thinking(model) else {})
+    resp = create_message(
+        client,
         model=model, max_tokens=MAX_TOKENS, system=SYSTEM,
         messages=[{"role": "user",
                    "content": _build_user(meta, original_files, prev_files, prev_feedback)}],
@@ -323,10 +335,8 @@ def main():
     }, indent=2))
 
 
-# Make the API key available exactly as generator.py does (existing env wins; the
-# value is never logged). Importing generator already triggered this; the explicit
-# call documents the dependency and stays idempotent.
-_load_dotenv()
+# The API key is loaded by generate() (via generator._load_dotenv) at the point the
+# real client is constructed, so importing this module never mutates os.environ.
 
 
 if __name__ == "__main__":

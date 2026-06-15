@@ -282,7 +282,7 @@ def test_generate_invalid_writes_nothing(tmp_path):
 
 
 def test_generate_thinking_params_gated_by_model():
-    # An Opus model in THINKS gets the adaptive-thinking + effort params.
+    # A thinking-capable Opus model gets the adaptive-thinking + effort params.
     client = FakeClient(emit(GOOD_2FILE))
     mgenerator.generate(META, ORIGINAL_FILES, model="claude-opus-4-8", client=client)
     assert "thinking" in client.calls[0] and "output_config" in client.calls[0]
