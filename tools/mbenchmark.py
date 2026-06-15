@@ -31,11 +31,16 @@ from pathlib import Path
 
 import mgenerator
 import mloop
+import runstate
 from mrun_summary import summarize_mrun
 
 ROOT = Path(__file__).resolve().parent.parent
 MCASES = ROOT / "mcases"
 REPORTS = ROOT / "reports"
+RUNS = ROOT / "runs"
+# Per-case checkpoint of completed mcases (under the gitignored runs/). A fresh run
+# clears this and rewrites it; --resume reads it to skip already-completed mcases.
+RUN_STATE = RUNS / "mbenchmark_runstate.jsonl"
 
 # A complete mcase carries all of these (the loop needs them). original/ and
 # reference/ are directories (the multi-file units); the rest are files.
@@ -63,18 +68,36 @@ def _case_meta(case):
     return m.get("kind", "?"), m.get("difficulty", "?")
 
 
-def run_benchmark(cases, cap, plateau, model, run_loop=mloop.run_loop):
+def run_benchmark(cases, cap, plateau, model, run_loop=mloop.run_loop,
+                  state=None, resume=False):
     """Run the UNMODIFIED mloop over each mcase and collect its per-run summary.
+
     `run_loop` is an injectable seam (default mloop.run_loop) so the orchestration
-    is testable with a fake loop -- no API key and no Docker."""
+    is testable with a fake loop -- no API key and no Docker. Checkpointing is
+    additive: with a `state` (a runstate.RunState), a fresh run clears prior state
+    and persists each mcase as it completes; with resume=True, mcases already in the
+    state are skipped and their persisted summaries reused, so the assembled rows --
+    and therefore the aggregate -- are the union of resumed and newly run mcases,
+    identical to a complete fresh run.
+    """
+    if state is not None and not resume:
+        state.clear()                                    # fresh run starts clean
+    done = state.completed() if (state is not None and resume) else {}
     rows = []
     for i, case in enumerate(cases, 1):
+        if case in done:                                 # resumed: reuse persisted result
+            print(f"[{i}/{len(cases)}] {case} already complete -> skipped (resumed)",
+                  flush=True)
+            rows.append(done[case])
+            continue
         print(f"[{i}/{len(cases)}] running mloop on {case} "
               f"(cap={cap}, plateau={plateau}, model={model}) ...", flush=True)
         _summary, run_dir = run_loop(case, cap, plateau, model)   # loop UNMODIFIED
         s = summarize_mrun(run_dir)                               # read its own logs
         kind, difficulty = _case_meta(case)
         s["kind"], s["difficulty"] = kind, difficulty
+        if state is not None:
+            state.append(case, s)                        # persist the moment it completes
         rows.append(s)
         print(f"      -> {s['verdict']}; best gen {s['best_generation']}; "
               f"bloat removed {s['bloat_removed_pct']}%; ${s['total_cost_usd']}",
@@ -198,14 +221,21 @@ def main():
     ap.add_argument("--cases", nargs="*", default=None,
                     help="subset of mcase names (default: every mcase in mcases/)")
     ap.add_argument("--out", default=str(REPORTS), help="output directory for the aggregate")
+    ap.add_argument("--resume", action="store_true",
+                    help="resume an interrupted run: skip mcases already recorded in run-state "
+                         "and run only the rest (same corpus and config). Default is a fresh "
+                         "run that clears prior state first.")
     args = ap.parse_args()
 
     cases = args.cases or discover_mcases()
     if not cases:
         raise SystemExit(f"no complete mcases found under {MCASES}")
-    print(f"corpus: {len(cases)} mcase(s) -> {', '.join(cases)}\n")
+    print(f"corpus: {len(cases)} mcase(s) -> {', '.join(cases)}"
+          f"{'  [resume]' if args.resume else ''}\n")
 
-    rows = run_benchmark(cases, args.cap, args.plateau, args.model)
+    state = runstate.RunState(RUN_STATE)
+    rows = run_benchmark(cases, args.cap, args.plateau, args.model,
+                         state=state, resume=args.resume)
     agg = aggregate(rows, args.model, args.cap, args.plateau)
     print_table(agg)
 

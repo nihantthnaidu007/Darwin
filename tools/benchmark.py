@@ -11,13 +11,16 @@ sandbox, metric, or case logic.
     reports/RESULTS.md (the honest report, headline derived from the data), and
     prints a clean table.
 
-Deliberately NOT built: resume-on-crash (runs are seconds-long and sub-dollar for
-the whole corpus; resume solves a problem we do not have at this scale). The API
-key is loaded from the environment by generator._load_dotenv() on import; it is
-never read or printed here.
+Checkpointing (P4.2): each case result is persisted to runs/ the moment it
+completes (via the shared runstate helper), so a crash never discards finished
+work. A fresh run clears prior state and rewrites it; --resume skips cases already
+recorded and runs only the rest, assembling the same final aggregate. The API key
+is loaded from the environment by generator._load_dotenv(); it is never read or
+printed here.
 
 Usage:
-  python benchmark.py                       # run the whole corpus, default loop config
+  python benchmark.py                       # fresh run of the whole corpus (clears prior state)
+  python benchmark.py --resume              # resume an interrupted run; skip completed cases
   python benchmark.py --cap 5 --plateau 2   # explicit loop config (loop's own defaults)
   python benchmark.py --cases sum_evens income_tax   # a subset (cheap re-runs)
 """
@@ -29,11 +32,16 @@ from pathlib import Path
 import generator
 import loop
 import report
+import runstate
 from run_summary import summarize_run
 
 ROOT = Path(__file__).resolve().parent.parent
 CASES = ROOT / "cases"
 REPORTS = ROOT / "reports"
+RUNS = ROOT / "runs"
+# Per-case checkpoint of completed cases (under the gitignored runs/). A fresh run
+# clears this and rewrites it; --resume reads it to skip already-completed cases.
+RUN_STATE = RUNS / "benchmark_runstate.jsonl"
 
 
 def discover_cases():
@@ -53,16 +61,36 @@ def _case_meta(case):
     return m.get("category", "?"), m.get("difficulty", "?")
 
 
-def run_benchmark(cases, cap, plateau, model):
-    """Run the UNMODIFIED loop over each case and collect its per-run summary."""
+def run_benchmark(cases, cap, plateau, model, run_loop=loop.run_loop,
+                  state=None, resume=False):
+    """Run the UNMODIFIED loop over each case and collect its per-run summary.
+
+    `run_loop` is an injectable seam (default loop.run_loop) so the orchestration
+    is testable with a fake loop -- no API key and no Docker. Checkpointing is
+    additive: with a `state` (a runstate.RunState), a fresh run clears prior state
+    and persists each case as it completes; with resume=True, cases already in the
+    state are skipped and their persisted summaries reused, so the assembled rows
+    -- and therefore the aggregate -- are the union of resumed and newly run cases,
+    identical to a complete fresh run.
+    """
+    if state is not None and not resume:
+        state.clear()                                    # fresh run starts clean
+    done = state.completed() if (state is not None and resume) else {}
     rows = []
     for i, case in enumerate(cases, 1):
+        if case in done:                                 # resumed: reuse persisted result
+            print(f"[{i}/{len(cases)}] {case} already complete -> skipped (resumed)",
+                  flush=True)
+            rows.append(done[case])
+            continue
         print(f"[{i}/{len(cases)}] running loop on {case} "
               f"(cap={cap}, plateau={plateau}, model={model}) ...", flush=True)
-        _summary, run_dir = loop.run_loop(case, cap, plateau, model)  # loop UNMODIFIED
-        s = summarize_run(run_dir)                                    # read its own logs
+        _summary, run_dir = run_loop(case, cap, plateau, model)  # loop UNMODIFIED
+        s = summarize_run(run_dir)                                # read its own logs
         category, difficulty = _case_meta(case)
         s["category"], s["difficulty"] = category, difficulty
+        if state is not None:
+            state.append(case, s)                        # persist the moment it completes
         rows.append(s)
         print(f"      -> {s['verdict']}; best gen {s['best_generation']}; "
               f"bloat removed {s['bloat_removed_pct']}%; ${s['total_cost_usd']}",
@@ -174,6 +202,10 @@ def main():
     ap.add_argument("--out", default=str(REPORTS), help="output directory for report files")
     ap.add_argument("--report-only", action="store_true",
                     help="regenerate RESULTS.md from an existing aggregate.json (no API calls)")
+    ap.add_argument("--resume", action="store_true",
+                    help="resume an interrupted run: skip cases already recorded in run-state "
+                         "and run only the rest (same corpus and config). Default is a fresh "
+                         "run that clears prior state first.")
     args = ap.parse_args()
 
     out = Path(args.out)
@@ -189,9 +221,12 @@ def main():
     cases = args.cases or discover_cases()
     if not cases:
         raise SystemExit(f"no complete cases found under {CASES}")
-    print(f"corpus: {len(cases)} case(s) -> {', '.join(cases)}\n")
+    print(f"corpus: {len(cases)} case(s) -> {', '.join(cases)}"
+          f"{'  [resume]' if args.resume else ''}\n")
 
-    rows = run_benchmark(cases, args.cap, args.plateau, args.model)
+    state = runstate.RunState(RUN_STATE)
+    rows = run_benchmark(cases, args.cap, args.plateau, args.model,
+                         state=state, resume=args.resume)
     agg = aggregate(rows, args.model, args.cap, args.plateau)
     print_table(agg)
 
