@@ -20,6 +20,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
+import benchmark
 import logsetup
 import mbenchmark
 
@@ -113,16 +116,25 @@ def test_higher_console_level_suppresses_info(tmp_path):
 
 # ------------------------------------------------- machine artifact unchanged
 
-def test_logging_does_not_alter_written_artifact(tmp_path):
+@pytest.mark.parametrize("module, name", [
+    (benchmark, "aggregate.json"),
+    (mbenchmark, "maggregate.json"),
+])
+def test_logging_does_not_alter_written_artifact(tmp_path, module, name):
     agg = {"model": "m", "n_cases": 1,
            "cases": [{"case": "a", "total_cost_usd": 0.01}], "improved": 1}
     # Without logging configured.
     _reset_darwin()
-    plain = mbenchmark.write_aggregate(agg, tmp_path / "plain").read_bytes()
+    plain_path = module.write_aggregate(agg, tmp_path / "plain")
+    plain = plain_path.read_bytes()
+    assert plain_path.name == name
+    # Byte-identical to the prior inline write: json.dumps(agg, indent=2), utf-8, no
+    # trailing newline. This pins the extraction to the exact pre-refactor bytes.
+    assert plain == json.dumps(agg, indent=2).encode("utf-8")
     # With logging configured (console + JSON).
     logsetup.configure(level="INFO", json_path=str(tmp_path / "log.jsonl"),
                        console_stream=io.StringIO())
-    logged = mbenchmark.write_aggregate(agg, tmp_path / "logged").read_bytes()
+    logged = module.write_aggregate(agg, tmp_path / "logged").read_bytes()
     assert plain == logged                    # the artifact bytes are identical
 
 

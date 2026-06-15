@@ -176,6 +176,17 @@ def aggregate(rows, model, cap, plateau):
     }
 
 
+def write_aggregate(agg, out_dir):
+    """Write the machine-readable reports/aggregate.json. Returns the path. A pure
+    extraction of main()'s former inline write (mirrors mbenchmark.write_aggregate),
+    so the artifact byte-identity guarantee is test-enforced, not only reviewed."""
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / "aggregate.json"
+    path.write_text(json.dumps(agg, indent=2), encoding="utf-8")
+    return path
+
+
 def print_table(agg):
     # Pre-built aligned lines are passed as a single "%s" arg so the column layout
     # and any literal "%" survive untouched; the message-only console handler then
@@ -262,12 +273,11 @@ def main():
     agg = aggregate(rows, args.model, args.cap, args.plateau)
     print_table(agg)
 
-    out.mkdir(parents=True, exist_ok=True)
     generated_at = f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}"
-    (out / "aggregate.json").write_text(json.dumps(agg, indent=2), encoding="utf-8")
+    agg_path = write_aggregate(agg, out)   # aggregate.json (byte-identical; mkdirs out)
     (out / "RESULTS.md").write_text(report.build_markdown(agg, generated_at),
                                     encoding="utf-8")
-    log.info("wrote %s", out / "aggregate.json")
+    log.info("wrote %s", agg_path)
     log.info("wrote %s", out / "RESULTS.md")
 
 
