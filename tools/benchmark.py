@@ -73,9 +73,15 @@ def run_benchmark(cases, cap, plateau, model, run_loop=loop.run_loop,
     -- and therefore the aggregate -- are the union of resumed and newly run cases,
     identical to a complete fresh run.
     """
-    if state is not None and not resume:
-        state.clear()                                    # fresh run starts clean
-    done = state.completed() if (state is not None and resume) else {}
+    if state is not None:
+        config = runstate.run_config(model, cap, plateau)
+        if resume:
+            done = state.resume(config)          # fail closed if the config mismatches
+        else:
+            state.start(config)                  # fresh run: record config, clear prior
+            done = {}
+    else:
+        done = {}
     rows = []
     for i, case in enumerate(cases, 1):
         if case in done:                                 # resumed: reuse persisted result
@@ -225,8 +231,11 @@ def main():
           f"{'  [resume]' if args.resume else ''}\n")
 
     state = runstate.RunState(RUN_STATE)
-    rows = run_benchmark(cases, args.cap, args.plateau, args.model,
-                         state=state, resume=args.resume)
+    try:
+        rows = run_benchmark(cases, args.cap, args.plateau, args.model,
+                             state=state, resume=args.resume)
+    except runstate.ConfigMismatchError as e:
+        raise SystemExit(str(e))                 # fail closed with a clear message
     agg = aggregate(rows, args.model, args.cap, args.plateau)
     print_table(agg)
 

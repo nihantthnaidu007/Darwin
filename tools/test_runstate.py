@@ -8,6 +8,8 @@ and the crash-tolerance requirement that a partial trailing record is ignored.
 """
 import json
 
+import pytest
+
 import runstate
 
 
@@ -81,3 +83,56 @@ def test_complete_record_then_partial_trailing(tmp_path):
     done = st.completed()
     assert set(done) == {"c1", "c2"}
     assert done["c2"] == {"v": 2}
+
+
+# ---------------------------------------------- config record (P4.2.2)
+
+def test_start_records_config_and_completed_skips_it(tmp_path):
+    path = tmp_path / "state.jsonl"
+    st = runstate.RunState(path)
+    cfg = runstate.run_config("claude-opus-4-8", 5, 2)
+    st.start(cfg)
+    st.append("c1", {"v": 1})
+    # Config is the leading, human-readable record and reads back faithfully.
+    assert st.read_config() == {"model": "claude-opus-4-8", "cap": 5, "plateau": 2}
+    lines = path.read_text(encoding="utf-8").splitlines()
+    assert json.loads(lines[0]) == {"config": cfg}
+    # The config record is NOT counted as a completed case.
+    assert st.completed() == {"c1": {"v": 1}}
+
+
+def test_start_overwrites_prior_state_and_config(tmp_path):
+    st = runstate.RunState(tmp_path / "state.jsonl")
+    st.start(runstate.run_config("m1", 5, 2))
+    st.append("old", {"v": 1})
+    st.start(runstate.run_config("m2", 7, 3))          # a second fresh run
+    assert st.read_config() == {"model": "m2", "cap": 7, "plateau": 3}
+    assert st.completed() == {}                         # prior cases cleared
+
+
+def test_read_config_none_when_absent(tmp_path):
+    st = runstate.RunState(tmp_path / "nope.jsonl")
+    assert st.read_config() is None
+
+
+def test_resume_matching_config_returns_completed(tmp_path):
+    st = runstate.RunState(tmp_path / "state.jsonl")
+    st.start(runstate.run_config("m", 5, 2))
+    st.append("c1", {"v": 1})
+    assert st.resume(runstate.run_config("m", 5, 2)) == {"c1": {"v": 1}}
+
+
+@pytest.mark.parametrize("field, current", [
+    ("model", runstate.run_config("other-model", 5, 2)),
+    ("cap", runstate.run_config("m", 9, 2)),
+    ("plateau", runstate.run_config("m", 5, 4)),
+])
+def test_resume_config_mismatch_raises_naming_field(tmp_path, field, current):
+    st = runstate.RunState(tmp_path / "state.jsonl")
+    st.start(runstate.run_config("m", 5, 2))
+    st.append("c1", {"v": 1})
+    with pytest.raises(runstate.ConfigMismatchError) as ei:
+        st.resume(current)
+    msg = str(ei.value)
+    assert field in msg                # names the differing field
+    assert "fresh run" in msg          # actionable: states the escape

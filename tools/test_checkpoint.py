@@ -152,3 +152,45 @@ def test_fresh_run_clears_stale_state(monkeypatch, tmp_path, name):
     assert calls == ["a", "b"]                    # fresh run ran every case, skipped none
     assert [r["case"] for r in rows] == ["a", "b"]
     assert set(st.completed()) == {"a", "b"}      # stale_old gone; state rewritten clean
+
+
+# ------------------------------------- resume config mismatch (fail closed, P4.2.2)
+
+@pytest.mark.parametrize("name", ["benchmark", "mbenchmark"])
+@pytest.mark.parametrize("field, cap, plateau, model", [
+    ("model", 5, 2, "changed-model"),
+    ("cap", 9, 2, "base-model"),
+    ("plateau", 5, 4, "base-model"),
+])
+def test_resume_config_mismatch_refused(monkeypatch, tmp_path, name,
+                                        field, cap, plateau, model):
+    mod = _patch(monkeypatch, name)
+    cases = ["a", "b"]
+    st = runstate.RunState(tmp_path / "state.jsonl")
+    # Fresh run with the base config records {model: base-model, cap: 5, plateau: 2}.
+    mod.run_benchmark(cases, 5, 2, "base-model",
+                      run_loop=_recording_loop([]), state=st, resume=False)
+
+    # Resume with exactly one field changed -> fail closed BEFORE running any case.
+    calls = []
+    with pytest.raises(runstate.ConfigMismatchError) as ei:
+        mod.run_benchmark(cases, cap, plateau, model,
+                          run_loop=_recording_loop(calls), state=st, resume=True)
+    assert field in str(ei.value)                 # names the differing field
+    assert calls == []                            # no case ran -> no mixed-config aggregate
+    assert set(st.completed()) == {"a", "b"}      # state untouched by the refused resume
+
+
+@pytest.mark.parametrize("name", ["benchmark", "mbenchmark"])
+def test_resume_matching_config_proceeds(monkeypatch, tmp_path, name):
+    mod = _patch(monkeypatch, name)
+    st = runstate.RunState(tmp_path / "state.jsonl")
+    # A fresh run of a subset leaves partial state under config {m, 5, 2}.
+    mod.run_benchmark(["a"], 5, 2, "m", run_loop=_recording_loop([]),
+                      state=st, resume=False)
+    # Resume the full corpus with the SAME config -> 'a' skipped, the rest run.
+    calls = []
+    rows = mod.run_benchmark(["a", "b", "c"], 5, 2, "m",
+                             run_loop=_recording_loop(calls), state=st, resume=True)
+    assert calls == ["b", "c"]
+    assert [r["case"] for r in rows] == ["a", "b", "c"]
