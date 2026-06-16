@@ -244,6 +244,34 @@ def test_aggregate_no_feedback_when_all_one_shot():
     assert agg["needed_feedback_cases"] == []
 
 
+def test_feedback_load_bearing_false_when_all_gains_within_noise():
+    """needed-feedback cases whose gains are at or below the materiality floor do NOT
+    make feedback_load_bearing true; the cases still appear in the list and the count
+    still records that they used a later generation (decision 0021)."""
+    from feedback_materiality import FEEDBACK_MATERIALITY_EPSILON_PP as EPS
+    rows = [
+        _fake_summary("below", improved=True, best_gen=2, gain=0.37),
+        _fake_summary("at_floor", improved=True, best_gen=2, gain=EPS),  # exactly at the floor
+    ]
+    agg = mbenchmark.aggregate(rows, "test-model", 5, 2)
+    assert agg["needed_feedback"] == 2                 # they DID use a later generation
+    assert len(agg["needed_feedback_cases"]) == 2      # the factual record is unchanged
+    assert agg["feedback_load_bearing"] is False       # but every gain is within noise
+
+
+def test_feedback_load_bearing_true_when_a_gain_exceeds_floor():
+    """A single needed-feedback case whose gain exceeds the materiality floor makes
+    feedback_load_bearing true, even alongside sub-floor cases (decision 0021)."""
+    from feedback_materiality import FEEDBACK_MATERIALITY_EPSILON_PP as EPS
+    rows = [
+        _fake_summary("below", improved=True, best_gen=2, gain=0.37),
+        _fake_summary("material", improved=True, best_gen=2, gain=EPS + 0.01),
+    ]
+    agg = mbenchmark.aggregate(rows, "test-model", 5, 2)
+    assert agg["needed_feedback"] == 2
+    assert agg["feedback_load_bearing"] is True
+
+
 # ------------------------------------------------ run_benchmark + write_aggregate
 
 def test_run_benchmark_with_fake_loop_writes_aggregate(monkeypatch, tmp_path):
