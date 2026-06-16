@@ -14,6 +14,8 @@ import importlib.util
 import json
 import sys
 
+import runinput
+
 
 def _load(path, name):
     spec = importlib.util.spec_from_file_location(name, path)
@@ -52,7 +54,7 @@ def main():
         sys.exit("usage: python record_golden.py <reference.py> <entry_point> "
                  "<arg_sets.json> [-o out.json]")
     ref, entry, arg_file = sys.argv[1:4]
-    arg_sets = json.load(open(arg_file, encoding="utf-8"))
+    arg_sets = runinput.load_json(arg_file)
     golden = record(ref, entry, arg_sets)
     text = json.dumps(golden, indent=2)
     if len(sys.argv) == 6 and sys.argv[4] == "-o":

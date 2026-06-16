@@ -10,13 +10,19 @@ case and mcase still loads unchanged.
   cd tools && python -m pytest test_runinput.py -q -p no:cacheprovider
 """
 import json
+import sys
 from pathlib import Path
 
 import pytest
 
+import build_case
 import loop
 import mloop
+import mrun_summary
+import record_golden
+import run_summary
 import runinput
+import validate_mcase
 
 ROOT = Path(__file__).resolve().parent.parent
 CASES = ROOT / "cases"
@@ -180,3 +186,60 @@ def test_valid_corpus_case_meta_loads_identically(case_dir):
 def test_valid_corpus_mcase_meta_loads_identically(case_dir):
     raw = json.loads((case_dir / "meta.json").read_text(encoding="utf-8"))
     assert runinput.load_mcase_meta(case_dir) == raw
+
+
+# ----------- P4.5b: summary + dev readers fail clearly on a bad input file -----
+# These readers get the guard only (no shape rule). The label defaults to the file
+# name, so the message names the real file even though no label is hand-passed.
+
+def test_summarize_run_missing_run_json_raises_clear_error(tmp_path):
+    with pytest.raises(runinput.RunInputError) as e:
+        run_summary.summarize_run(tmp_path)
+    msg = str(e.value)
+    assert "run.json" in msg and "not found" in msg
+
+
+def test_summarize_run_invalid_run_json_raises_clear_error(tmp_path):
+    (tmp_path / "run.json").write_text("{not valid json", encoding="utf-8")
+    with pytest.raises(runinput.RunInputError) as e:
+        run_summary.summarize_run(tmp_path)
+    msg = str(e.value)
+    assert "run.json" in msg and "not valid JSON" in msg
+
+
+def test_summarize_mrun_missing_run_json_raises_clear_error(tmp_path):
+    with pytest.raises(runinput.RunInputError) as e:
+        mrun_summary.summarize_mrun(tmp_path)
+    assert "run.json" in str(e.value)
+
+
+def test_build_case_missing_spec_raises_clear_error(tmp_path):
+    with pytest.raises(runinput.RunInputError) as e:
+        build_case.build(tmp_path)
+    msg = str(e.value)
+    assert "spec.json" in msg and "not found" in msg
+
+
+def test_build_case_invalid_spec_raises_clear_error(tmp_path):
+    (tmp_path / "spec.json").write_text("{bad", encoding="utf-8")
+    with pytest.raises(runinput.RunInputError) as e:
+        build_case.build(tmp_path)
+    msg = str(e.value)
+    assert "spec.json" in msg and "not valid JSON" in msg
+
+
+def test_record_golden_missing_arg_file_raises_clear_error(tmp_path, monkeypatch):
+    missing = tmp_path / "arg_sets.json"
+    monkeypatch.setattr(
+        sys, "argv", ["record_golden.py", "ref.py", "entry", str(missing)])
+    with pytest.raises(runinput.RunInputError) as e:
+        record_golden.main()
+    assert "arg_sets.json" in str(e.value) and "not found" in str(e.value)
+
+
+def test_validate_mcase_missing_meta_raises_clear_error(tmp_path, monkeypatch):
+    monkeypatch.setattr(validate_mcase, "MCASES", tmp_path)
+    (tmp_path / "broken").mkdir()
+    with pytest.raises(runinput.RunInputError) as e:
+        validate_mcase.validate_case("broken")
+    assert "meta.json" in str(e.value)

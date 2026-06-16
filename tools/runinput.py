@@ -37,16 +37,19 @@ class RunInputError(Exception):
     bad input fails with something a human can act on, not a raw traceback."""
 
 
-def load_json(path, what="input file"):
+def load_json(path, what=None):
     """Read and parse `path` as JSON, guarded.
 
     Returns the parsed value. Raises RunInputError -- naming `path` and the problem
     -- if the file is missing, unreadable, or not syntactically valid JSON, instead
     of a raw FileNotFoundError, OSError, or JSONDecodeError. `what` is a short label
-    for the kind of file (e.g. "case meta.json", "baseline_metrics.json") that opens
-    the message.
+    for the kind of file (e.g. "case meta.json") that opens the message; it defaults
+    to the file name, so a call site need not hand-pass a label that could desync
+    from the real filename.
     """
     path = Path(path)
+    if what is None:
+        what = path.name
     try:
         text = path.read_text(encoding="utf-8")
     except FileNotFoundError:

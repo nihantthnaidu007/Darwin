@@ -17,10 +17,10 @@ exactly one place. Importing this module does not touch the API.
 
 Usage: python run_summary.py <run_dir>     # pretty-print one run's summary
 """
-import json
 import sys
 from pathlib import Path
 
+import runinput
 from evaluator import WEIGHTS, metric_costs
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -49,9 +49,8 @@ def summarize_run(run_dir):
     """Read run.json + baseline_metrics.json for a finished run and return a clean
     summary dict (no new measurement — only re-presentation + a few derivations)."""
     run_dir = Path(run_dir)
-    run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
-    baseline = json.loads(
-        (CASES / run["case"] / "baseline_metrics.json").read_text(encoding="utf-8"))
+    run = runinput.load_json(run_dir / "run.json")
+    baseline = runinput.load_json(CASES / run["case"] / "baseline_metrics.json")
     original, floor = baseline["original"], baseline["reference_floor"]
 
     trace = run["trace"]
