@@ -49,6 +49,7 @@ import logsetup
 import mevaluator
 import mgenerator
 import runinput
+from generator import request_provenance  # mgenerator reuses generator's request config
 from verify_case import TESTS_FAILED
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -190,6 +191,11 @@ def run_loop(case_name, cap=5, plateau_limit=2, model=mgenerator.DEFAULT_MODEL,
     summary = {
         "case": case_name, "model": model,
         "config": {"cap": cap, "plateau_limit": plateau_limit},
+        # Request provenance: read from the generator's own request configuration
+        # (not re-typed here) so the recorded config equals what was sent (decision 0022).
+        # mgenerator reuses generator's request_kwargs, so generator's provenance
+        # describes exactly what this loop's generator sent.
+        "provenance": request_provenance(model),
         "baseline_weighted_cost": base_ev.weighted_cost,
         "best_weighted_cost": best_ev.weighted_cost,
         "improved_over_baseline": improved_overall,

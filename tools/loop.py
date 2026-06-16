@@ -157,6 +157,9 @@ def run_loop(case_name, cap=5, plateau_limit=2, model=generator.DEFAULT_MODEL):
     summary = {
         "case": case_name, "model": model,
         "config": {"cap": cap, "plateau_limit": plateau_limit},
+        # Request provenance: read from the generator's own request configuration
+        # (not re-typed here) so the recorded config equals what was sent (decision 0022).
+        "provenance": generator.request_provenance(model),
         "baseline_weighted_cost": base_ev.weighted_cost,
         "best_weighted_cost": best_ev.weighted_cost,
         "improved_over_baseline": improved_overall,
