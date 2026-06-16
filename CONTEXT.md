@@ -12,8 +12,10 @@ No LLM judges correctness or quality anywhere in the scoring path.
 
 Scope, stated honestly: single-function (v1, tagged v0.1.0) plus OS isolation
 (v2.0, tagged v0.2.0); multi-file is merged (v3) and CI plus Linux portability
-are merged and tagged 0.3.0 (v4). The never-worse-than-baseline guarantee holds
-throughout.
+are merged and tagged 0.3.0 (v4); foundation and guardrails (M0) and resilience
+and operability (v0.4) are merged, bumping the release to 0.4.1 (there is no 0.4.0
+release; the v0.4.0 tag was a mis-tag, decision 0020). The
+never-worse-than-baseline guarantee holds throughout.
 
 ## Domain language
 
@@ -63,11 +65,12 @@ Multi-file stack (v3):
 
 ## Current state
 
-- Version: v4 (CI and hardening), complete and released as 0.3.0. v3 is merged to main (commit 865ec57): the honest multi-file validation report, the six-run variance dataset, and decision 0014 are on main, and the V3 pre-merge and post-merge audits both passed (MAIN HEALTHY).
-- Last completed work on main: the v4 merge to main and its post-merge audit. main is green (75 passed, 2 known decision-0008 xfail), all mcases sound, single-function smoke invariants hold.
-- v4 (0.3.0) delivered the project's first test-running CI (.github/workflows/ci.yml: build the sandbox image, run the full suite, gating pushes and PRs), plus three hardening items: a pytest-presence guard in validate_mcase; broadening the 3.13-specific wording in README and mverify to the verified 3.12 to 3.14 host range; and a Linux-portability staging fix in tools/sandbox_container.py that makes the per-run read-only bind mount readable and traversable by the container's uid 1000 so the suite runs on native Linux Docker hosts (it previously ran only on macOS Docker Desktop), with the container isolation flags unchanged. v4 added 7 tests, taking the suite from 68 (main before v4) to the current 75 passed, 2 xfailed.
-- Roadmap: past 0.3.0, the project is on the production-grade roadmap to a 1.0 release, and milestone M0 (foundation and guardrails) implementation is complete on branch m0-foundation-guardrails. M0 delivered: the Python version metadata reconciled to the verified 3.12 to 3.14 range across pyproject, the trove classifiers, and the README; the non-JSON file reads and writes moved to context managers; the tag-versus-main drift policy recorded (decision 0015: the v0.3.0 tag, commit d1f7123, sits two no-op merge commits behind main, accepted and not re-pointed); and advisory linting (ruff), type checking (mypy), coverage, secret scanning (gitleaks), and a dependency-update bot added in advisory-first mode with a recorded baseline (decision 0016, docs/quality-baseline.md). 0.x stays the honest signal until the open boundaries close (decision 0005).
-- Next: the M0 pre-merge audit, the merge to main, and the post-merge audit, then milestone v0.4. The release version is not bumped by M0; it stays 0.3.0 until v0.4 ships.
+- Version: 0.4.1 (v0.4, resilience and operability), complete and merged. This is the first release-version bump on the production-grade roadmap to 1.0, staying in the 0.x line because the open boundaries from decision 0005 are not yet closed (decisions 0019 and 0020). There is no 0.4.0 release: the v0.4.0 tag was mis-created on the M0 merge commit (4cff555), annotated with the M0 milestone name, and contains no v0.4 work, so it is treated as void and left in place per the never-force-push-tags rule (decision 0015). The v0.4 release is published as 0.4.1 and tagged at its merge commit on main, after the merge and the post-merge audit (decision 0020).
+- Last completed work: the v0.4 milestone (P4.1 through P4.5b) on branch v0.4-resilience, branched from the M0 merge. M0 (foundation and guardrails) is merged to main (commit 4cff555): the Python version metadata reconciled to the verified 3.12 to 3.14 range across pyproject, the trove classifiers, and the README; the non-JSON file reads and writes moved to context managers; the tag-versus-main drift policy (decision 0015); and advisory linting (ruff), type checking (mypy), coverage, secret scanning (gitleaks), and a dependency-update bot in advisory-first mode with a recorded baseline (decision 0016, docs/quality-baseline.md). M0 bumped no version.
+- v0.4 closed four findings, with no change to the optimization, scoring, or equivalence behavior (CHANGELOG.md, decision 0019): B1 (LLM-call resilience: explicit timeout, bounded retries, a shared retryable-versus-fatal error taxonomy, model-capability fallback; plus resumable checkpointed runs that refuse a config-mismatched resume); B2 (an image preflight that tolerates the inspect-by-tag false negative via a listing fallback); E1 (structured logging across the core path with a readable console handler and a JSON handler, the RUN SUMMARY report preserved on stdout, decision 0018); and N1 (guarded JSON loading and case and mcase shape validation on the run-path readers, the simulated-attack payload exhibits left as authored).
+- Suite: 180 passed, 1 skipped, 2 xfailed. The 2 xfails are the known decision-0008 forgery-boundary exhibits; the 1 skip is the Docker-image-gated mloop integration test (test_mloop.py), skipped when the image-inspect probe reads unavailable and run otherwise. The pre-v0.4 baseline on main was 75 passed, 2 xfailed; M0 and v0.4 added the rest. All mcases sound, single-function smoke invariants hold.
+- Earlier history on main: v3 (multi-file) is merged at commit 865ec57 (the honest multi-file validation report, the six-run variance dataset, decision 0014); v4 (CI and Linux portability) delivered the first test-running CI (.github/workflows/ci.yml), a pytest-presence guard in validate_mcase, broadened 3.12 to 3.14 host-version wording, and the Linux bind-mount staging fix in tools/sandbox_container.py. Both passed their pre-merge and post-merge audits.
+- Next: milestone v0.5 (correctness, determinism, and reproducibility): C1 the feedback-load-bearing contradiction, D1 module-global concurrency, F1 determinism and seeding, and N2 oracle sanitization.
 
 Open deferred items (honest ledger):
 

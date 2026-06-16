@@ -83,7 +83,8 @@ def _patch_mcases(monkeypatch, tmp_path, case="fakecase"):
     cdir.mkdir(parents=True)
     (cdir / "baseline_metrics.json").write_text(json.dumps(_BASELINE), encoding="utf-8")
     (cdir / "meta.json").write_text(
-        json.dumps({"kind": "synthetic-unit", "difficulty": "medium"}), encoding="utf-8")
+        json.dumps({"case_id": case, "entry": "Synthetic",
+                    "kind": "synthetic-unit", "difficulty": "medium"}), encoding="utf-8")
     monkeypatch.setattr(mrun_summary, "MCASES", root)
     monkeypatch.setattr(mbenchmark, "MCASES", root)
     return root

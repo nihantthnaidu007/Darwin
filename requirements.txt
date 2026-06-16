@@ -2,3 +2,6 @@ radon==6.0.1
 vulture==2.16
 pytest==8.3.5
 anthropic==0.107.1
+# llm_client imports httpx directly for the connect/read timeout split; pinned to
+# the version anthropic currently resolves.
+httpx==0.28.1

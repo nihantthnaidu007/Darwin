@@ -22,8 +22,12 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import logsetup
+import runinput
 from freeze_metrics import freeze
 from verify_case import classify
+
+log = logsetup.get_logger("evaluator")  # operational log -> stderr (configured at the entry point)
 
 # --- Method A: weighted sum -------------------------------------------------
 #
@@ -136,7 +140,7 @@ class Evaluation:
 
 def evaluate(candidate_path, case_dir, timeout=10.0):
     case_dir = Path(case_dir)
-    baseline = json.load(open(case_dir / "baseline_metrics.json", encoding="utf-8"))
+    baseline = runinput.load_json(case_dir / "baseline_metrics.json", "baseline_metrics.json")
 
     # Layers 1 & 2 (delegated to the existing gatekeeper; the sandbox runs there).
     v = classify(candidate_path, str(case_dir / "test_suite.py"),
@@ -208,12 +212,14 @@ def _score_feedback(metrics, baseline, cost, costs, flags):
 def main():
     if len(sys.argv) != 3:
         sys.exit("usage: python evaluator.py <candidate.py> <case_dir>")
+    logsetup.configure()   # entry point: wire logging once (never at import)
     e = evaluate(sys.argv[1], sys.argv[2])
-    print(json.dumps({
-        "verdict": e.verdict, "reason_code": e.reason_code, "gate": e.gate,
-        "weighted_cost": e.weighted_cost, "flags": e.flags, "metrics": e.metrics,
-    }, indent=2))
-    print("\nFEEDBACK:\n" + e.feedback)
+    result = {"verdict": e.verdict, "reason_code": e.reason_code, "gate": e.gate,
+              "weighted_cost": e.weighted_cost, "flags": e.flags, "metrics": e.metrics}
+    log.info(json.dumps(result, indent=2),
+             extra={"verdict": e.verdict, "reason_code": e.reason_code, "gate": e.gate,
+                    "weighted_cost": e.weighted_cost, "flags": e.flags})
+    log.info("\nFEEDBACK:\n%s", e.feedback)
 
 
 if __name__ == "__main__":

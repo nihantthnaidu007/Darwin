@@ -17,6 +17,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+import runinput
 from bloat import bloat
 from freeze_metrics import freeze
 from record_golden import record
@@ -33,7 +34,7 @@ DIFFICULTIES = {"easy", "medium", "hard"}
 
 def build(seed_dir, force=False):
     seed = Path(seed_dir)
-    spec = json.load(open(seed / "spec.json", encoding="utf-8"))
+    spec = runinput.load_json(seed / "spec.json")
     assert spec["category"] in CATEGORIES, f"bad category: {spec['category']}"
     assert spec["difficulty"] in DIFFICULTIES, f"bad difficulty: {spec['difficulty']}"
 

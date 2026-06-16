@@ -17,7 +17,6 @@ Usage (from tools/): python validate_mcase.py <case_name>|--all
 Exit 0 only if every step holds for every requested case.
 """
 import importlib.util
-import json
 import os
 import shutil
 import subprocess
@@ -25,6 +24,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+import runinput
 from mdiffer import check_equivalence
 
 MCASES = (Path(__file__).parent / ".." / "mcases").resolve()
@@ -73,7 +73,7 @@ def _show_witness(witness, indent="        "):
 
 def validate_case(case_name):
     case_dir = MCASES / case_name
-    meta = json.loads((case_dir / "meta.json").read_text())
+    meta = runinput.load_json(case_dir / "meta.json")
     entry = meta["entry"]
     original = case_dir / "original"
     reference = case_dir / "reference"

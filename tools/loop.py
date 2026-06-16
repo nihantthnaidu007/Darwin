@@ -35,6 +35,8 @@ from pathlib import Path
 import anthropic
 
 import generator
+import logsetup
+import runinput
 from evaluator import evaluate
 from verify_case import BEHAVIOR_MISMATCH, TESTS_FAILED
 
@@ -42,6 +44,8 @@ ROOT = Path(__file__).resolve().parent.parent
 CASES = ROOT / "cases"
 RUNS = ROOT / "runs"
 FLOOR_REACHED = 0.0   # weighted_cost <= 0.0 means the basket reached/beat the reference floor
+
+log = logsetup.get_logger("loop")  # operational log -> stderr (configured at the entry point)
 
 
 def _mismatch_input(feedback):
@@ -91,7 +95,7 @@ def _record(gen, verdict, ev, g, feedback, improved, plateau):
 
 def run_loop(case_name, cap=5, plateau_limit=2, model=generator.DEFAULT_MODEL):
     case_dir = CASES / case_name
-    meta = json.loads((case_dir / "meta.json").read_text(encoding="utf-8"))
+    meta = runinput.load_case_meta(case_dir)
     original_code = (case_dir / "original.py").read_text(encoding="utf-8")
 
     run_dir = RUNS / f"{case_name}_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}"
@@ -168,37 +172,59 @@ def run_loop(case_name, cap=5, plateau_limit=2, model=generator.DEFAULT_MODEL):
     return summary, run_dir
 
 
-def _print_summary(s, run_dir):
-    print("=" * 78)
-    print(f"CASE {s['case']}  model={s['model']}  "
-          f"(cap={s['config']['cap']}, plateau={s['config']['plateau_limit']})")
-    print("=" * 78)
+def _log_summary(s, run_dir):
+    """Emit the per-run trace as operational log records. The console handler is
+    message-only, so the aligned block renders exactly as the old print did (on
+    stderr now); key run facts ride along as structured `extra` fields for the JSON
+    handler. Same values as before -- only the output mechanism changed."""
+    log.info("=" * 78)
+    log.info("CASE %s  model=%s  (cap=%s, plateau=%s)",
+             s["case"], s["model"], s["config"]["cap"], s["config"]["plateau_limit"],
+             extra={"case": s["case"], "model": s["model"],
+                    "cap": s["config"]["cap"], "plateau_limit": s["config"]["plateau_limit"]})
+    log.info("=" * 78)
     for r in s["trace"]:
         g = r["generation"]
         if r["verdict"] == "baseline":
-            print(f"gen {g} BASELINE  weighted_cost={r['weighted_cost']}  (bloated original)")
+            log.info("gen %s BASELINE  weighted_cost=%s  (bloated original)",
+                     g, r["weighted_cost"])
         elif r["verdict"] == "invalid":
-            print(f"gen {g} INVALID   {r['feedback_given']}")
+            log.info("gen %s INVALID   %s", g, r["feedback_given"])
         elif r["verdict"] == "scored":
             star = "   <- new best" if r["is_improvement"] else ""
-            print(f"gen {g} SCORED    weighted_cost={r['weighted_cost']}  flags={r['flags']}{star}")
+            log.info("gen %s SCORED    weighted_cost=%s  flags=%s%s",
+                     g, r["weighted_cost"], r["flags"], star,
+                     extra={"generation": g, "verdict": "scored",
+                            "weighted_cost": r["weighted_cost"], "flags": r["flags"],
+                            "is_improvement": r["is_improvement"]})
         else:
-            print(f"gen {g} REJECTED  {r['reason_code']} @ {r['gate']} gate")
+            log.info("gen %s REJECTED  %s @ %s gate", g, r["reason_code"], r["gate"],
+                     extra={"generation": g, "verdict": "rejected",
+                            "reason_code": r["reason_code"], "gate": r["gate"]})
         if r.get("metrics"):
             m = r["metrics"]
-            print(f"          cyc_total={m['cyclomatic_total']} lloc={m['logical_loc']} "
-                  f"deps={m['dependency_count']} dead={m['dead_code_count']} "
-                  f"nest={m['max_nesting_depth']} mi={m['maintainability_index']}")
+            log.info("          cyc_total=%s lloc=%s deps=%s dead=%s nest=%s mi=%s",
+                     m["cyclomatic_total"], m["logical_loc"], m["dependency_count"],
+                     m["dead_code_count"], m["max_nesting_depth"],
+                     m["maintainability_index"])
         if r["verdict"] in ("scored", "rejected"):
-            print(f"          feedback -> {r['feedback_given'].splitlines()[0]}")
+            log.info("          feedback -> %s", r["feedback_given"].splitlines()[0])
     if s["halted"]:
-        print(f"\nHALTED (API failure): {s['halted']}")
-    print(f"\nbaseline_cost={s['baseline_weighted_cost']}  best_cost={s['best_weighted_cost']}"
-          f"  ->  returned {s['returned']}")
-    print(f"generations={s['generations']}  tokens in/out="
-          f"{s['total_input_tokens']}/{s['total_output_tokens']}  "
-          f"cost=${s['total_cost_usd']}")
-    print(f"artifacts: {run_dir}")
+        log.warning("\nHALTED (API failure): %s", s["halted"], extra={"halted": s["halted"]})
+    log.info("\nbaseline_cost=%s  best_cost=%s  ->  returned %s",
+             s["baseline_weighted_cost"], s["best_weighted_cost"], s["returned"],
+             extra={"case": s["case"], "returned": s["returned"],
+                    "improved_over_baseline": s["improved_over_baseline"],
+                    "baseline_weighted_cost": s["baseline_weighted_cost"],
+                    "best_weighted_cost": s["best_weighted_cost"]})
+    log.info("generations=%s  tokens in/out=%s/%s  cost=$%s",
+             s["generations"], s["total_input_tokens"], s["total_output_tokens"],
+             s["total_cost_usd"],
+             extra={"model": s["model"], "generations": s["generations"],
+                    "total_input_tokens": s["total_input_tokens"],
+                    "total_output_tokens": s["total_output_tokens"],
+                    "total_cost_usd": s["total_cost_usd"], "halted": s["halted"]})
+    log.info("artifacts: %s", run_dir)
 
 
 def main():
@@ -209,10 +235,11 @@ def main():
                     help="stop after this many consecutive non-improving generations")
     ap.add_argument("--model", default=generator.DEFAULT_MODEL)
     args = ap.parse_args()
+    logsetup.configure()   # entry point: wire logging once (never at import)
     if not (CASES / args.case).is_dir():
         sys.exit(f"no such case: {args.case} (looked in {CASES})")
     summary, run_dir = run_loop(args.case, args.cap, args.plateau, args.model)
-    _print_summary(summary, run_dir)
+    _log_summary(summary, run_dir)
 
 
 if __name__ == "__main__":

@@ -33,10 +33,10 @@ not touch the API or Docker.
 
 Usage: python mrun_summary.py <run_dir>     # pretty-print one mloop run's summary
 """
-import json
 import sys
 from pathlib import Path
 
+import runinput
 from evaluator import WEIGHTS
 from mevaluator import _metric_costs
 
@@ -77,9 +77,8 @@ def summarize_mrun(run_dir):
     clean summary dict (no new measurement — only re-presentation + a few
     derivations the loop already implies)."""
     run_dir = Path(run_dir)
-    run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
-    baseline = json.loads(
-        (MCASES / run["case"] / "baseline_metrics.json").read_text(encoding="utf-8"))
+    run = runinput.load_json(run_dir / "run.json")
+    baseline = runinput.load_json(MCASES / run["case"] / "baseline_metrics.json")
     # Multi-file baseline shape: the aggregate of the basket, key "reference" (not
     # "reference_floor"), since the basket is aggregated across the unit's files.
     original = baseline["original"]["aggregate"]

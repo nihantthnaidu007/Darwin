@@ -11,7 +11,7 @@ evaluator decides whether each rewrite is correct, behavior-equivalent, and
 structurally simpler. Nothing is accepted on
 the model's say-so.
 
-**0.3.0 is the current tagged release.** It stays in the 0.x line on purpose: a 1.0
+**0.4.1 is the current tagged release.** It stays in the 0.x line on purpose: a 1.0
 would signal a stable, production-grade release, and Darwin is not there yet. The
 release line, all done and merged:
 
@@ -31,7 +31,7 @@ release line, all done and merged:
 It is run **from source** and is **not published to PyPI** (see
 [pyproject.toml](pyproject.toml)).
 
-> **0.3.0 is an honest early release, not a finished product.** Read
+> **0.4.1 is an honest early release, not a finished product.** Read
 > [Scope and limitations](#scope-and-limitations-read-this-first) before anything
 > else. It states plainly what the container closes (untrusted candidate code cannot
 > touch your host, network, or secrets), what it still does **not** do (the behavior

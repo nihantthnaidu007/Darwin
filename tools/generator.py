@@ -20,16 +20,23 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-import anthropic
+# The one-call hardening (client construction with the explicit timeout + retry
+# budget, failure classification, and the model-capability check) lives in
+# llm_client and is shared with mgenerator, so neither generator duplicates it.
+from llm_client import (
+    build_client,
+    create_message,
+    supports_adaptive_thinking,
+)
 
 DEFAULT_MODEL = os.environ.get("GENERATOR_MODEL", "claude-opus-4-8")
 MAX_TOKENS = 8192    # code + adaptive-thinking tokens; well under the SDK stream guard
 EFFORT = "medium"    # focused rewrite; the evaluator (not model deliberation) is the arbiter
 
-# Adaptive thinking + the effort knob exist only on Opus 4.6+ and Sonnet 4.6;
-# Haiku 4.5 and older models 400 on them. Gate the request params on capability so
-# the generator stays genuinely --model-configurable instead of one-model-only.
-THINKS = {"claude-opus-4-8", "claude-opus-4-7", "claude-opus-4-6", "claude-sonnet-4-6"}
+# Adaptive thinking + the effort knob exist only on Opus 4.6+/Sonnet 4.6+/Fable and
+# 400 on Haiku and older models. Capability is derived from the model id by
+# supports_adaptive_thinking() (no fixed model set), so an unknown or newer model
+# neither silently loses thinking nor hard-fails; unknown ids take the no-thinking path.
 
 # USD per token (input, output), from the published per-1M pricing. Used only to
 # report real cost from the API's own token counts; it never affects generation.
@@ -126,10 +133,16 @@ def generate(meta, original_code, prev_code=None, prev_feedback=None,
              model=DEFAULT_MODEL, client=None):
     """One LLM call -> a candidate GenResult. Raises only on an API failure (after
     the SDK's own retries); the loop treats that as the single halting condition."""
-    client = client or anthropic.Anthropic()
+    if client is None:
+        # The key is needed only now, when constructing the real client (an
+        # injected client needs neither the key nor the .env side effect). The
+        # env load stays explicit at this call site; build_client does not load it.
+        _load_dotenv()
+        client = build_client()
     extra = ({"thinking": {"type": "adaptive"}, "output_config": {"effort": EFFORT}}
-             if model in THINKS else {})
-    resp = client.messages.create(
+             if supports_adaptive_thinking(model) else {})
+    resp = create_message(
+        client,
         model=model, max_tokens=MAX_TOKENS, system=SYSTEM,
         messages=[{"role": "user",
                    "content": _build_user(meta, original_code, prev_code, prev_feedback)}],
@@ -163,5 +176,5 @@ def _load_dotenv():
         if key and key not in os.environ:
             os.environ[key] = val
 
-
-_load_dotenv()
+# Note: _load_dotenv() is invoked explicitly inside generate() at the point the
+# real client is constructed — importing this module must not mutate os.environ.
