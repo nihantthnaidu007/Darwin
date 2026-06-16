@@ -1,6 +1,6 @@
-# Darwin: release metadata for the 0.3.0 GitHub-tagged release.
+# Darwin: release metadata for the 0.4.0 GitHub-tagged release.
 #
-# Version is 0.3.0, staying in the 0.x line on purpose: a 1.0 would signal a
+# Version is 0.4.0, staying in the 0.x line on purpose: a 1.0 would signal a
 # stable, production-grade release. Over 0.2.0, this release adds multi-file
 # simplification (the multi-file generator, the directed multi-file loop, and the
 # multi-file evaluator plus benchmark harness) on top of the single-function
@@ -8,12 +8,17 @@
 # test-running CI (build the sandbox image, run the full suite, gate pushes and
 # PRs on ubuntu-latest); and it adds a Linux bind-mount staging fix so the
 # container runs on native Linux Docker hosts, not only macOS Docker Desktop.
+# Over 0.3.0, it adds resilience and operability: hardened LLM calls and resumable
+# checkpointed runs, an image preflight that tolerates an inspect-by-tag false
+# negative, structured logging across the core path, and guarded JSON input
+# validation, with no change to the optimization, scoring, or equivalence behavior.
 # It still carries the in-process verdict-forgery residual (SECURITY.md, decision
 # 0008): the candidate and the trusted result-emitter share one process, so no
 # part of Darwin is forgery-proof. The multi-file references are soft and the
 # corpus is small (3 multi-file plus 5 single-function validation cases, not a
-# benchmark), so 0.3.0 makes no benchmark-grade claim. 0.3.0 honestly signals
-# "multi-file, CI, and Linux portability added, still early."
+# benchmark), so 0.4.0 makes no benchmark-grade claim. 0.4.0 honestly signals
+# "resilience and operability added on top of multi-file, CI, and Linux portability,
+# still early."
 #
 # Multi-file finding, carried forward plainly (decision 0014): generation 1 does
 # most of the work, and the directed feedback loop is opportunistic and
@@ -33,7 +38,7 @@
 
 [project]
 name = "darwin"
-version = "0.3.0"
+version = "0.4.0"
 description = "A verified Python code simplifier for single-function and multi-file units with a never-worse-than-baseline guarantee; each candidate runs in a locked-down container that runs on Linux Docker hosts (CI-verified on ubuntu-latest), access-isolated but not a forgery-proof gate (in-process forgery residual open); still early (0.x)."
 readme = "README.md"
 requires-python = ">=3.12"
