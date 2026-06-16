@@ -1,6 +1,6 @@
-# Darwin: release metadata for the 0.4.0 GitHub-tagged release.
+# Darwin: release metadata for the 0.4.1 GitHub-tagged release.
 #
-# Version is 0.4.0, staying in the 0.x line on purpose: a 1.0 would signal a
+# Version is 0.4.1, staying in the 0.x line on purpose: a 1.0 would signal a
 # stable, production-grade release. Over 0.2.0, this release adds multi-file
 # simplification (the multi-file generator, the directed multi-file loop, and the
 # multi-file evaluator plus benchmark harness) on top of the single-function
@@ -16,7 +16,7 @@
 # 0008): the candidate and the trusted result-emitter share one process, so no
 # part of Darwin is forgery-proof. The multi-file references are soft and the
 # corpus is small (3 multi-file plus 5 single-function validation cases, not a
-# benchmark), so 0.4.0 makes no benchmark-grade claim. 0.4.0 honestly signals
+# benchmark), so 0.4.1 makes no benchmark-grade claim. 0.4.1 honestly signals
 # "resilience and operability added on top of multi-file, CI, and Linux portability,
 # still early."
 #
@@ -38,7 +38,7 @@
 
 [project]
 name = "darwin"
-version = "0.4.0"
+version = "0.4.1"
 description = "A verified Python code simplifier for single-function and multi-file units with a never-worse-than-baseline guarantee; each candidate runs in a locked-down container that runs on Linux Docker hosts (CI-verified on ubuntu-latest), access-isolated but not a forgery-proof gate (in-process forgery residual open); still early (0.x)."
 readme = "README.md"
 requires-python = ">=3.12"

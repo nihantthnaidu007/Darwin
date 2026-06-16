@@ -13,7 +13,8 @@ No LLM judges correctness or quality anywhere in the scoring path.
 Scope, stated honestly: single-function (v1, tagged v0.1.0) plus OS isolation
 (v2.0, tagged v0.2.0); multi-file is merged (v3) and CI plus Linux portability
 are merged and tagged 0.3.0 (v4); foundation and guardrails (M0) and resilience
-and operability (v0.4) are merged, bumping the release to 0.4.0. The
+and operability (v0.4) are merged, bumping the release to 0.4.1 (there is no 0.4.0
+release; the v0.4.0 tag was a mis-tag, decision 0020). The
 never-worse-than-baseline guarantee holds throughout.
 
 ## Domain language
@@ -64,7 +65,7 @@ Multi-file stack (v3):
 
 ## Current state
 
-- Version: 0.4.0 (v0.4, resilience and operability), complete and merged. This is the first release-version bump on the production-grade roadmap to 1.0, staying in the 0.x line because the open boundaries from decision 0005 are not yet closed (decision 0019). It will be tagged at its merge commit on main, after the merge and the post-merge audit, improving on the tag drift accepted in decision 0015.
+- Version: 0.4.1 (v0.4, resilience and operability), complete and merged. This is the first release-version bump on the production-grade roadmap to 1.0, staying in the 0.x line because the open boundaries from decision 0005 are not yet closed (decisions 0019 and 0020). There is no 0.4.0 release: the v0.4.0 tag was mis-created on the M0 merge commit (4cff555), annotated with the M0 milestone name, and contains no v0.4 work, so it is treated as void and left in place per the never-force-push-tags rule (decision 0015). The v0.4 release is published as 0.4.1 and tagged at its merge commit on main, after the merge and the post-merge audit (decision 0020).
 - Last completed work: the v0.4 milestone (P4.1 through P4.5b) on branch v0.4-resilience, branched from the M0 merge. M0 (foundation and guardrails) is merged to main (commit 4cff555): the Python version metadata reconciled to the verified 3.12 to 3.14 range across pyproject, the trove classifiers, and the README; the non-JSON file reads and writes moved to context managers; the tag-versus-main drift policy (decision 0015); and advisory linting (ruff), type checking (mypy), coverage, secret scanning (gitleaks), and a dependency-update bot in advisory-first mode with a recorded baseline (decision 0016, docs/quality-baseline.md). M0 bumped no version.
 - v0.4 closed four findings, with no change to the optimization, scoring, or equivalence behavior (CHANGELOG.md, decision 0019): B1 (LLM-call resilience: explicit timeout, bounded retries, a shared retryable-versus-fatal error taxonomy, model-capability fallback; plus resumable checkpointed runs that refuse a config-mismatched resume); B2 (an image preflight that tolerates the inspect-by-tag false negative via a listing fallback); E1 (structured logging across the core path with a readable console handler and a JSON handler, the RUN SUMMARY report preserved on stdout, decision 0018); and N1 (guarded JSON loading and case and mcase shape validation on the run-path readers, the simulated-attack payload exhibits left as authored).
 - Suite: 180 passed, 1 skipped, 2 xfailed. The 2 xfails are the known decision-0008 forgery-boundary exhibits; the 1 skip is the Docker-image-gated mloop integration test (test_mloop.py), skipped when the image-inspect probe reads unavailable and run otherwise. The pre-v0.4 baseline on main was 75 passed, 2 xfailed; M0 and v0.4 added the rest. All mcases sound, single-function smoke invariants hold.

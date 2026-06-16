@@ -5,7 +5,13 @@ GitHub-tagged (it is not published to PyPI); each release is tagged from its mer
 commit on main. Versions stay in the 0.x line until the open boundaries from
 decision 0005 close.
 
-## 0.4.0, resilience and operability
+Note: there is no 0.4.0 release. The v0.4.0 tag was mis-created on the M0 merge
+commit (M0 does not bump the version) and is annotated with the M0 milestone name;
+it contains none of the v0.4 work. Per the never-force-push-tags rule (decisions
+0015 and 0005) it is treated as void and left in place, so the first 0.4.x release
+is 0.4.1. See decision 0020.
+
+## 0.4.1, resilience and operability
 
 Closed four findings. No change to the optimization, scoring, or equivalence
 behavior.
