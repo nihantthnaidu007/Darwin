@@ -36,6 +36,7 @@ import anthropic
 
 import generator
 import logsetup
+import runinput
 from evaluator import evaluate
 from verify_case import BEHAVIOR_MISMATCH, TESTS_FAILED
 
@@ -94,7 +95,7 @@ def _record(gen, verdict, ev, g, feedback, improved, plateau):
 
 def run_loop(case_name, cap=5, plateau_limit=2, model=generator.DEFAULT_MODEL):
     case_dir = CASES / case_name
-    meta = json.loads((case_dir / "meta.json").read_text(encoding="utf-8"))
+    meta = runinput.load_case_meta(case_dir)
     original_code = (case_dir / "original.py").read_text(encoding="utf-8")
 
     run_dir = RUNS / f"{case_name}_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}"

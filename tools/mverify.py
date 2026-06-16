@@ -77,6 +77,7 @@ import sys
 from pathlib import Path
 
 import logsetup
+import runinput
 import sandbox_container as sandbox
 from mdiffer import canon_outcome, load_unit, run_sequence
 
@@ -192,7 +193,7 @@ def check_equivalence_containerized(case_dir, candidate_dir, timeout=30.0):
     stats gains "container_runs" and, on a fail-closed run, "error".
     """
     case_dir = Path(case_dir)
-    entry = json.loads((case_dir / "meta.json").read_text())["entry"]
+    entry = runinput.load_mcase_meta(case_dir)["entry"]
     sequences = _load_corpus(case_dir)
 
     # The trusted original replays HERE on the host, via mdiffer, unchanged.

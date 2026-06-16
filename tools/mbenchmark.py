@@ -32,6 +32,7 @@ from pathlib import Path
 import logsetup
 import mgenerator
 import mloop
+import runinput
 import runstate
 from mrun_summary import summarize_mrun
 
@@ -67,7 +68,7 @@ def discover_mcases():
 def _case_meta(case):
     """The mcase's grouping axes. mcase meta uses 'kind' (the domain descriptor,
     the multi-file analogue of single-function 'category') and 'difficulty'."""
-    m = json.loads((MCASES / case / "meta.json").read_text(encoding="utf-8"))
+    m = runinput.load_mcase_meta(MCASES / case)
     return m.get("kind", "?"), m.get("difficulty", "?")
 
 

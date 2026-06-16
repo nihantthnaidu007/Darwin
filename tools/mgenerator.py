@@ -58,6 +58,7 @@ from llm_client import (
     supports_adaptive_thinking,
 )
 import logsetup
+import runinput
 
 log = logsetup.get_logger("mgenerator")  # operational log -> stderr (configured at the entry point)
 
@@ -327,7 +328,7 @@ def main():
     case_dir = Path(sys.argv[1])
     out_dir = sys.argv[2]
     model = sys.argv[3] if len(sys.argv) == 4 else DEFAULT_MODEL
-    meta = json.loads((case_dir / "meta.json").read_text(encoding="utf-8"))
+    meta = runinput.load_mcase_meta(case_dir)
     original_files = read_unit(case_dir / "original")
     r = generate(meta, original_files, model=model, out_dir=out_dir)
     result = {"valid": r.valid, "error": r.error, "files": sorted(r.files),

@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import logsetup
+import runinput
 from freeze_metrics import freeze
 from verify_case import classify
 
@@ -139,7 +140,7 @@ class Evaluation:
 
 def evaluate(candidate_path, case_dir, timeout=10.0):
     case_dir = Path(case_dir)
-    baseline = json.load(open(case_dir / "baseline_metrics.json", encoding="utf-8"))
+    baseline = runinput.load_json(case_dir / "baseline_metrics.json", "baseline_metrics.json")
 
     # Layers 1 & 2 (delegated to the existing gatekeeper; the sandbox runs there).
     v = classify(candidate_path, str(case_dir / "test_suite.py"),

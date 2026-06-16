@@ -33,6 +33,7 @@ import generator
 import logsetup
 import loop
 import report
+import runinput
 import runstate
 from run_summary import summarize_run
 
@@ -60,7 +61,7 @@ def discover_cases():
 
 
 def _case_meta(case):
-    m = json.loads((CASES / case / "meta.json").read_text(encoding="utf-8"))
+    m = runinput.load_case_meta(CASES / case)
     return m.get("category", "?"), m.get("difficulty", "?")
 
 
@@ -249,7 +250,7 @@ def main():
 
     out = Path(args.out)
     if args.report_only:  # re-render the report from the last aggregate; runs NO loop
-        agg = json.loads((out / "aggregate.json").read_text(encoding="utf-8"))
+        agg = runinput.load_json(out / "aggregate.json", "aggregate.json")
         generated_at = f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}"
         (out / "RESULTS.md").write_text(report.build_markdown(agg, generated_at),
                                         encoding="utf-8")

@@ -33,6 +33,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import logsetup
+import runinput
 import sandbox_container as sandbox
 from evaluator import WEIGHTS, _cost, guard_flags, weighted_cost
 from mcase_metrics import unit_metrics
@@ -81,7 +82,7 @@ def _correctness_gate(case_dir, candidate_dir, timeout):
 
 def evaluate(case_dir, candidate_dir, timeout=30.0):
     case_dir = Path(case_dir)
-    baseline = json.loads((case_dir / "baseline_metrics.json").read_text(encoding="utf-8"))
+    baseline = runinput.load_json(case_dir / "baseline_metrics.json", "baseline_metrics.json")
 
     # Layer 1 (correctness): the candidate's test suite must pass in the container.
     ok, code, reason = _correctness_gate(case_dir, candidate_dir, timeout)

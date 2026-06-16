@@ -48,6 +48,7 @@ import anthropic
 import logsetup
 import mevaluator
 import mgenerator
+import runinput
 from verify_case import TESTS_FAILED
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -121,7 +122,7 @@ def run_loop(case_name, cap=5, plateau_limit=2, model=mgenerator.DEFAULT_MODEL,
     injectable seams (default the real mgenerator / mevaluator) so the orchestration
     and the feedback sanitizer are testable with no API key and no Docker."""
     case_dir = MCASES / case_name
-    meta = json.loads((case_dir / "meta.json").read_text(encoding="utf-8"))
+    meta = runinput.load_mcase_meta(case_dir)
     original_files = mgenerator.read_unit(case_dir / "original")
 
     run_dir = Path(run_root or RUNS) / f"{case_name}_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}"
