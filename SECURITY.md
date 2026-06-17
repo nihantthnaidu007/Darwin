@@ -3,7 +3,8 @@
 **One sentence:** v2.0 runs every candidate inside a **locked-down container**, so
 untrusted candidate code can no longer touch your host, network, or secrets — but
 the behavior gate is **still not forgery-proof** against adversarial *in-process*
-code, the isolation is verified on Docker Desktop and **not yet** on native Linux,
+code, the isolation is now CI-verified on **native Linux (Ubuntu, cgroup v2)** as
+well as Docker Desktop — though **not** on cgroup v1 or non-Ubuntu distributions —
 and the scope is still a single function.
 
 This document states the boundary plainly and points at the exact code. Nothing
@@ -110,18 +111,57 @@ This is why **no part of Darwin may be described as "forgery-proof."**
 
 ---
 
-## Platform caveat: native Linux not yet verified
+## Native-Linux verification (CI matrix, cgroup v2)
 
-The isolation was verified on **macOS / Docker Desktop** — a LinuxKit VM, cgroup
-v2. The guarantees should be **equal or stronger** on native Linux, but
-native-Linux behavior has **not** been re-confirmed, specifically:
+The container lockdown probe ([tools/verify_container_sandbox.py](tools/verify_container_sandbox.py))
+now runs in CI on a matrix of native-Linux runners, so the OS-level lockdown is
+exercised on real Linux kernels and Docker daemons, not only on the macOS Docker
+Desktop LinuxKit VM. The workflow is
+[.github/workflows/isolation.yml](.github/workflows/isolation.yml); its exit code
+gates each leg, so a lockdown breach fails CI. See decision 0030.
 
-- OOMKilled reporting (how the memory-cap kill surfaces),
-- cgroup-version-dependent PID / memory cap behavior.
+**What actually ran** (recorded by each leg from `docker info`, `uname -r`, and
+`docker --version` — not assumed):
 
-**Re-confirm the lockdown on native Linux before any production deployment with
-untrusted users.** v2.0 does **not** claim production-grade isolation on native
-Linux.
+| Runner image | cgroup version | Kernel | Docker | Probe result |
+|---|---|---|---|---|
+| `ubuntu-22.04` | **v2** | `6.8.0-1052-azure` | `28.0.4` (build b8034c0) | **all 9 guarantees held** (exit 0) |
+| `ubuntu-24.04` | **v2** | `6.17.0-1018-azure` | `28.0.4` (build b8034c0) | **all 9 guarantees held** (exit 0) |
+
+Both legs run the **full lockdown argv** (every flag is printed at the top of the
+probe output) and pass the whole battery under it. On each leg the probe confirms:
+
+- **Network isolation** — `--network none` holds: both the TCP connect and the DNS
+  lookup are blocked.
+- **Host-filesystem isolation** — only the single read-only bind mount is visible
+  (`/sandbox` lists exactly `candidate.py`); the host path is unreachable.
+- **Memory cap enforced via OOM kill** — the flooder is killed by `--memory` (swap
+  disabled via `--memory-swap == --memory`): exit `137`, status `CRASHED`, and
+  `oom_killed=True`. On both cgroup-v2 legs the `.State.OOMKilled` inspect flag **is**
+  set.
+- **PID cap** — the fork bomb is contained by `--pids-limit` (blocked after 127
+  children) and the call still returns normally.
+- **Hard timeout and clean teardown** — an infinite loop is killed at ~the timeout, the
+  call returns, and no container or host temp artifact leaks (the cleanup check reports
+  zero leaks after the whole battery).
+- Applied on every run (present in the printed argv and exercised under the full
+  battery): **read-only root filesystem** with an in-RAM `/tmp` tmpfs, **non-root** uid
+  `1000:1000`, **all Linux capabilities dropped** (`--cap-drop ALL`), and
+  **`--no-new-privileges`**.
+
+**Memory-cap enforcement is version-robust by construction.** It does not depend on the
+inspect OOM flag: an OOM is a `SIGKILL` that Docker reports as exit `137` (≥ 128), and
+`_classify` maps any exit ≥ 128 to `CRASHED` whether or not `.State.OOMKilled` is set
+([tools/sandbox_container.py](tools/sandbox_container.py), `_classify`). On the two
+cgroup-v2 legs above the flag happens to be set, but a cgroup configuration that left it
+unset would still classify the kill as `CRASHED`. The only version-dependent piece is
+the `oom_killed` boolean itself, which reads the inspect flag.
+
+**What this does NOT cover (stated plainly, no overclaiming).** Hosted GitHub runners
+are Ubuntu on cgroup v2, so this matrix exercises **cgroup v2 on two Ubuntu versions
+only** (two kernels, one Docker version). It does **not** exercise **cgroup v1** or
+**non-Ubuntu distributions**. A real cgroup-v1 or alternate-distribution run is a
+documented **self-hosted / VM follow-up**, not coverage this CI matrix produced.
 
 ---
 
@@ -177,7 +217,7 @@ an oversight.
 | `import __main__` driver hijack | **Closed** (trusted comparison is host-side) |
 | Unbounded-output memory exhaustion | **Closed** (memory cap + capped host-file capture) |
 | In-process verdict forgery (frame-locals hijack / compute-and-lie) | **OPEN** — non-issue for single-user use; matters only for a third-party-trusted verdict; needs a process split (and even then compute-and-lie remains) |
-| Native-Linux production-grade isolation | **Not yet verified** — re-confirm before production |
+| Native-Linux isolation (Ubuntu, cgroup v2) | **CI-verified** — lockdown probe green on `ubuntu-22.04` + `ubuntu-24.04` (both cgroup v2); cgroup v1 and non-Ubuntu **not** exercised (documented self-hosted follow-up) |
 | Scope | **Single function** (multi-file is v3.0) |
 
 ---
