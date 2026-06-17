@@ -1,0 +1,44 @@
+{
+  "comment": "EXAMPLE STARTING POINT ONLY - NOT A VALIDATED PRODUCTION PROFILE. This profile is a starting point for the opt-in seccomp path (P6.4.1, decision 0033, SECURITY.md multi-tenant hardening). It must be validated against the real workload before any multi-tenant use. defaultAction is SCMP_ACT_ALLOW and it only denies a curated set of administrative syscalls an untrusted candidate has no reason to call (most already require capabilities dropped by --cap-drop ALL, so this is belt-and-suspenders defense-in-depth, not a tight allowlist). A production profile should instead default-deny (SCMP_ACT_ERRNO) with a validated allowlist. No architectures are pinned, so it applies on every arch. SCMP_ACT_ERRNO returns EPERM rather than killing the process.",
+  "defaultAction": "SCMP_ACT_ALLOW",
+  "syscalls": [
+    {
+      "names": [
+        "mount",
+        "umount2",
+        "pivot_root",
+        "chroot",
+        "setns",
+        "unshare",
+        "ptrace",
+        "process_vm_readv",
+        "process_vm_writev",
+        "reboot",
+        "kexec_load",
+        "kexec_file_load",
+        "init_module",
+        "finit_module",
+        "delete_module",
+        "bpf",
+        "perf_event_open",
+        "swapon",
+        "swapoff",
+        "add_key",
+        "keyctl",
+        "request_key",
+        "acct",
+        "settimeofday",
+        "clock_settime",
+        "clock_adjtime",
+        "adjtimex",
+        "nfsservctl",
+        "quotactl",
+        "mknod",
+        "mknodat",
+        "_sysctl"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "comment": "Administrative / namespace / kernel syscalls an untrusted candidate has no reason to call. None are used by a normal python+pytest run (verified by the smoke test, which is a smoke test, NOT a security validation). Tighten to a default-deny allowlist for production."
+    }
+  ]
+}

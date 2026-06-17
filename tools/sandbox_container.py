@@ -83,6 +83,28 @@ _KILL_GRACE = 5.0
 # in-RAM flood; this stops a streaming-print flood. Closes v1's deferred risk.
 _MAX_OUTPUT = 1_000_000  # bytes per stream
 
+# OPT-IN defense-in-depth, OFF BY DEFAULT (P6.4.1, decision 0033). The 1.0 default is
+# single-user-trusted, so the default lockdown is the floor and this adds nothing
+# unless an operator turns it on. DARWIN_SANDBOX_EXTRA_SECURITY_OPTS is a comma-
+# separated list of docker --security-opt values (for example
+# "seccomp=/abs/path/example-sandbox-seccomp.json", optionally also "apparmor=...");
+# each becomes an ADDITIONAL --security-opt on top of the lockdown -- it never removes
+# or alters a lockdown flag (opt-in only ADDS restriction). Read ONCE here at module
+# load, mirroring the operator-side DARWIN_LOG_* convention in logsetup: this is
+# deployment configuration, not a per-call argument, so a multi-tenant operator hardens
+# the deployment without editing code. Unset -> empty -> the produced argv is byte-
+# identical to today (TASK CONSTRAINT 1). Values containing a comma (some SELinux
+# label opts) are not expressible here by design; the common seccomp/apparmor case is.
+_EXTRA_SECURITY_OPTS_ENV = "DARWIN_SANDBOX_EXTRA_SECURITY_OPTS"
+
+
+def _load_extra_security_opts():
+    raw = os.environ.get(_EXTRA_SECURITY_OPTS_ENV, "")
+    return tuple(opt.strip() for opt in raw.split(",") if opt.strip())
+
+
+EXTRA_SECURITY_OPTS = _load_extra_security_opts()
+
 
 @dataclass
 class ContainerResult:
@@ -205,8 +227,29 @@ def _stage(files):
     return workdir
 
 
-def _run_argv(name, workdir, command, image, memory, cpus, pids):
-    """The locked-down `docker run` argv. Every flag here is one lockdown item."""
+def _extra_security_opt_args(extra_security_opts):
+    """Expand opt-in extra security options into --security-opt argv pairs. Empty
+    (the default) expands to nothing, so the produced argv is byte-identical to the
+    1.0 lockdown; each entry is appended as an ADDITIONAL --security-opt, never
+    replacing a lockdown flag (opt-in only adds restriction). See decision 0033."""
+    args = []
+    for opt in extra_security_opts:
+        args += ["--security-opt", opt]
+    return args
+
+
+def _run_argv(name, workdir, command, image, memory, cpus, pids,
+              extra_security_opts=None):
+    """The locked-down `docker run` argv. Every flag here is one lockdown item.
+
+    extra_security_opts is the OPT-IN defense-in-depth hook (P6.4.1, decision 0033):
+    None (the default) uses the module-level EXTRA_SECURITY_OPTS, which is empty
+    unless the operator set DARWIN_SANDBOX_EXTRA_SECURITY_OPTS, so by default the
+    produced argv is byte-identical to the 1.0 lockdown. Any entries are appended as
+    ADDITIONAL --security-opt options on top of the lockdown; nothing here is removed
+    or altered. Read at CALL time (not bound as a def-time default) so an operator
+    env var and tests both take effect."""
+    opts = EXTRA_SECURITY_OPTS if extra_security_opts is None else extra_security_opts
     return [
         "docker", "run",
         "--name", name,
@@ -219,6 +262,9 @@ def _run_argv(name, workdir, command, image, memory, cpus, pids):
         "--tmpfs", "/tmp:rw,size=64m,mode=1777",  # only writable area, in RAM
         "--cap-drop", "ALL",              # drop all Linux capabilities
         "--security-opt", "no-new-privileges",
+        # OPT-IN extras (off by default): zero elements when unset, so the argv above
+        # and below is unchanged; appended here as additional --security-opt entries.
+        *_extra_security_opt_args(opts),
         "--user", "1000:1000",            # non-root (image USER is also sandbox)
         "-v", f"{workdir}:/sandbox:ro",   # the ONLY host path, read-only
         "-w", "/sandbox",

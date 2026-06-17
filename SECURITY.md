@@ -216,18 +216,45 @@ documented **self-hosted / VM follow-up**, not coverage this CI matrix produced.
 
 ---
 
-## Optional future hardening (noted, not built)
+## Multi-tenant hardening (opt-in, OFF BY DEFAULT at 1.0)
 
-The I0 audit concluded the current lockdown (cap-drop ALL, no-new-privs, non-root,
-read-only root, network none, memory / CPU / PID caps) is sufficient for the v2.0
-threat model. Two items would add **defense-in-depth** but are **not required**, and
-are deliberately **not built** in v2.0:
+The 1.0 lockdown (cap-drop ALL, no-new-privileges, non-root, read-only root, network
+none, memory / CPU / PID caps) is sufficient for the **single-user-trusted 1.0 threat
+model**, and **1.0 enables none of the items below by default**. They are
+**defense-in-depth guidance for a future multi-tenant deployment**, where untrusted
+tenants share a host. Each is off by default; the default `docker run` argv is
+byte-identical whether or not you adopt them (P6.4.1, decision 0033).
 
-- a **custom seccomp profile** (tighter syscall surface than the Docker default),
-- **user-namespace remap** (container root mapped to an unprivileged host uid).
+- **seccomp profile (opt-in path, shipped example).** A syscall filter on top of the
+  capability drop. There is now an **opt-in hook**: set
+  `DARWIN_SANDBOX_EXTRA_SECURITY_OPTS` (comma-separated `docker run --security-opt`
+  values, for example `seccomp=/abs/path/example-sandbox-seccomp.json`) and each entry
+  is appended as an **additional** `--security-opt`, never replacing a lockdown flag
+  ([tools/sandbox_container.py](tools/sandbox_container.py)). An **example starting
+  point** ships at [tools/seccomp/example-sandbox-seccomp.json](tools/seccomp/example-sandbox-seccomp.json)
+  — it is an **EXAMPLE, NOT a validated production profile** (it allows by default and
+  only denies a curated administrative-syscall set; a production profile should
+  default-deny with a validated allowlist). The repo **smoke-tests** only that the
+  example does not break a normal python+pytest run; that is a **smoke test, not a
+  security validation**. **Validating a production profile against the real workload is
+  2.0 work.**
+- **daemon-level user-namespace remap.** Mapping container root to an unprivileged host
+  uid is **Docker daemon configuration** (`/etc/docker/daemon.json` `userns-remap`, or
+  `dockerd --userns-remap`), **not a per-container flag**, so it is **operator-side** and
+  cannot be set from this code. It is documented here as recommended multi-tenant
+  hardening; **enabling it is deferred to the 2.0 multi-tenant work** and is not done
+  here.
+- **block-IO and file-size caps.** For multi-tenant fairness and disk-exhaustion
+  resistance, add block-IO caps at run time (`--blkio-weight`, or
+  `--device-write-bps` / `--device-read-bps`) and a file-size cap
+  (`--ulimit fsize=<bytes>`). A writable-area size cap is **already in place** in the
+  1.0 default — the only writable mount is the in-RAM tmpfs at `/tmp`, created with a
+  fixed `size=64m` ([tools/sandbox_container.py](tools/sandbox_container.py)) — but the
+  block-IO and `fsize` caps above are **multi-tenant guidance, off by default at 1.0**.
 
-These are possible future hardening, listed so the omission is on the record, not
-an oversight.
+These are recorded so the multi-tenant posture is on the record. 1.0 ships the seccomp
+**opt-in plumbing and a labeled example**, and **documents** the userns and block-IO /
+file-size guidance; it does **not** enable any of them by default.
 
 ---
 
