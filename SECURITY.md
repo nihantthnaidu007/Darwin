@@ -111,6 +111,43 @@ This is why **no part of Darwin may be described as "forgery-proof."**
 
 ---
 
+## The verdict-emission seam: the 2.0 swap point (decision 0032)
+
+Closing the in-process forgery surface in 2.0 requires moving the trusted verdict
+producer **out of the candidate's process**. v1.0 makes that a **one-component swap**
+ahead of time, without changing any 1.0 behavior. The loop and the benchmark no
+longer call the evaluator directly; they depend on a typed **`VerdictEmitter`** seam
+— [tools/verdict_emitter.py](tools/verdict_emitter.py) — with a single method,
+`emit(case_dir, candidate_dir, timeout) -> MEvaluation`:
+
+- The **only shipped implementation is `InProcessEmitter`**, the 1.0 default: its
+  `emit` produces the verdict in-process by delegating to `mevaluator.evaluate` (it
+  **wraps** it; it reimplements no gate, scoring, or equivalence logic). This is
+  **byte-identical** to the previous direct call.
+- The verdict (`MEvaluation`) is **serializable** — `to_dict` / `from_dict`, lossless
+  for both the scored and the rejected shape — so a 2.0 emitter can run the
+  evaluation **across a process boundary** and hand the same typed result back.
+- Because `mloop.run_loop` and `mbenchmark.run_benchmark` depend only on a
+  `VerdictEmitter`, the 2.0 **out-of-process emitter swaps in by replacing this one
+  component**, touching no consumer. A test fake implementing the Protocol drives the
+  loop to completion on canned verdicts, proving the swap holds
+  ([tools/test_verdict_emitter.py](tools/test_verdict_emitter.py)).
+
+**Trust posture.** The in-process default is acceptable at 1.0 **because forging
+one's own optimization verdict is pointless** under the single-user-trusted posture
+(you have no incentive to cheat your own simplifier; the reward-hack audits found
+zero forgery signatures). A **multi-tenant 2.0**, where a forged "pass" is rewarded,
+**requires the out-of-process emitter** for forgery resistance. Until then, **A1
+in-process verdict forgery is open by design** at 1.0 — the two known-open vectors
+pinned as `xfail` (decision 0008, above).
+
+**One protocol, one implementation.** v1.0 ships the interface and exactly
+`InProcessEmitter`; no registry, factory, plugin selection, second implementation, or
+out-of-process implementation is built now. The out-of-process emitter is *received*
+in 2.0, not built here.
+
+---
+
 ## Native-Linux verification (CI matrix, cgroup v2)
 
 The container lockdown probe ([tools/verify_container_sandbox.py](tools/verify_container_sandbox.py))
@@ -216,7 +253,7 @@ an oversight.
 | Golden-oracle read | **Closed** (golden outputs never enter the container) |
 | `import __main__` driver hijack | **Closed** (trusted comparison is host-side) |
 | Unbounded-output memory exhaustion | **Closed** (memory cap + capped host-file capture) |
-| In-process verdict forgery (frame-locals hijack / compute-and-lie) | **OPEN** — non-issue for single-user use; matters only for a third-party-trusted verdict; needs a process split (and even then compute-and-lie remains) |
+| In-process verdict forgery (frame-locals hijack / compute-and-lie) | **OPEN by design** — non-issue for single-user use; matters only for a third-party-trusted verdict; needs a process split, prepared as the `VerdictEmitter` 2.0 swap point (decision 0032; compute-and-lie remains even then) |
 | Native-Linux isolation (Ubuntu, cgroup v2) | **CI-verified** — lockdown probe green on `ubuntu-22.04` + `ubuntu-24.04` (both cgroup v2); cgroup v1 and non-Ubuntu **not** exercised (documented self-hosted follow-up) |
 | Scope | **Single function** (multi-file is v3.0) |
 

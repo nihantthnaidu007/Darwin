@@ -66,6 +66,43 @@ class MEvaluation:
     flags: list = field(default_factory=list)  # guard flags
     feedback: str = ""              # human-readable, specific (V2 loop feeds this back)
 
+    # The verdict-emission boundary payload (decision 0032). to_dict / from_dict are
+    # the single serialization of a verdict: lossless and JSON-ready, so a 2.0
+    # out-of-process emitter can hand the same MEvaluation back across a process
+    # boundary. The in-process default never needs them; they exist so the boundary
+    # exists. There is one serialization, used by main() and (in 2.0) the boundary.
+    def to_dict(self):
+        """Serialize this verdict losslessly to a JSON-ready dict. Every field is
+        included -- the None-valued ones of a rejected verdict among them -- so
+        from_dict() reconstructs an identical MEvaluation. metrics / metric_costs are
+        plain dicts and flags is a list, so the result is directly json.dumps-able."""
+        return {
+            "verdict": self.verdict,
+            "reason_code": self.reason_code,
+            "gate": self.gate,
+            "metrics": self.metrics,
+            "weighted_cost": self.weighted_cost,
+            "metric_costs": self.metric_costs,
+            "flags": self.flags,
+            "feedback": self.feedback,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """Reconstruct an MEvaluation from to_dict()'s output: the exact inverse,
+        lossless for both the scored and the rejected shape (including the None
+        fields). The dict keys are the field names, so this is the boundary decode."""
+        return cls(
+            verdict=data["verdict"],
+            reason_code=data["reason_code"],
+            gate=data["gate"],
+            metrics=data["metrics"],
+            weighted_cost=data["weighted_cost"],
+            metric_costs=data["metric_costs"],
+            flags=data["flags"],
+            feedback=data["feedback"],
+        )
+
 
 def _correctness_gate(case_dir, candidate_dir, timeout):
     """Layer 1: run the case test suite inside the container against the
@@ -221,10 +258,10 @@ def main():
         sys.exit("usage: python mevaluator.py <case_dir> <candidate_unit_dir>")
     logsetup.configure()   # entry point: wire logging once (never at import)
     e = evaluate(sys.argv[1], sys.argv[2])
-    result = {"verdict": e.verdict, "reason_code": e.reason_code, "gate": e.gate,
-              "weighted_cost": e.weighted_cost, "flags": e.flags,
-              "metric_costs": e.metric_costs,
-              "aggregate": e.metrics["aggregate"] if e.metrics else None}
+    # One serialization, used in one place (decision 0032): the SAME to_dict() that
+    # is the verdict-emission boundary payload, rather than an ad-hoc dict, so the
+    # boundary shape is exercised here and there is a single source of it.
+    result = e.to_dict()
     log.info(json.dumps(result, indent=2),
              extra={"verdict": e.verdict, "reason_code": e.reason_code, "gate": e.gate,
                     "weighted_cost": e.weighted_cost, "flags": e.flags})
