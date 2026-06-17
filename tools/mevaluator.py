@@ -21,9 +21,18 @@ see decision 0004) against the case reference floor. A candidate that fails a
 gate is NOT scored — a broken answer is not a valid answer, however clean it
 looks. Layer 3 can never promote a candidate past a gate.
 
-Evaluation is SEQUENTIAL, one candidate per call: mverify's module-global load
-counter and verify_case's per-run driver are safe under that use; this module
-introduces no parallel candidate evaluation (carried flag 2).
+CONCURRENCY SAFETY (decision 0024). The evaluator's loading state is now safe
+under concurrent use. Every dynamic import on the equivalence path mints its
+sys.modules name from a uuid, not a module-global counter (so no non-atomic
+read-modify-write on shared state): the candidate corpus (mverify._load_corpus),
+the host-side original unit replayed via mdiffer.load_unit, and the mcase aux
+module (validate_mcase._load_module). The container path is likewise safe by
+construction -- sandbox_container gives each run a uuid-unique container name and
+a fresh tempfile working directory, so two concurrent container evaluations can
+collide on neither a name nor a directory. Production evaluation nonetheless still
+runs SEQUENTIALLY, one candidate per call; parallel candidate evaluation is not
+activated here and remains a later phase. This phase makes the state safe to
+parallelize, it does not parallelize it.
 
 Usage: python mevaluator.py <case_dir> <candidate_unit_dir>
 """

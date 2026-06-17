@@ -17,18 +17,18 @@ never inspected.
 
 import importlib.util
 import sys
+import uuid
 from pathlib import Path
 
 # ---------------------------------------------------------------- loading
 
-_LOAD_COUNT = 0
-
 
 def load_unit(pkg_dir):
     """Import a unit directory as a uniquely named package."""
-    global _LOAD_COUNT
-    _LOAD_COUNT += 1
-    alias = f"mcase_unit_{_LOAD_COUNT}"
+    # Unique per call with NO shared counter: a uuid is collision-free without
+    # coordination, so concurrent loads cannot collide on a sys.modules name
+    # (decision 0024). The module is still registered in sys.modules as before.
+    alias = f"mcase_unit_{uuid.uuid4().hex}"
     init = Path(pkg_dir) / "__init__.py"
     spec = importlib.util.spec_from_file_location(
         alias, init, submodule_search_locations=[str(pkg_dir)]

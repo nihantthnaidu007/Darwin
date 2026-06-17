@@ -22,6 +22,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 
 import runinput
@@ -30,13 +31,13 @@ from mdiffer import check_equivalence
 MCASES = (Path(__file__).parent / ".." / "mcases").resolve()
 TOOLS = Path(__file__).parent.resolve()
 
-_LOAD = 0
-
 
 def _load_module(path):
-    global _LOAD
-    _LOAD += 1
-    spec = importlib.util.spec_from_file_location(f"mcase_aux_{_LOAD}", path)
+    # Unique per call with NO shared counter: a uuid is collision-free without
+    # coordination, so concurrent loads cannot collide on a sys.modules name
+    # (decision 0024). The module is still registered in sys.modules as before.
+    name = f"mcase_aux_{uuid.uuid4().hex}"
+    spec = importlib.util.spec_from_file_location(name, path)
     mod = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = mod
     spec.loader.exec_module(mod)
