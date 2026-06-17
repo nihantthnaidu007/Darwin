@@ -11,7 +11,7 @@ evaluator decides whether each rewrite is correct, behavior-equivalent, and
 structurally simpler. Nothing is accepted on
 the model's say-so.
 
-**0.4.1 is the current tagged release.** It stays in the 0.x line on purpose: a 1.0
+**0.5.0 is the current tagged release.** It stays in the 0.x line on purpose: a 1.0
 would signal a stable, production-grade release, and Darwin is not there yet. The
 release line, all done and merged:
 
@@ -27,11 +27,18 @@ release line, all done and merged:
   sandbox image, run the full suite, gate pushes and pull requests on
   ubuntu-latest), plus a bind-mount staging fix that makes the container run on
   native Linux Docker hosts, not only macOS Docker Desktop.
+- **v0.5, correctness, determinism, and reproducibility (0.5.0).** A documented
+  feedback-materiality threshold (with the aggregate regenerated to match the prose),
+  an explicit pinned temperature with full run provenance recorded in run.json, a
+  variance harness with committed-snapshot persistence, uuid-minted dynamic-import
+  names across the evaluator loaders, and the oracle witness prefixes bound to a
+  shared marker guarded by a real-producer leak test. The artifact-backed multi-file
+  variance regeneration is deferred to an authorized run.
 
 It is run **from source** and is **not published to PyPI** (see
 [pyproject.toml](pyproject.toml)).
 
-> **0.4.1 is an honest early release, not a finished product.** Read
+> **0.5.0 is an honest early release, not a finished product.** Read
 > [Scope and limitations](#scope-and-limitations-read-this-first) before anything
 > else. It states plainly what the container closes (untrusted candidate code cannot
 > touch your host, network, or secrets), what it still does **not** do (the behavior
