@@ -91,6 +91,22 @@ def test_haiku_omits_thinking_params():
     assert "thinking" not in sent and "output_config" not in sent
 
 
+def test_request_sends_explicit_temperature_on_both_paths():
+    """Temperature is pinned to 1.0 and sent EXPLICITLY -- on the adaptive-thinking
+    path (default Opus, where it is sent alongside thinking) and on the no-thinking
+    path (Haiku) alike (decision 0022). The effective value is unchanged from the
+    prior unset default; only that it is now explicit and recorded."""
+    c_think = FakeClient(GOOD)
+    generator.generate(META, ORIGINAL, client=c_think)                  # default = Opus
+    assert c_think.calls[0]["temperature"] == 1.0
+    assert "thinking" in c_think.calls[0]                               # still adaptive
+
+    c_plain = FakeClient(GOOD)
+    generator.generate(META, ORIGINAL, model="claude-haiku-4-5", client=c_plain)
+    assert c_plain.calls[0]["temperature"] == 1.0
+    assert "thinking" not in c_plain.calls[0]
+
+
 # ---------------------------------------------------- invalid not fatal
 
 def test_prose_only_is_invalid_not_raised():

@@ -40,14 +40,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 # Reuse generator.py's machinery by import: the pricing table, the token budget,
-# the effort knob, and the .env key loader. None of these are re-implemented here
-# (out-of-scope rule 1).
+# the request configuration (request_kwargs -- the pinned temperature plus the
+# adaptive-thinking/effort knobs), and the .env key loader. None of these are
+# re-implemented here (out-of-scope rule 1).
 from generator import (
     DEFAULT_MODEL as _GEN_DEFAULT_MODEL,
-    EFFORT,
     MAX_TOKENS,
     PRICING,
     _load_dotenv,
+    request_kwargs,
 )
 # The one-call hardening (client construction with the explicit timeout + retry
 # budget, failure classification, and the model-capability check) is shared with
@@ -55,7 +56,6 @@ from generator import (
 from llm_client import (
     build_client,
     create_message,
-    supports_adaptive_thinking,
 )
 import logsetup
 import runinput
@@ -293,14 +293,12 @@ def generate(meta, original_files, prev_files=None, prev_feedback=None,
         # env load stays explicit at this call site; build_client does not load it.
         _load_dotenv()
         client = build_client()
-    extra = ({"thinking": {"type": "adaptive"}, "output_config": {"effort": EFFORT}}
-             if supports_adaptive_thinking(model) else {})
     resp = create_message(
         client,
         model=model, max_tokens=MAX_TOKENS, system=SYSTEM,
         messages=[{"role": "user",
                    "content": _build_user(meta, original_files, prev_files, prev_feedback)}],
-        **extra,
+        **request_kwargs(model),
     )
     text = "".join(b.text for b in resp.content if b.type == "text")
     files = parse_emission(text)

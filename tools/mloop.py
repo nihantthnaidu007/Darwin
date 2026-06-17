@@ -23,7 +23,8 @@ next generation's feedback and the loop continues. Only an mgenerator API failur
 (after the SDK's retries) halts the loop.
 
 FLAG 1 (feedback honesty). mevaluator's feedback embeds the oracle in two places:
-the `original :` outcome line of an equivalence rejection, and the pytest dump of a
+the original/candidate outcome lines of an equivalence-divergence witness (matched
+by the shared oracle_markers prefixes, decision 0025), and the pytest dump of a
 tests-failed rejection. format_feedback() re-sanitizes before any feedback reaches
 the generator (Fork 3): a SCORED candidate's feedback is metric/floor data only
 (forwarded as-is); an equivalence rejection names only the diverging INPUT (Fork 1)
@@ -49,6 +50,8 @@ import logsetup
 import mevaluator
 import mgenerator
 import runinput
+from generator import request_provenance  # mgenerator reuses generator's request config
+from oracle_markers import CANDIDATE_OUTCOME_PREFIX, ORIGINAL_OUTCOME_PREFIX
 from verify_case import TESTS_FAILED
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -65,10 +68,12 @@ def _equivalence_feedback(ev):
     """Re-sanitize an equivalence rejection. Keep the head and the `First diverging
     sequence ...` line (the diverging INPUT -- naming the sequence and the call is
     what Fork 1 permits) and, on a fail-closed rejection, the candidate's OWN replay
-    error. DROP the `original :` line (the oracle's outcome -- Fork 3) and the
-    `candidate:` line, the only places mevaluator prints an outcome value."""
+    error. DROP the original-outcome and candidate-outcome lines (the oracle -- Fork
+    3), matched by the shared oracle_markers prefixes mevaluator emits them with, the
+    only places mevaluator prints an outcome value (decision 0025)."""
     kept = [line for line in ev.feedback.splitlines()
-            if not line.strip().startswith(("original :", "candidate:"))]
+            if not line.strip().startswith(
+                (ORIGINAL_OUTCOME_PREFIX, CANDIDATE_OUTCOME_PREFIX))]
     return "\n".join(kept)
 
 
@@ -190,6 +195,11 @@ def run_loop(case_name, cap=5, plateau_limit=2, model=mgenerator.DEFAULT_MODEL,
     summary = {
         "case": case_name, "model": model,
         "config": {"cap": cap, "plateau_limit": plateau_limit},
+        # Request provenance: read from the generator's own request configuration
+        # (not re-typed here) so the recorded config equals what was sent (decision 0022).
+        # mgenerator reuses generator's request_kwargs, so generator's provenance
+        # describes exactly what this loop's generator sent.
+        "provenance": request_provenance(model),
         "baseline_weighted_cost": base_ev.weighted_cost,
         "best_weighted_cost": best_ev.weighted_cost,
         "improved_over_baseline": improved_overall,

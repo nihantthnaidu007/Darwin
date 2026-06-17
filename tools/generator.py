@@ -26,12 +26,18 @@ from pathlib import Path
 from llm_client import (
     build_client,
     create_message,
+    sdk_version,
     supports_adaptive_thinking,
 )
 
 DEFAULT_MODEL = os.environ.get("GENERATOR_MODEL", "claude-opus-4-8")
 MAX_TOKENS = 8192    # code + adaptive-thinking tokens; well under the SDK stream guard
 EFFORT = "medium"    # focused rewrite; the evaluator (not model deliberation) is the arbiter
+# Temperature is pinned and explicit, not left to the API default, so a run's
+# configuration is recorded and reproducible (decision 0022). 1.0 is what the prior
+# unset default and the committed variance data ran under, and the adaptive-thinking
+# path accepts an explicit 1.0 (verified empirically), so behavior is unchanged.
+TEMPERATURE = 1.0
 
 # Adaptive thinking + the effort knob exist only on Opus 4.6+/Sonnet 4.6+/Fable and
 # 400 on Haiku and older models. Capability is derived from the model id by
@@ -129,6 +135,43 @@ def _validate(code, entry_point):
     return f"your module did not define the required entry point `{entry_point}` at module level."
 
 
+def _thinking_extra(model):
+    """The adaptive-thinking + effort kwargs sent for `model`, or {} on the
+    no-thinking path (Haiku, pre-4.6, or an unknown id). Capability is derived by
+    supports_adaptive_thinking(), never an enumerated model set."""
+    if supports_adaptive_thinking(model):
+        return {"thinking": {"type": "adaptive"}, "output_config": {"effort": EFFORT}}
+    return {}
+
+
+def request_kwargs(model):
+    """The model-dependent kwargs generate() splats into create_message: the pinned
+    temperature plus (when supported) adaptive thinking + the effort knob. This is
+    the ONE source request_provenance() also reads, so the recorded provenance cannot
+    drift from what was sent. Temperature is explicit 1.0 on every path; the
+    adaptive-thinking path accepts an explicit 1.0 (decision 0022)."""
+    return {"temperature": TEMPERATURE, **_thinking_extra(model)}
+
+
+def request_provenance(model):
+    """Structured record of the request configuration generate() sends for `model`:
+    the effective temperature, the token budget, the SDK version, and the thinking
+    decision (whether adaptive thinking + the effort knob were sent). Assembled from
+    the same constants and helper generate() uses -- not re-typed literals -- so the
+    loop can write it into run.json and have provenance equal the request exactly."""
+    extra = _thinking_extra(model)
+    return {
+        "model": model,
+        "temperature": TEMPERATURE,
+        "max_tokens": MAX_TOKENS,
+        "sdk_version": sdk_version(),
+        "thinking": {
+            "adaptive": "thinking" in extra,
+            "effort": extra.get("output_config", {}).get("effort"),
+        },
+    }
+
+
 def generate(meta, original_code, prev_code=None, prev_feedback=None,
              model=DEFAULT_MODEL, client=None):
     """One LLM call -> a candidate GenResult. Raises only on an API failure (after
@@ -139,14 +182,12 @@ def generate(meta, original_code, prev_code=None, prev_feedback=None,
         # env load stays explicit at this call site; build_client does not load it.
         _load_dotenv()
         client = build_client()
-    extra = ({"thinking": {"type": "adaptive"}, "output_config": {"effort": EFFORT}}
-             if supports_adaptive_thinking(model) else {})
     resp = create_message(
         client,
         model=model, max_tokens=MAX_TOKENS, system=SYSTEM,
         messages=[{"role": "user",
                    "content": _build_user(meta, original_code, prev_code, prev_feedback)}],
-        **extra,
+        **request_kwargs(model),
     )
     text = "".join(b.text for b in resp.content if b.type == "text")
     code = _extract_code(text)

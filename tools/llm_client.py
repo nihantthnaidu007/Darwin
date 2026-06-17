@@ -59,6 +59,13 @@ def build_client():
     return anthropic.Anthropic(timeout=LLM_TIMEOUT, max_retries=LLM_MAX_RETRIES)
 
 
+def sdk_version():
+    """The installed Anthropic SDK version (anthropic.__version__). The ONE place
+    this is read, so the run record records the real version rather than a hardcoded
+    string that could drift from what actually made the call."""
+    return anthropic.__version__
+
+
 # --- Error taxonomy ----------------------------------------------------------
 
 class LLMCallError(anthropic.APIError):

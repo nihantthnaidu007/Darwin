@@ -291,3 +291,16 @@ def test_generate_thinking_params_gated_by_model():
     client2 = FakeClient(emit(GOOD_2FILE))
     mgenerator.generate(META, ORIGINAL_FILES, model="claude-haiku-4-5", client=client2)
     assert "thinking" not in client2.calls[0] and "output_config" not in client2.calls[0]
+
+
+def test_generate_sends_explicit_temperature_on_both_paths():
+    """The multi-file generator pins temperature to 1.0 and sends it EXPLICITLY on
+    the adaptive-thinking path and the no-thinking path alike, via the shared
+    request_kwargs it reuses from generator.py (decision 0022)."""
+    client = FakeClient(emit(GOOD_2FILE))
+    mgenerator.generate(META, ORIGINAL_FILES, model="claude-opus-4-8", client=client)
+    assert client.calls[0]["temperature"] == 1.0 and "thinking" in client.calls[0]
+
+    client2 = FakeClient(emit(GOOD_2FILE))
+    mgenerator.generate(META, ORIGINAL_FILES, model="claude-haiku-4-5", client=client2)
+    assert client2.calls[0]["temperature"] == 1.0 and "thinking" not in client2.calls[0]

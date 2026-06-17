@@ -1,6 +1,6 @@
-# Darwin: release metadata for the 0.4.1 GitHub-tagged release.
+# Darwin: release metadata for the 0.5.0 GitHub-tagged release.
 #
-# Version is 0.4.1, staying in the 0.x line on purpose: a 1.0 would signal a
+# Version is 0.5.0, staying in the 0.x line on purpose: a 1.0 would signal a
 # stable, production-grade release. Over 0.2.0, this release adds multi-file
 # simplification (the multi-file generator, the directed multi-file loop, and the
 # multi-file evaluator plus benchmark harness) on top of the single-function
@@ -12,13 +12,22 @@
 # checkpointed runs, an image preflight that tolerates an inspect-by-tag false
 # negative, structured logging across the core path, and guarded JSON input
 # validation, with no change to the optimization, scoring, or equivalence behavior.
+# Over 0.4.1, it adds correctness, determinism, and reproducibility (v0.5): a
+# documented feedback-materiality threshold with reports/aggregate.json regenerated
+# to match the prose, an explicit pinned temperature with full run provenance
+# (temperature, model, SDK version, request params) recorded in run.json, a variance
+# harness with committed-snapshot persistence (the artifact-backed multi-file
+# variance regeneration is deferred to an authorized run), uuid-minted dynamic-import
+# names across the eval-path loaders, and the oracle witness prefixes bound to a
+# shared marker guarded by a real-producer leak test, again with no change to the
+# optimization, scoring, or equivalence behavior.
 # It still carries the in-process verdict-forgery residual (SECURITY.md, decision
 # 0008): the candidate and the trusted result-emitter share one process, so no
 # part of Darwin is forgery-proof. The multi-file references are soft and the
 # corpus is small (3 multi-file plus 5 single-function validation cases, not a
-# benchmark), so 0.4.1 makes no benchmark-grade claim. 0.4.1 honestly signals
-# "resilience and operability added on top of multi-file, CI, and Linux portability,
-# still early."
+# benchmark), so 0.5.0 makes no benchmark-grade claim. 0.5.0 honestly signals
+# "correctness, determinism, and reproducibility machinery added on top of
+# resilience and operability, still early."
 #
 # Multi-file finding, carried forward plainly (decision 0014): generation 1 does
 # most of the work, and the directed feedback loop is opportunistic and
@@ -38,7 +47,7 @@
 
 [project]
 name = "darwin"
-version = "0.4.1"
+version = "0.5.0"
 description = "A verified Python code simplifier for single-function and multi-file units with a never-worse-than-baseline guarantee; each candidate runs in a locked-down container that runs on Linux Docker hosts (CI-verified on ubuntu-latest), access-isolated but not a forgery-proof gate (in-process forgery residual open); still early (0.x)."
 readme = "README.md"
 requires-python = ">=3.12"

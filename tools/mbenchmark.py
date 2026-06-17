@@ -34,6 +34,7 @@ import mgenerator
 import mloop
 import runinput
 import runstate
+from feedback_materiality import FEEDBACK_MATERIALITY_EPSILON_PP
 from mrun_summary import summarize_mrun
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -178,7 +179,11 @@ def aggregate(rows, model, cap, plateau):
         "one_shot": len(one_shot),
         "needed_feedback": len(needed_feedback),
         "needed_feedback_cases": needed_feedback,
-        "feedback_load_bearing": bool(needed_feedback),
+        # Load-bearing only if some later-generation gain CLEARS the materiality floor
+        # (decision 0021); direction alone (bool(needed_feedback)) credits gains within
+        # run-to-run noise, so it overpromises relative to the field's name.
+        "feedback_load_bearing": any(
+            c["feedback_gain_pp"] > FEEDBACK_MATERIALITY_EPSILON_PP for c in needed_feedback),
         "total_cost_usd": round(sum(r["total_cost_usd"] for r in rows), 6),
         "total_input_tokens": sum(r["total_input_tokens"] for r in rows),
         "total_output_tokens": sum(r["total_output_tokens"] for r in rows),

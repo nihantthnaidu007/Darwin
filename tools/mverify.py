@@ -74,6 +74,7 @@ import importlib.util
 import json
 import secrets
 import sys
+import uuid
 from pathlib import Path
 
 import logsetup
@@ -95,14 +96,13 @@ _BATCH_BUDGET = 250_000
 # form the comparison below operates on.
 _ABSENT = ["<absent>", ["<absent>"]]
 
-_LOAD = 0
-
 
 def _load_corpus(case_dir):
-    global _LOAD
-    _LOAD += 1
-    spec = importlib.util.spec_from_file_location(
-        f"mverify_corpus_{_LOAD}", Path(case_dir) / "corpus.py")
+    # Unique per call with NO shared counter: a uuid is collision-free without
+    # coordination, so concurrent loads cannot collide on a sys.modules name
+    # (decision 0024). The module is still registered in sys.modules as before.
+    name = f"mverify_corpus_{uuid.uuid4().hex}"
+    spec = importlib.util.spec_from_file_location(name, Path(case_dir) / "corpus.py")
     mod = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = mod
     spec.loader.exec_module(mod)

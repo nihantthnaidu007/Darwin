@@ -11,6 +11,34 @@ it contains none of the v0.4 work. Per the never-force-push-tags rule (decisions
 0015 and 0005) it is treated as void and left in place, so the first 0.4.x release
 is 0.4.1. See decision 0020.
 
+## 0.5.0, correctness, determinism, and reproducibility
+
+Closed C1, D1, and N2 in full, and closed F1 on configuration and machinery with
+the artifact-backed variance regeneration deferred. No change to the optimization,
+scoring, or equivalence behavior.
+
+- **C1, feedback materiality.** `feedback_load_bearing` redefined with a documented
+  materiality threshold (a later generation's gain must clear a 0.5 percentage-point
+  floor to count), and reports/aggregate.json regenerated so the machine-readable
+  artifact agrees with the prose (decision 0021).
+- **F1, configuration and determinism.** Temperature pinned explicitly to 1.0 and
+  full run provenance (temperature, model, SDK version, and request params) recorded
+  in run.json, so a result traces to its exact configuration (decision 0022).
+- **F1, reproducibility machinery.** A variance harness with snapshot persistence
+  that derives the variance table from committed per-run snapshots (decision 0023).
+  The artifact-backed regeneration of the multi-file variance (P5.3b) is deferred to
+  an authorized run, so the committed variance numbers remain the 2026-06-13
+  hand-recorded dataset until then.
+- **D1, concurrency-safe evaluator state.** Dynamic-import module names minted from
+  uuid across all three eval-path loaders (mverify, validate_mcase, mdiffer),
+  removing the module-global counters; the container path is confirmed
+  concurrency-safe by unique names and fresh temp dirs; production evaluation is
+  still sequential (decision 0024).
+- **N2, oracle-sanitization contract.** The oracle witness prefixes bound to a shared
+  marker across the producer (mevaluator) and the sanitizer (mloop), with a
+  real-producer oracle-leak test as the standing guarantee that fails if a wording
+  change or misroute would expose the oracle to the generator (decision 0025).
+
 ## 0.4.1, resilience and operability
 
 Closed four findings. No change to the optimization, scoring, or equivalence

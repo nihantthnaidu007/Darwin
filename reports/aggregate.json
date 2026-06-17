@@ -39,7 +39,7 @@
       ]
     }
   ],
-  "feedback_load_bearing": true,
+  "feedback_load_bearing": false,
   "total_cost_usd": 0.16912,
   "total_input_tokens": 17709,
   "total_output_tokens": 3223,
