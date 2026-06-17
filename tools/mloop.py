@@ -50,6 +50,7 @@ import logsetup
 import mevaluator
 import mgenerator
 import runinput
+import verdict_emitter
 from generator import request_provenance  # mgenerator reuses generator's request config
 from oracle_markers import CANDIDATE_OUTCOME_PREFIX, ORIGINAL_OUTCOME_PREFIX
 from verify_case import TESTS_FAILED
@@ -122,10 +123,19 @@ def _record(gen, verdict, ev, g, feedback, improved, plateau, candidate_dir):
 
 def run_loop(case_name, cap=5, plateau_limit=2, model=mgenerator.DEFAULT_MODEL,
              client=None, generate=mgenerator.generate, evaluate=mevaluator.evaluate,
-             run_root=None, timeout=30.0):
+             emitter=None, run_root=None, timeout=30.0):
     """Drive one mcase through the directed loop. `generate` and `evaluate` are
     injectable seams (default the real mgenerator / mevaluator) so the orchestration
-    and the feedback sanitizer are testable with no API key and no Docker."""
+    and the feedback sanitizer are testable with no API key and no Docker.
+
+    `emitter` is the verdict-emission seam (a VerdictEmitter, decision 0032): every
+    verdict is produced through emitter.emit(...), never by calling evaluate()
+    directly. The default (None) is the 1.0 in-process emitter delegating to
+    `evaluate`, so behavior is byte-identical to today; a 2.0 out-of-process emitter
+    is injected by passing a different VerdictEmitter instance, with no change to
+    this body. `evaluate` configures the default emitter's in-process delegate (it is
+    the pre-existing no-Docker test seam) and is ignored when `emitter` is passed."""
+    emitter = emitter or verdict_emitter.InProcessEmitter(evaluate)
     case_dir = MCASES / case_name
     meta = runinput.load_mcase_meta(case_dir)
     original_files = mgenerator.read_unit(case_dir / "original")
@@ -140,7 +150,7 @@ def run_loop(case_name, cap=5, plateau_limit=2, model=mgenerator.DEFAULT_MODEL,
     # Generation 0: the bloated original -- establishes the baseline cost and is the
     # guaranteed fallback. Materialized to its own dir for a self-contained trace.
     base_dir = mgenerator.materialize(original_files, run_dir / "gen_00_baseline")
-    base_ev = evaluate(case_dir, base_dir, timeout)
+    base_ev = emitter.emit(case_dir, base_dir, timeout)
     records = [_record(0, "baseline", base_ev, None, "(baseline -- the bloated original)",
                        False, 0, str(base_dir))]
     checkpoint(records[0])
@@ -169,7 +179,7 @@ def run_loop(case_name, cap=5, plateau_limit=2, model=mgenerator.DEFAULT_MODEL,
         # FLAG 2: a FRESH directory per generation, never reused, so no stale file
         # from a prior generation can linger into this evaluation.
         cand_dir = mgenerator.materialize(g.files, run_dir / f"gen_{gen:02d}_candidate")
-        ev = evaluate(case_dir, cand_dir, timeout)
+        ev = emitter.emit(case_dir, cand_dir, timeout)
         feedback = format_feedback(ev)
         improved = (ev.verdict == "scored" and ev.weighted_cost is not None
                     and ev.weighted_cost < best_ev.weighted_cost)

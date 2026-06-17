@@ -1,7 +1,7 @@
-# Darwin: release metadata for the 0.5.0 GitHub-tagged release.
+# Darwin: release metadata for the 0.6.0 GitHub-tagged release.
 #
-# Version is 0.5.0, staying in the 0.x line on purpose: a 1.0 would signal a
-# stable, production-grade release. Over 0.2.0, this release adds multi-file
+# Version is 0.6.0, staying in the 0.x line on purpose: a 1.0 would signal a
+# stable, production-grade release. Over 0.2.0, the release line adds multi-file
 # simplification (the multi-file generator, the directed multi-file loop, and the
 # multi-file evaluator plus benchmark harness) on top of the single-function
 # engine and the v2.0 OS-level isolation boundary; it adds the project's first
@@ -21,13 +21,26 @@
 # names across the eval-path loaders, and the oracle witness prefixes bound to a
 # shared marker guarded by a real-producer leak test, again with no change to the
 # optimization, scoring, or equivalence behavior.
+# Over 0.5.0, it adds supply-chain and isolation hardening (v0.6): the sandbox base
+# image pinned by manifest-list digest with a documented rotation procedure;
+# hash-locked lockfiles (pip-tools, --generate-hashes) for the host, CI, and the
+# sandbox image, installed with --require-hashes, plus a CycloneDX SBOM build
+# artifact and an advisory pip-audit vulnerability scan in CI; a CI matrix exercising
+# the container lockdown probe across two Ubuntu runners on cgroup v2, recording the
+# actual cgroup version, with a native-Linux SECURITY.md section scoped to that
+# evidence; and defense-in-depth -- opt-in, off-by-default seccomp plumbing with a
+# byte-identical default argv and an example starting-point profile, plus the typed
+# VerdictEmitter seam (in-process default, serializable verdict) prepared for the 2.0
+# out-of-process emitter -- again with no change to the optimization, scoring, or
+# equivalence behavior.
 # It still carries the in-process verdict-forgery residual (SECURITY.md, decision
 # 0008): the candidate and the trusted result-emitter share one process, so no
-# part of Darwin is forgery-proof. The multi-file references are soft and the
+# part of Darwin is forgery-proof, now with the VerdictEmitter seam prepared to
+# receive its 2.0 out-of-process fix. The multi-file references are soft and the
 # corpus is small (3 multi-file plus 5 single-function validation cases, not a
-# benchmark), so 0.5.0 makes no benchmark-grade claim. 0.5.0 honestly signals
-# "correctness, determinism, and reproducibility machinery added on top of
-# resilience and operability, still early."
+# benchmark), so 0.6.0 makes no benchmark-grade claim. 0.6.0 honestly signals
+# "supply-chain and isolation hardening added on top of correctness, determinism,
+# and reproducibility, still early."
 #
 # Multi-file finding, carried forward plainly (decision 0014): generation 1 does
 # most of the work, and the directed feedback loop is opportunistic and
@@ -47,7 +60,7 @@
 
 [project]
 name = "darwin"
-version = "0.5.0"
+version = "0.6.0"
 description = "A verified Python code simplifier for single-function and multi-file units with a never-worse-than-baseline guarantee; each candidate runs in a locked-down container that runs on Linux Docker hosts (CI-verified on ubuntu-latest), access-isolated but not a forgery-proof gate (in-process forgery residual open); still early (0.x)."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -74,13 +87,18 @@ classifiers = [
     "Topic :: Software Development :: Code Generators",
 ]
 
-# Runtime dependencies, version-pinned. Kept in sync with requirements.txt
-# (the source of truth for `pip install -r`). Transitive deps are not lock-pinned.
+# Runtime dependencies, version-pinned. Kept in sync with the direct list in
+# requirements.in (the source you edit for the direct runtime deps). The full
+# closure lives in the generated, hash-locked requirements.txt (direct plus
+# transitive, compiled with pip-compile --generate-hashes and installed with
+# pip --require-hashes); requirements.txt is generated, never hand-edited. See
+# decision 0028. This list mirrors requirements.in's pins, name-for-name.
 dependencies = [
     "radon==6.0.1",
     "vulture==2.16",
     "pytest==8.3.5",
     "anthropic==0.107.1",
+    "httpx==0.28.1",
 ]
 
 [project.urls]

@@ -1,12 +1,13 @@
 name: Quality (advisory)
 
-# P0.2 advisory quality gates. Three jobs -- ruff (lint + format check), mypy
-# (lenient baseline), and a gitleaks secret scan -- run on push to any branch
-# and on pull requests to main. Every gate is advisory: step-level
-# continue-on-error on each tool step keeps that job green while its findings
-# still surface as annotations, without blocking a merge. The infrastructure
-# steps (checkout, setup-python, install) carry no tolerance, so a real break
-# still fails the job. Flipping these gates to blocking is deferred to P7.2.
+# P0.2 advisory quality gates. Four jobs -- ruff (lint + format check), mypy
+# (lenient baseline), a gitleaks secret scan, and a pip-audit dependency
+# vulnerability scan (P6.2.2) -- run on push to any branch and on pull requests
+# to main. Every gate is advisory: step-level continue-on-error on each tool step
+# keeps that job green while its findings still surface as annotations, without
+# blocking a merge. The infrastructure steps (checkout, setup-python, install)
+# carry no tolerance, so a real break still fails the job. Flipping these gates to
+# blocking is deferred to P7.2.
 #
 # ruff and mypy target the production code in tools/ only; cases/ and spikes/
 # are excluded in pyproject.toml. The tool pins live in requirements-dev.txt and
@@ -27,7 +28,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install dev dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install --require-hashes -r requirements-dev.txt
       - name: Ruff lint (advisory)
         continue-on-error: true      # advisory: a lint finding never blocks a merge
         run: ruff check tools/
@@ -45,7 +46,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install dev dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install --require-hashes -r requirements-dev.txt
       - name: Mypy (lenient, advisory)
         continue-on-error: true      # advisory: a type error never blocks a merge
         run: mypy tools/
@@ -62,3 +63,28 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Advisory dependency vulnerability scan (P6.2.2). pip-audit (pip-ecosystem,
+  # matching pip-tools; pinned in the hashed dev lock) checks the runtime closure
+  # (requirements.txt) and the sandbox closure (tools/requirements-sandbox.txt)
+  # against the PyPI advisory database. pip-audit exits non-zero when it finds a
+  # vulnerability, so continue-on-error on the scan step keeps the job green while
+  # the finding still surfaces -- exactly like the ruff, mypy, and gitleaks gates
+  # above. The flip to blocking is deferred to P7.2 with the other gates. See
+  # decision 0029.
+  vuln-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install dev dependencies
+        run: pip install --require-hashes -r requirements-dev.txt
+      # Confirmed from `pip-audit --help`: -r is repeatable and reads the hashed
+      # lock files directly (no extra flag needed).
+      - name: pip-audit dependency vulnerability scan (advisory)
+        continue-on-error: true      # advisory: a vulnerability finding never blocks a merge
+        run: pip-audit -r requirements.txt -r tools/requirements-sandbox.txt

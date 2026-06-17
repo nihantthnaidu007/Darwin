@@ -74,7 +74,7 @@ def _case_meta(case):
 
 
 def run_benchmark(cases, cap, plateau, model, run_loop=mloop.run_loop,
-                  state=None, resume=False):
+                  state=None, resume=False, emitter=None):
     """Run the UNMODIFIED mloop over each mcase and collect its per-run summary.
 
     `run_loop` is an injectable seam (default mloop.run_loop) so the orchestration
@@ -84,6 +84,12 @@ def run_benchmark(cases, cap, plateau, model, run_loop=mloop.run_loop,
     state are skipped and their persisted summaries reused, so the assembled rows --
     and therefore the aggregate -- are the union of resumed and newly run mcases,
     identical to a complete fresh run.
+
+    `emitter` is the verdict-emission seam threaded to the loop (a VerdictEmitter,
+    decision 0032). None (the default) keeps the loop's 1.0 in-process default, so
+    behavior is byte-identical; a 2.0 out-of-process emitter is injected by passing
+    one, and it reaches run_loop untouched. It is forwarded only when set, so an
+    injected fake run_loop keeps working unchanged.
     """
     if state is not None:
         config = runstate.run_config(model, cap, plateau)
@@ -103,7 +109,11 @@ def run_benchmark(cases, cap, plateau, model, run_loop=mloop.run_loop,
             continue
         log.info("[%s/%s] running mloop on %s (cap=%s, plateau=%s, model=%s) ...",
                  i, len(cases), case, cap, plateau, model)
-        _summary, run_dir = run_loop(case, cap, plateau, model)   # loop UNMODIFIED
+        # Forward the verdict-emission seam only when one was injected, so the default
+        # call is byte-identical to before (and an injected 4-arg fake run_loop is
+        # unaffected). None lets run_loop apply its own in-process default.
+        loop_kwargs = {} if emitter is None else {"emitter": emitter}
+        _summary, run_dir = run_loop(case, cap, plateau, model, **loop_kwargs)   # loop UNMODIFIED
         s = summarize_mrun(run_dir)                               # read its own logs
         kind, difficulty = _case_meta(case)
         s["kind"], s["difficulty"] = kind, difficulty

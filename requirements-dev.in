@@ -1,0 +1,25 @@
+# Development and CI tooling for Darwin's advisory quality gates (P0.2). This file
+# is the SOURCE you edit; requirements-dev.txt is the generated, hash-locked
+# closure (runtime + dev tools + transitive, with --generate-hashes) and is never
+# hand-edited. It is what CI installs with --require-hashes.
+#
+# Includes the runtime requirements (via -r requirements.in) plus the dev tools.
+# Each dev tool is pinned to the stable version resolved at authoring time
+# (2026-06-14; cyclonedx-bom and pip-audit added 2026-06-17). All quality gates
+# are advisory in CI (.github/workflows/quality.yml); coverage is reported, not
+# gated (.github/workflows/ci.yml). Current baseline finding counts are recorded
+# in docs/quality-baseline.md. The blocking flip is P7.2.
+#
+# Regenerate on Python 3.13:
+#   pip-compile --generate-hashes --output-file=requirements-dev.txt requirements-dev.in
+-r requirements.in
+ruff==0.15.17
+mypy==2.1.0
+pytest-cov==7.1.0
+# Supply-chain CI tooling (P6.2.2), both pip-ecosystem to match pip-tools:
+# cyclonedx-bom provides the cyclonedx-py SBOM generator (the sbom job in ci.yml);
+# pip-audit is the advisory dependency vulnerability scanner (the vuln-scan job in
+# quality.yml). Dev/CI tools only; they do not enter the runtime lock. See
+# decision 0029.
+cyclonedx-bom==7.3.0
+pip-audit==2.10.1

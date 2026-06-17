@@ -1,9 +1,10 @@
 name: CI
 
-# Build the sandbox image and run the full suite. Runs on push to any branch
-# (so a phase branch can be seen green before merge) and on pull requests to
-# main (so main is gated). No secrets: the suite uses fakes and the container,
-# never a live ANTHROPIC_API_KEY.
+# Build the sandbox image and run the full suite, and (in a separate job)
+# generate a CycloneDX SBOM of the deployable runtime surface as a build artifact
+# (P6.2.2). Runs on push to any branch (so a phase branch can be seen green before
+# merge) and on pull requests to main (so main is gated). No secrets: the suite
+# uses fakes and the container, never a live ANTHROPIC_API_KEY.
 on:
   push:
   pull_request:
@@ -27,7 +28,7 @@ jobs:
       # with no API call, because tools/test_mloop.py imports generator, which
       # imports anthropic at collection time.
       - name: Install host dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install --require-hashes -r requirements-dev.txt
 
       # The suite runs candidates via docker run, so the image must exist first.
       # Exact command from the README.
@@ -43,3 +44,35 @@ jobs:
       - name: Run the suite (with coverage, reported not gated)
         working-directory: tools
         run: python -m pytest -q -p no:cacheprovider --cov=. --cov-report=term-missing --cov-config=../pyproject.toml
+
+  # Generate a CycloneDX SBOM of the deployable runtime surface and upload it as a
+  # build artifact. The SBOM is generated from requirements.txt (the runtime lock),
+  # NOT requirements-dev.txt, so it describes what ships, not the dev/CI tooling.
+  # cyclonedx-py is the generator from cyclonedx-bom (pip-ecosystem, matching
+  # pip-tools), pinned in the hashed dev lock; the SBOM is a build artifact, not a
+  # committed file. See decision 0029.
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install host dependencies
+        run: pip install --require-hashes -r requirements-dev.txt
+
+      # Confirmed from `cyclonedx-py requirements --help`: positional requirements
+      # file, --output-format JSON, --output-file. Validates the BOM before output
+      # (default --validate). Emits CycloneDX 1.6.
+      - name: Generate CycloneDX SBOM from the runtime lock
+        run: cyclonedx-py requirements requirements.txt --output-format JSON --output-file sbom.cdx.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cdx.json

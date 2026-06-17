@@ -3,7 +3,8 @@
 **One sentence:** v2.0 runs every candidate inside a **locked-down container**, so
 untrusted candidate code can no longer touch your host, network, or secrets — but
 the behavior gate is **still not forgery-proof** against adversarial *in-process*
-code, the isolation is verified on Docker Desktop and **not yet** on native Linux,
+code, the isolation is now CI-verified on **native Linux (Ubuntu, cgroup v2)** as
+well as Docker Desktop — though **not** on cgroup v1 or non-Ubuntu distributions —
 and the scope is still a single function.
 
 This document states the boundary plainly and points at the exact code. Nothing
@@ -110,18 +111,94 @@ This is why **no part of Darwin may be described as "forgery-proof."**
 
 ---
 
-## Platform caveat: native Linux not yet verified
+## The verdict-emission seam: the 2.0 swap point (decision 0032)
 
-The isolation was verified on **macOS / Docker Desktop** — a LinuxKit VM, cgroup
-v2. The guarantees should be **equal or stronger** on native Linux, but
-native-Linux behavior has **not** been re-confirmed, specifically:
+Closing the in-process forgery surface in 2.0 requires moving the trusted verdict
+producer **out of the candidate's process**. v1.0 makes that a **one-component swap**
+ahead of time, without changing any 1.0 behavior. The loop and the benchmark no
+longer call the evaluator directly; they depend on a typed **`VerdictEmitter`** seam
+— [tools/verdict_emitter.py](tools/verdict_emitter.py) — with a single method,
+`emit(case_dir, candidate_dir, timeout) -> MEvaluation`:
 
-- OOMKilled reporting (how the memory-cap kill surfaces),
-- cgroup-version-dependent PID / memory cap behavior.
+- The **only shipped implementation is `InProcessEmitter`**, the 1.0 default: its
+  `emit` produces the verdict in-process by delegating to `mevaluator.evaluate` (it
+  **wraps** it; it reimplements no gate, scoring, or equivalence logic). This is
+  **byte-identical** to the previous direct call.
+- The verdict (`MEvaluation`) is **serializable** — `to_dict` / `from_dict`, lossless
+  for both the scored and the rejected shape — so a 2.0 emitter can run the
+  evaluation **across a process boundary** and hand the same typed result back.
+- Because `mloop.run_loop` and `mbenchmark.run_benchmark` depend only on a
+  `VerdictEmitter`, the 2.0 **out-of-process emitter swaps in by replacing this one
+  component**, touching no consumer. A test fake implementing the Protocol drives the
+  loop to completion on canned verdicts, proving the swap holds
+  ([tools/test_verdict_emitter.py](tools/test_verdict_emitter.py)).
 
-**Re-confirm the lockdown on native Linux before any production deployment with
-untrusted users.** v2.0 does **not** claim production-grade isolation on native
-Linux.
+**Trust posture.** The in-process default is acceptable at 1.0 **because forging
+one's own optimization verdict is pointless** under the single-user-trusted posture
+(you have no incentive to cheat your own simplifier; the reward-hack audits found
+zero forgery signatures). A **multi-tenant 2.0**, where a forged "pass" is rewarded,
+**requires the out-of-process emitter** for forgery resistance. Until then, **A1
+in-process verdict forgery is open by design** at 1.0 — the two known-open vectors
+pinned as `xfail` (decision 0008, above).
+
+**One protocol, one implementation.** v1.0 ships the interface and exactly
+`InProcessEmitter`; no registry, factory, plugin selection, second implementation, or
+out-of-process implementation is built now. The out-of-process emitter is *received*
+in 2.0, not built here.
+
+---
+
+## Native-Linux verification (CI matrix, cgroup v2)
+
+The container lockdown probe ([tools/verify_container_sandbox.py](tools/verify_container_sandbox.py))
+now runs in CI on a matrix of native-Linux runners, so the OS-level lockdown is
+exercised on real Linux kernels and Docker daemons, not only on the macOS Docker
+Desktop LinuxKit VM. The workflow is
+[.github/workflows/isolation.yml](.github/workflows/isolation.yml); its exit code
+gates each leg, so a lockdown breach fails CI. See decision 0030.
+
+**What actually ran** (recorded by each leg from `docker info`, `uname -r`, and
+`docker --version` — not assumed):
+
+| Runner image | cgroup version | Kernel | Docker | Probe result |
+|---|---|---|---|---|
+| `ubuntu-22.04` | **v2** | `6.8.0-1052-azure` | `28.0.4` (build b8034c0) | **all 9 guarantees held** (exit 0) |
+| `ubuntu-24.04` | **v2** | `6.17.0-1018-azure` | `28.0.4` (build b8034c0) | **all 9 guarantees held** (exit 0) |
+
+Both legs run the **full lockdown argv** (every flag is printed at the top of the
+probe output) and pass the whole battery under it. On each leg the probe confirms:
+
+- **Network isolation** — `--network none` holds: both the TCP connect and the DNS
+  lookup are blocked.
+- **Host-filesystem isolation** — only the single read-only bind mount is visible
+  (`/sandbox` lists exactly `candidate.py`); the host path is unreachable.
+- **Memory cap enforced via OOM kill** — the flooder is killed by `--memory` (swap
+  disabled via `--memory-swap == --memory`): exit `137`, status `CRASHED`, and
+  `oom_killed=True`. On both cgroup-v2 legs the `.State.OOMKilled` inspect flag **is**
+  set.
+- **PID cap** — the fork bomb is contained by `--pids-limit` (blocked after 127
+  children) and the call still returns normally.
+- **Hard timeout and clean teardown** — an infinite loop is killed at ~the timeout, the
+  call returns, and no container or host temp artifact leaks (the cleanup check reports
+  zero leaks after the whole battery).
+- Applied on every run (present in the printed argv and exercised under the full
+  battery): **read-only root filesystem** with an in-RAM `/tmp` tmpfs, **non-root** uid
+  `1000:1000`, **all Linux capabilities dropped** (`--cap-drop ALL`), and
+  **`--no-new-privileges`**.
+
+**Memory-cap enforcement is version-robust by construction.** It does not depend on the
+inspect OOM flag: an OOM is a `SIGKILL` that Docker reports as exit `137` (≥ 128), and
+`_classify` maps any exit ≥ 128 to `CRASHED` whether or not `.State.OOMKilled` is set
+([tools/sandbox_container.py](tools/sandbox_container.py), `_classify`). On the two
+cgroup-v2 legs above the flag happens to be set, but a cgroup configuration that left it
+unset would still classify the kill as `CRASHED`. The only version-dependent piece is
+the `oom_killed` boolean itself, which reads the inspect flag.
+
+**What this does NOT cover (stated plainly, no overclaiming).** Hosted GitHub runners
+are Ubuntu on cgroup v2, so this matrix exercises **cgroup v2 on two Ubuntu versions
+only** (two kernels, one Docker version). It does **not** exercise **cgroup v1** or
+**non-Ubuntu distributions**. A real cgroup-v1 or alternate-distribution run is a
+documented **self-hosted / VM follow-up**, not coverage this CI matrix produced.
 
 ---
 
@@ -139,18 +216,45 @@ Linux.
 
 ---
 
-## Optional future hardening (noted, not built)
+## Multi-tenant hardening (opt-in, OFF BY DEFAULT at 1.0)
 
-The I0 audit concluded the current lockdown (cap-drop ALL, no-new-privs, non-root,
-read-only root, network none, memory / CPU / PID caps) is sufficient for the v2.0
-threat model. Two items would add **defense-in-depth** but are **not required**, and
-are deliberately **not built** in v2.0:
+The 1.0 lockdown (cap-drop ALL, no-new-privileges, non-root, read-only root, network
+none, memory / CPU / PID caps) is sufficient for the **single-user-trusted 1.0 threat
+model**, and **1.0 enables none of the items below by default**. They are
+**defense-in-depth guidance for a future multi-tenant deployment**, where untrusted
+tenants share a host. Each is off by default; the default `docker run` argv is
+byte-identical whether or not you adopt them (P6.4.1, decision 0033).
 
-- a **custom seccomp profile** (tighter syscall surface than the Docker default),
-- **user-namespace remap** (container root mapped to an unprivileged host uid).
+- **seccomp profile (opt-in path, shipped example).** A syscall filter on top of the
+  capability drop. There is now an **opt-in hook**: set
+  `DARWIN_SANDBOX_EXTRA_SECURITY_OPTS` (comma-separated `docker run --security-opt`
+  values, for example `seccomp=/abs/path/example-sandbox-seccomp.json`) and each entry
+  is appended as an **additional** `--security-opt`, never replacing a lockdown flag
+  ([tools/sandbox_container.py](tools/sandbox_container.py)). An **example starting
+  point** ships at [tools/seccomp/example-sandbox-seccomp.json](tools/seccomp/example-sandbox-seccomp.json)
+  — it is an **EXAMPLE, NOT a validated production profile** (it allows by default and
+  only denies a curated administrative-syscall set; a production profile should
+  default-deny with a validated allowlist). The repo **smoke-tests** only that the
+  example does not break a normal python+pytest run; that is a **smoke test, not a
+  security validation**. **Validating a production profile against the real workload is
+  2.0 work.**
+- **daemon-level user-namespace remap.** Mapping container root to an unprivileged host
+  uid is **Docker daemon configuration** (`/etc/docker/daemon.json` `userns-remap`, or
+  `dockerd --userns-remap`), **not a per-container flag**, so it is **operator-side** and
+  cannot be set from this code. It is documented here as recommended multi-tenant
+  hardening; **enabling it is deferred to the 2.0 multi-tenant work** and is not done
+  here.
+- **block-IO and file-size caps.** For multi-tenant fairness and disk-exhaustion
+  resistance, add block-IO caps at run time (`--blkio-weight`, or
+  `--device-write-bps` / `--device-read-bps`) and a file-size cap
+  (`--ulimit fsize=<bytes>`). A writable-area size cap is **already in place** in the
+  1.0 default — the only writable mount is the in-RAM tmpfs at `/tmp`, created with a
+  fixed `size=64m` ([tools/sandbox_container.py](tools/sandbox_container.py)) — but the
+  block-IO and `fsize` caps above are **multi-tenant guidance, off by default at 1.0**.
 
-These are possible future hardening, listed so the omission is on the record, not
-an oversight.
+These are recorded so the multi-tenant posture is on the record. 1.0 ships the seccomp
+**opt-in plumbing and a labeled example**, and **documents** the userns and block-IO /
+file-size guidance; it does **not** enable any of them by default.
 
 ---
 
@@ -176,8 +280,8 @@ an oversight.
 | Golden-oracle read | **Closed** (golden outputs never enter the container) |
 | `import __main__` driver hijack | **Closed** (trusted comparison is host-side) |
 | Unbounded-output memory exhaustion | **Closed** (memory cap + capped host-file capture) |
-| In-process verdict forgery (frame-locals hijack / compute-and-lie) | **OPEN** — non-issue for single-user use; matters only for a third-party-trusted verdict; needs a process split (and even then compute-and-lie remains) |
-| Native-Linux production-grade isolation | **Not yet verified** — re-confirm before production |
+| In-process verdict forgery (frame-locals hijack / compute-and-lie) | **OPEN by design** — non-issue for single-user use; matters only for a third-party-trusted verdict; needs a process split, prepared as the `VerdictEmitter` 2.0 swap point (decision 0032; compute-and-lie remains even then) |
+| Native-Linux isolation (Ubuntu, cgroup v2) | **CI-verified** — lockdown probe green on `ubuntu-22.04` + `ubuntu-24.04` (both cgroup v2); cgroup v1 and non-Ubuntu **not** exercised (documented self-hosted follow-up) |
 | Scope | **Single function** (multi-file is v3.0) |
 
 ---

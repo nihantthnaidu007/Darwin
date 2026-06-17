@@ -1,0 +1,11 @@
+# In-container dependency closure for the sandbox image (tools/Dockerfile.sandbox).
+# pytest is the only runtime dependency the in-container code needs (every
+# test_suite.py only does `from candidate import ...` and uses pytest). This file
+# is the SOURCE you edit; requirements-sandbox.txt is the generated, hash-locked
+# closure (pytest plus its transitive deps, with --generate-hashes) and is never
+# hand-edited. The Dockerfile installs it with --require-hashes. It lives under
+# tools/ because the image build context is tools/.
+#
+# Regenerate on Python 3.13 (the container version), from the repo root:
+#   pip-compile --generate-hashes --output-file=tools/requirements-sandbox.txt tools/requirements-sandbox.in
+pytest==8.3.5
