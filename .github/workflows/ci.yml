@@ -27,7 +27,7 @@ jobs:
       # with no API call, because tools/test_mloop.py imports generator, which
       # imports anthropic at collection time.
       - name: Install host dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install --require-hashes -r requirements-dev.txt
 
       # The suite runs candidates via docker run, so the image must exist first.
       # Exact command from the README.

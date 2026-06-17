@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install dev dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install --require-hashes -r requirements-dev.txt
       - name: Ruff lint (advisory)
         continue-on-error: true      # advisory: a lint finding never blocks a merge
         run: ruff check tools/
@@ -45,7 +45,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install dev dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install --require-hashes -r requirements-dev.txt
       - name: Mypy (lenient, advisory)
         continue-on-error: true      # advisory: a type error never blocks a merge
         run: mypy tools/

@@ -1,0 +1,12 @@
+# Direct runtime dependencies for Darwin, version-pinned. This file is the SOURCE
+# you edit; requirements.txt is the generated, hash-locked closure (direct plus
+# transitive, with --generate-hashes) and is never hand-edited. Regenerate on
+# Python 3.13 (the CI and container version):
+#   pip-compile --generate-hashes --output-file=requirements.txt requirements.in
+radon==6.0.1
+vulture==2.16
+pytest==8.3.5
+anthropic==0.107.1
+# llm_client imports httpx directly for the connect/read timeout split; pinned to
+# the version anthropic currently resolves.
+httpx==0.28.1

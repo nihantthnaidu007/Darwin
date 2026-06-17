@@ -74,13 +74,18 @@ classifiers = [
     "Topic :: Software Development :: Code Generators",
 ]
 
-# Runtime dependencies, version-pinned. Kept in sync with requirements.txt
-# (the source of truth for `pip install -r`). Transitive deps are not lock-pinned.
+# Runtime dependencies, version-pinned. Kept in sync with the direct list in
+# requirements.in (the source you edit for the direct runtime deps). The full
+# closure lives in the generated, hash-locked requirements.txt (direct plus
+# transitive, compiled with pip-compile --generate-hashes and installed with
+# pip --require-hashes); requirements.txt is generated, never hand-edited. See
+# decision 0028. This list mirrors requirements.in's pins, name-for-name.
 dependencies = [
     "radon==6.0.1",
     "vulture==2.16",
     "pytest==8.3.5",
     "anthropic==0.107.1",
+    "httpx==0.28.1",
 ]
 
 [project.urls]
