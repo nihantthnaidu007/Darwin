@@ -243,6 +243,8 @@ def _classify(exit_code, oom):
         return OK
     if exit_code is not None and 0 < exit_code < 128:
         return FAILED
+    # Version-robust: an OOM kill is SIGKILL -> exit 137 (>= 128), so it lands here
+    # as CRASHED even when the cgroup-dependent .State.OOMKilled flag is unset.
     return CRASHED
 
 
