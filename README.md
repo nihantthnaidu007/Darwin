@@ -11,7 +11,7 @@ evaluator decides whether each rewrite is correct, behavior-equivalent, and
 structurally simpler. Nothing is accepted on
 the model's say-so.
 
-**0.5.0 is the current tagged release.** It stays in the 0.x line on purpose: a 1.0
+**0.6.0 is the current tagged release.** It stays in the 0.x line on purpose: a 1.0
 would signal a stable, production-grade release, and Darwin is not there yet. The
 release line, all done and merged:
 
@@ -34,11 +34,22 @@ release line, all done and merged:
   names across the evaluator loaders, and the oracle witness prefixes bound to a
   shared marker guarded by a real-producer leak test. The artifact-backed multi-file
   variance regeneration is deferred to an authorized run.
+- **v0.6, supply-chain and isolation hardening (0.6.0).** The sandbox base image
+  pinned by manifest-list digest with a documented rotation procedure; hash-locked
+  lockfiles (pip-tools, `--generate-hashes`) for the host, CI, and the sandbox image
+  installed with `--require-hashes`, plus a CycloneDX SBOM build artifact and an
+  advisory pip-audit vulnerability scan in CI; a CI matrix exercising the container
+  lockdown probe across two Ubuntu runners on cgroup v2, recording the actual cgroup
+  version, with a native-Linux section in SECURITY.md scoped to the verified evidence;
+  and defense-in-depth: opt-in, off-by-default seccomp plumbing with a byte-identical
+  default argv and an example starting-point profile, plus a typed VerdictEmitter seam
+  (in-process default, serializable verdict) prepared for the 2.0 out-of-process
+  emitter. In-process verdict forgery stays open by design at 1.0 (decision 0008).
 
 It is run **from source** and is **not published to PyPI** (see
 [pyproject.toml](pyproject.toml)).
 
-> **0.5.0 is an honest early release, not a finished product.** Read
+> **0.6.0 is an honest early release, not a finished product.** Read
 > [Scope and limitations](#scope-and-limitations-read-this-first) before anything
 > else. It states plainly what the container closes (untrusted candidate code cannot
 > touch your host, network, or secrets), what it still does **not** do (the behavior

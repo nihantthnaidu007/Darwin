@@ -12,7 +12,7 @@ name: Isolation (container lockdown probe)
 #
 # COVERAGE SCOPE (stated plainly, do not overclaim): hosted GitHub runners are
 # Ubuntu on cgroup v2, so this matrix exercises the lockdown on cgroup v2 across
-# two Ubuntu versions (two kernels and two Docker versions) only. cgroup v1 and
+# two Ubuntu versions (two kernels, one Docker version) only. cgroup v1 and
 # non-Ubuntu distributions are NOT exercised here; a real v1 or alternate-distro
 # run is a documented self-hosted / VM follow-up (decision 0030, SECURITY.md).
 #
