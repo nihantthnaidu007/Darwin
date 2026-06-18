@@ -1,0 +1,279 @@
+{
+  "model": "claude-opus-4-8",
+  "config": {
+    "cap": 5,
+    "plateau_limit": 2
+  },
+  "n_cases": 3,
+  "improved": 3,
+  "baseline_returned": 0,
+  "one_shot": 2,
+  "needed_feedback": 1,
+  "needed_feedback_cases": [
+    {
+      "case": "doc_history",
+      "best_generation": 2,
+      "first_scored_generation": 2,
+      "first_pass_bloat_removed_pct": 114.9,
+      "best_bloat_removed_pct": 114.9,
+      "feedback_gain_pp": 0.0,
+      "structural_changes_from_first": []
+    }
+  ],
+  "feedback_load_bearing": false,
+  "total_cost_usd": 0.29622,
+  "total_input_tokens": 14734,
+  "total_output_tokens": 8902,
+  "by_kind": {
+    "document store with bounded undo/redo (history statefulness)": {
+      "n": 1,
+      "improved": 1,
+      "one_shot": 0,
+      "avg_bloat_removed_pct": 114.9
+    },
+    "token-bucket rate limiter (logical-time statefulness)": {
+      "n": 1,
+      "improved": 1,
+      "one_shot": 1,
+      "avg_bloat_removed_pct": 104.0
+    },
+    "priority job scheduler (retry/state-machine statefulness)": {
+      "n": 1,
+      "improved": 1,
+      "one_shot": 1,
+      "avg_bloat_removed_pct": 106.7
+    }
+  },
+  "by_difficulty": {
+    "medium": {
+      "n": 3,
+      "improved": 3,
+      "one_shot": 2,
+      "avg_bloat_removed_pct": 108.5
+    }
+  },
+  "cases": [
+    {
+      "case": "doc_history",
+      "kind": "document store with bounded undo/redo (history statefulness)",
+      "difficulty": "medium",
+      "verdict": "improved (best candidate returned)",
+      "improved_over_baseline": true,
+      "best_weighted_cost": -0.1488,
+      "bloat_removed_pct": 114.9,
+      "first_pass_bloat_removed_pct": 114.9,
+      "feedback_gain_pp": 0.0,
+      "generations_attempted": 2,
+      "best_generation": 2,
+      "first_scored_generation": 2,
+      "floor_reached": true,
+      "total_cost_usd": 0.17979,
+      "total_input_tokens": 7028,
+      "total_output_tokens": 5786,
+      "best_flags": [
+        "suspiciously-simple"
+      ],
+      "halted": null,
+      "structural_changes_from_first": [],
+      "per_metric": [
+        {
+          "metric": "cyclomatic_total",
+          "original": 79,
+          "best": 42,
+          "floor": 45,
+          "norm_cost": -0.08823529411764706,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "logical_loc",
+          "original": 176,
+          "best": 89,
+          "floor": 82,
+          "norm_cost": 0.07446808510638298,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "max_nesting_depth",
+          "original": 5,
+          "best": 3,
+          "floor": 4,
+          "norm_cost": -1.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "dependency_count",
+          "original": 0,
+          "best": 0,
+          "floor": 0,
+          "norm_cost": null,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "dead_code_count",
+          "original": 11,
+          "best": 7,
+          "floor": 7,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "cyclomatic_max",
+          "original": 6,
+          "best": 4,
+          "floor": 4,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        }
+      ],
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/doc_history_20260618T003744Z"
+    },
+    {
+      "case": "rate_limiter",
+      "kind": "token-bucket rate limiter (logical-time statefulness)",
+      "difficulty": "medium",
+      "verdict": "improved (best candidate returned)",
+      "improved_over_baseline": true,
+      "best_weighted_cost": -0.0403,
+      "bloat_removed_pct": 104.0,
+      "first_pass_bloat_removed_pct": 104.0,
+      "feedback_gain_pp": 0.0,
+      "generations_attempted": 1,
+      "best_generation": 1,
+      "first_scored_generation": 1,
+      "floor_reached": true,
+      "total_cost_usd": 0.046415,
+      "total_input_tokens": 3003,
+      "total_output_tokens": 1256,
+      "best_flags": [
+        "fragmentation-smell"
+      ],
+      "halted": null,
+      "structural_changes_from_first": [],
+      "per_metric": [
+        {
+          "metric": "cyclomatic_total",
+          "original": 73,
+          "best": 38,
+          "floor": 37,
+          "norm_cost": 0.027777777777777776,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "logical_loc",
+          "original": 173,
+          "best": 74,
+          "floor": 68,
+          "norm_cost": 0.05714285714285714,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "max_nesting_depth",
+          "original": 4,
+          "best": 3,
+          "floor": 3,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "dependency_count",
+          "original": 0,
+          "best": 0,
+          "floor": 0,
+          "norm_cost": null,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "dead_code_count",
+          "original": 9,
+          "best": 6,
+          "floor": 6,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "cyclomatic_max",
+          "original": 5,
+          "best": 3,
+          "floor": 4,
+          "norm_cost": -1.0,
+          "at_or_below_floor": true
+        }
+      ],
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/rate_limiter_20260618T003855Z"
+    },
+    {
+      "case": "task_scheduler",
+      "kind": "priority job scheduler (retry/state-machine statefulness)",
+      "difficulty": "medium",
+      "verdict": "improved (best candidate returned)",
+      "improved_over_baseline": true,
+      "best_weighted_cost": -0.0669,
+      "bloat_removed_pct": 106.7,
+      "first_pass_bloat_removed_pct": 106.7,
+      "feedback_gain_pp": 0.0,
+      "generations_attempted": 1,
+      "best_generation": 1,
+      "first_scored_generation": 1,
+      "floor_reached": true,
+      "total_cost_usd": 0.070015,
+      "total_input_tokens": 4703,
+      "total_output_tokens": 1860,
+      "best_flags": [
+        "suspiciously-simple"
+      ],
+      "halted": null,
+      "structural_changes_from_first": [],
+      "per_metric": [
+        {
+          "metric": "cyclomatic_total",
+          "original": 150,
+          "best": 51,
+          "floor": 63,
+          "norm_cost": -0.13793103448275862,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "logical_loc",
+          "original": 284,
+          "best": 95,
+          "floor": 100,
+          "norm_cost": -0.02717391304347826,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "max_nesting_depth",
+          "original": 4,
+          "best": 4,
+          "floor": 4,
+          "norm_cost": null,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "dependency_count",
+          "original": 1,
+          "best": 0,
+          "floor": 0,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "dead_code_count",
+          "original": 12,
+          "best": 8,
+          "floor": 8,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "cyclomatic_max",
+          "original": 5,
+          "best": 4,
+          "floor": 6,
+          "norm_cost": null,
+          "at_or_below_floor": false
+        }
+      ],
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/task_scheduler_20260618T003911Z"
+    }
+  ]
+}

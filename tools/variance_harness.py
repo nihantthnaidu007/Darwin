@@ -92,9 +92,22 @@ def _findings(cases, improved_per_run, n_runs, n_cases):
     return stable, unstable
 
 
-def _derived_note(n_runs):
-    return (f"Derived by tools/variance_harness.py from {n_runs} maggregate.json "
-            f"snapshot(s) under reports/variance_runs/. Reproducible: re-run "
+def _derived_note(n_runs, model, config):
+    """The durable framing for the regenerated mvariance dataset, built ONLY from
+    values read out of the snapshots (N, model, config) so derive stays byte-identical
+    on re-run. No wall-clock date here on purpose: a date would make a re-derive on the
+    same snapshots differ; the dated run provenance lives in the decision record, not in
+    this byte-stable artifact."""
+    cap = config.get("cap")
+    plateau = config.get("plateau_limit")
+    return (f"Artifact-backed multi-file run-to-run variance, derived by "
+            f"tools/variance_harness.py from {n_runs} committed maggregate.json "
+            f"snapshot(s) under reports/variance_runs/ (one per run, each the "
+            f"unmodified output of tools/mbenchmark.py over the 3-case multi-file "
+            f"corpus). Model {model}, config cap {cap} / plateau {plateau}, N {n_runs}, "
+            f"read from the snapshots. A single live run is one stochastic sample, not "
+            f"the result: these {n_runs} runs exist to characterize the run-to-run "
+            f"variance rather than report one draw as the finding. Reproducible: re-run "
             f"`python variance_harness.py derive` on the same snapshots for a "
             f"byte-identical dataset.")
 
@@ -131,7 +144,7 @@ def derive(snapshot_dir=SNAPSHOT_DIR):
 
     stable, unstable = _findings(cases, improved_per_run, n_runs, len(case_names))
     return {
-        "note": _derived_note(n_runs),
+        "note": _derived_note(n_runs, snapshots[0]["model"], snapshots[0]["config"]),
         "model": snapshots[0]["model"],
         "config": snapshots[0]["config"],
         "n_runs": n_runs,
