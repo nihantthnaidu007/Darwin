@@ -15,6 +15,7 @@ The same four behaviors are asserted for benchmark.py and mbenchmark.py:
 
   cd tools && python -m pytest test_checkpoint.py -q -p no:cacheprovider
 """
+
 import json
 
 import pytest
@@ -69,24 +70,30 @@ def _patch(monkeypatch, name):
 def _recording_loop(calls):
     def loop(case, cap, plateau, model):
         calls.append(case)
-        return None, case            # run_dir == case name; the stub reads it back
+        return None, case  # run_dir == case name; the stub reads it back
+
     return loop
 
 
 # ------------------------------------------------- happy-path equivalence
 
+
 @pytest.mark.parametrize("name", ["benchmark", "mbenchmark"])
-def test_fresh_checkpointed_aggregate_equals_uncheckpointed(monkeypatch, tmp_path, name):
+def test_fresh_checkpointed_aggregate_equals_uncheckpointed(
+    monkeypatch, tmp_path, name
+):
     mod = _patch(monkeypatch, name)
     cases = ["a", "b", "c"]
 
-    rows_plain = mod.run_benchmark(cases, 5, 2, "m",
-                                   run_loop=_recording_loop([]), state=None)
+    rows_plain = mod.run_benchmark(
+        cases, 5, 2, "m", run_loop=_recording_loop([]), state=None
+    )
     agg_plain = mod.aggregate(rows_plain, "m", 5, 2)
 
     st = runstate.RunState(tmp_path / "state.jsonl")
-    rows_ckpt = mod.run_benchmark(cases, 5, 2, "m",
-                                  run_loop=_recording_loop([]), state=st, resume=False)
+    rows_ckpt = mod.run_benchmark(
+        cases, 5, 2, "m", run_loop=_recording_loop([]), state=st, resume=False
+    )
     agg_ckpt = mod.aggregate(rows_ckpt, "m", 5, 2)
 
     # Byte-identical aggregate: checkpointing is additive scratch only.
@@ -97,6 +104,7 @@ def test_fresh_checkpointed_aggregate_equals_uncheckpointed(monkeypatch, tmp_pat
 
 # ------------------------------------------- interrupted run + resume
 
+
 @pytest.mark.parametrize("name", ["benchmark", "mbenchmark"])
 def test_interrupted_then_resume(monkeypatch, tmp_path, name):
     mod = _patch(monkeypatch, name)
@@ -105,35 +113,43 @@ def test_interrupted_then_resume(monkeypatch, tmp_path, name):
 
     # Pass 1: crash partway through (on the 2nd case).
     calls1 = []
+
     def crashing_loop(case, cap, plateau, model):
         calls1.append(case)
         if case == "b":
             raise RuntimeError("simulated crash mid-run")
         return None, case
+
     with pytest.raises(RuntimeError):
-        mod.run_benchmark(cases, 5, 2, "m", run_loop=crashing_loop, state=st, resume=False)
-    assert calls1 == ["a", "b"]                   # reached b, then crashed
-    assert set(st.completed()) == {"a"}           # only the completed case persisted
+        mod.run_benchmark(
+            cases, 5, 2, "m", run_loop=crashing_loop, state=st, resume=False
+        )
+    assert calls1 == ["a", "b"]  # reached b, then crashed
+    assert set(st.completed()) == {"a"}  # only the completed case persisted
 
     # Pass 2: resume. Completed cases are skipped; only the rest run.
     calls2 = []
-    rows = mod.run_benchmark(cases, 5, 2, "m",
-                             run_loop=_recording_loop(calls2), state=st, resume=True)
-    assert calls2 == ["b", "c"]                   # 'a' not re-run; 'b','c' completed
+    rows = mod.run_benchmark(
+        cases, 5, 2, "m", run_loop=_recording_loop(calls2), state=st, resume=True
+    )
+    assert calls2 == ["b", "c"]  # 'a' not re-run; 'b','c' completed
     got = [r["case"] for r in rows]
-    assert got == ["a", "b", "c"]                 # union, corpus order
-    assert len(got) == len(set(got))              # no duplicates
+    assert got == ["a", "b", "c"]  # union, corpus order
+    assert len(got) == len(set(got))  # no duplicates
     assert set(st.completed()) == {"a", "b", "c"}
 
     # The resumed aggregate equals a full fresh run's aggregate over the same corpus.
     st_full = runstate.RunState(tmp_path / "state_full.jsonl")
-    rows_full = mod.run_benchmark(cases, 5, 2, "m",
-                                  run_loop=_recording_loop([]), state=st_full, resume=False)
-    assert json.dumps(mod.aggregate(rows, "m", 5, 2), sort_keys=True) == \
-           json.dumps(mod.aggregate(rows_full, "m", 5, 2), sort_keys=True)
+    rows_full = mod.run_benchmark(
+        cases, 5, 2, "m", run_loop=_recording_loop([]), state=st_full, resume=False
+    )
+    assert json.dumps(mod.aggregate(rows, "m", 5, 2), sort_keys=True) == json.dumps(
+        mod.aggregate(rows_full, "m", 5, 2), sort_keys=True
+    )
 
 
 # ----------------------------------------------- fresh run clears stale state
+
 
 @pytest.mark.parametrize("name", ["benchmark", "mbenchmark"])
 def test_fresh_run_clears_stale_state(monkeypatch, tmp_path, name):
@@ -146,39 +162,53 @@ def test_fresh_run_clears_stale_state(monkeypatch, tmp_path, name):
 
     calls = []
     cases = ["a", "b"]
-    rows = mod.run_benchmark(cases, 5, 2, "m",
-                             run_loop=_recording_loop(calls), state=st, resume=False)
+    rows = mod.run_benchmark(
+        cases, 5, 2, "m", run_loop=_recording_loop(calls), state=st, resume=False
+    )
 
-    assert calls == ["a", "b"]                    # fresh run ran every case, skipped none
+    assert calls == ["a", "b"]  # fresh run ran every case, skipped none
     assert [r["case"] for r in rows] == ["a", "b"]
-    assert set(st.completed()) == {"a", "b"}      # stale_old gone; state rewritten clean
+    assert set(st.completed()) == {"a", "b"}  # stale_old gone; state rewritten clean
 
 
 # ------------------------------------- resume config mismatch (fail closed, P4.2.2)
 
+
 @pytest.mark.parametrize("name", ["benchmark", "mbenchmark"])
-@pytest.mark.parametrize("field, cap, plateau, model", [
-    ("model", 5, 2, "changed-model"),
-    ("cap", 9, 2, "base-model"),
-    ("plateau", 5, 4, "base-model"),
-])
-def test_resume_config_mismatch_refused(monkeypatch, tmp_path, name,
-                                        field, cap, plateau, model):
+@pytest.mark.parametrize(
+    "field, cap, plateau, model",
+    [
+        ("model", 5, 2, "changed-model"),
+        ("cap", 9, 2, "base-model"),
+        ("plateau", 5, 4, "base-model"),
+    ],
+)
+def test_resume_config_mismatch_refused(
+    monkeypatch, tmp_path, name, field, cap, plateau, model
+):
     mod = _patch(monkeypatch, name)
     cases = ["a", "b"]
     st = runstate.RunState(tmp_path / "state.jsonl")
     # Fresh run with the base config records {model: base-model, cap: 5, plateau: 2}.
-    mod.run_benchmark(cases, 5, 2, "base-model",
-                      run_loop=_recording_loop([]), state=st, resume=False)
+    mod.run_benchmark(
+        cases, 5, 2, "base-model", run_loop=_recording_loop([]), state=st, resume=False
+    )
 
     # Resume with exactly one field changed -> fail closed BEFORE running any case.
     calls = []
     with pytest.raises(runstate.ConfigMismatchError) as ei:
-        mod.run_benchmark(cases, cap, plateau, model,
-                          run_loop=_recording_loop(calls), state=st, resume=True)
-    assert field in str(ei.value)                 # names the differing field
-    assert calls == []                            # no case ran -> no mixed-config aggregate
-    assert set(st.completed()) == {"a", "b"}      # state untouched by the refused resume
+        mod.run_benchmark(
+            cases,
+            cap,
+            plateau,
+            model,
+            run_loop=_recording_loop(calls),
+            state=st,
+            resume=True,
+        )
+    assert field in str(ei.value)  # names the differing field
+    assert calls == []  # no case ran -> no mixed-config aggregate
+    assert set(st.completed()) == {"a", "b"}  # state untouched by the refused resume
 
 
 @pytest.mark.parametrize("name", ["benchmark", "mbenchmark"])
@@ -186,11 +216,19 @@ def test_resume_matching_config_proceeds(monkeypatch, tmp_path, name):
     mod = _patch(monkeypatch, name)
     st = runstate.RunState(tmp_path / "state.jsonl")
     # A fresh run of a subset leaves partial state under config {m, 5, 2}.
-    mod.run_benchmark(["a"], 5, 2, "m", run_loop=_recording_loop([]),
-                      state=st, resume=False)
+    mod.run_benchmark(
+        ["a"], 5, 2, "m", run_loop=_recording_loop([]), state=st, resume=False
+    )
     # Resume the full corpus with the SAME config -> 'a' skipped, the rest run.
     calls = []
-    rows = mod.run_benchmark(["a", "b", "c"], 5, 2, "m",
-                             run_loop=_recording_loop(calls), state=st, resume=True)
+    rows = mod.run_benchmark(
+        ["a", "b", "c"],
+        5,
+        2,
+        "m",
+        run_loop=_recording_loop(calls),
+        state=st,
+        resume=True,
+    )
     assert calls == ["b", "c"]
     assert [r["case"] for r in rows] == ["a", "b", "c"]

@@ -11,15 +11,23 @@ reference scores BETTER (lower weighted cost) than the bloated original.
 Exit 0 = the stack works on honest input; exit 1 = a real integration bug.
 Usage: python smoke_test.py
 """
+
 import sys
 from pathlib import Path
 
 from evaluator import evaluate
 
 CASES = Path(__file__).resolve().parent.parent / "cases"
-COLS = ["cyclomatic_total", "cyclomatic_max", "logical_loc", "source_loc",
-        "dependency_count", "dead_code_count", "max_nesting_depth",
-        "maintainability_index"]
+COLS = [
+    "cyclomatic_total",
+    "cyclomatic_max",
+    "logical_loc",
+    "source_loc",
+    "dependency_count",
+    "dead_code_count",
+    "max_nesting_depth",
+    "maintainability_index",
+]
 
 
 def _seed_cases():
@@ -37,8 +45,12 @@ def run_case(case_dir):
     print("=" * 78)
     print(f"CASE: {case_dir.name}")
     print("=" * 78)
-    print(f"  reference (clean)  : verdict={ref.verdict:<8} weighted_cost={ref.weighted_cost}")
-    print(f"  original  (bloated): verdict={orig.verdict:<8} weighted_cost={orig.weighted_cost}")
+    print(
+        f"  reference (clean)  : verdict={ref.verdict:<8} weighted_cost={ref.weighted_cost}"
+    )
+    print(
+        f"  original  (bloated): verdict={orig.verdict:<8} weighted_cost={orig.weighted_cost}"
+    )
 
     print(f"\n  {'metric':<24}{'reference':>12}{'original':>12}")
     for m in COLS:
@@ -58,12 +70,16 @@ def run_case(case_dir):
         msgs.append(f"BUG: original did NOT pass the gates (reason={orig.reason_code})")
     if ref.verdict == "scored" and orig.verdict == "scored":
         if ref.weighted_cost < orig.weighted_cost:
-            msgs.append(f"OK: clean reference {ref.weighted_cost} < bloated original "
-                        f"{orig.weighted_cost} (sensible ordering on real input)")
+            msgs.append(
+                f"OK: clean reference {ref.weighted_cost} < bloated original "
+                f"{orig.weighted_cost} (sensible ordering on real input)"
+            )
         else:
             ok = False
-            msgs.append(f"BUG: reference cost {ref.weighted_cost} is NOT better than "
-                        f"original {orig.weighted_cost}")
+            msgs.append(
+                f"BUG: reference cost {ref.weighted_cost} is NOT better than "
+                f"original {orig.weighted_cost}"
+            )
     print("\n  RESULT: " + "; ".join(msgs) + "\n")
     return ok
 
@@ -72,9 +88,11 @@ def main():
     results = [run_case(c) for c in _seed_cases()]
     print("=" * 78)
     if results and all(results):
-        print(f"SMOKE TEST PASSED: {len(results)} case(s). The Phase 0/1/2 stack runs the "
-              "real task end to end: clean reference passes both gates and beats the "
-              "bloated original on every case.")
+        print(
+            f"SMOKE TEST PASSED: {len(results)} case(s). The Phase 0/1/2 stack runs the "
+            "real task end to end: clean reference passes both gates and beats the "
+            "bloated original on every case."
+        )
         sys.exit(0)
     print("SMOKE TEST FAILED: integration bug (see BUG line(s) above).")
     sys.exit(1)

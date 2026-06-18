@@ -16,6 +16,7 @@ Covers, per success criterion:
 - a candidate that cannot even import fails closed;
 - batching spans partition the corpus (host-only, no Docker).
 """
+
 import json
 from pathlib import Path
 
@@ -51,9 +52,10 @@ def _probe_candidate(tmp_path, entry, probe_body):
         "import json, os, socket\n"
         f"class {entry}:\n"
         "    def __init__(self, *a, **k):\n"
-        + probe_body +
-        "        raise RuntimeError(json.dumps(report))\n",
-        encoding="utf-8")
+        + probe_body
+        + "        raise RuntimeError(json.dumps(report))\n",
+        encoding="utf-8",
+    )
     return pkg
 
 
@@ -68,11 +70,14 @@ def _witness_report(case, candidate):
 @pytest.mark.parametrize("case", CASES)
 def test_reference_is_equivalent_through_container(case):
     eq, witness, stats = check_equivalence_containerized(
-        MCASES / case, MCASES / case / "reference")
+        MCASES / case, MCASES / case / "reference"
+    )
     assert eq, f"clean reference rejected: {witness} {stats}"
     assert witness is None
     assert stats["container_runs"] >= 1
-    assert stats["sequences"] == len(_load_module(MCASES / case / "corpus.py").build_corpus())
+    assert stats["sequences"] == len(
+        _load_module(MCASES / case / "corpus.py").build_corpus()
+    )
 
 
 @pytest.mark.parametrize("case", CASES)
@@ -89,7 +94,8 @@ def test_planted_break_is_caught_with_v0_witness(case, tmp_path):
     # in-process check reports (same corpus order, same comparison).
     corpus = _load_module(MCASES / case / "corpus.py").build_corpus()
     eq0, witness0, _ = check_equivalence(
-        MCASES / case / "original", broken, corpus, entry=_entry(case))
+        MCASES / case / "original", broken, corpus, entry=_entry(case)
+    )
     assert not eq0
     assert witness["sequence"] == witness0["sequence"]
     assert witness["call_index"] == witness0["call_index"]
@@ -114,11 +120,11 @@ def test_probe_confirms_container_lockdown(tmp_path):
     )
     case = "doc_history"
     report = _witness_report(case, _probe_candidate(tmp_path, _entry(case), body))
-    assert report["uid"] == 1000          # non-root
+    assert report["uid"] == 1000  # non-root
     assert report["gid"] == 1000
     assert report["network"].startswith("blocked:")
-    assert report["write_sandbox"].startswith("denied:")   # ro bind mount
-    assert report["write_root"].startswith("denied:")      # ro root fs
+    assert report["write_sandbox"].startswith("denied:")  # ro bind mount
+    assert report["write_root"].startswith("denied:")  # ro root fs
 
 
 def test_dump_sees_no_original_and_no_outcomes(tmp_path):
@@ -142,8 +148,10 @@ def test_dump_sees_no_original_and_no_outcomes(tmp_path):
         "/sandbox/mdiffer.py",
     ]
     assert report["host_repo_visible"] is False
-    assert not any("original" in f or "reference" in f or "outcome" in f
-                   for f in report["sandbox_files"])
+    assert not any(
+        "original" in f or "reference" in f or "outcome" in f
+        for f in report["sandbox_files"]
+    )
 
 
 def test_broken_import_fails_closed(tmp_path):
@@ -162,9 +170,9 @@ def test_batch_spans_partition_the_corpus():
     spans = _batch_spans(reference)
     assert len(spans) > 1
     assert spans[0][0] == 0 and spans[-1][1] == len(reference)
-    assert all(a_stop == b_start for (_, a_stop), (b_start, _)
-               in zip(spans, spans[1:]))
+    assert all(a_stop == b_start for (_, a_stop), (b_start, _) in zip(spans, spans[1:]))
     for start, stop in spans:
-        size = sum(len(json.dumps(s, separators=(",", ":")))
-                   for s in reference[start:stop])
+        size = sum(
+            len(json.dumps(s, separators=(",", ":"))) for s in reference[start:stop]
+        )
         assert stop - start == 1 or size <= _BATCH_BUDGET

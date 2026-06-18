@@ -8,30 +8,54 @@ when a case used a later generation at all.
 
   cd tools && python -m pytest test_benchmark.py -q -p no:cacheprovider
 """
+
 import benchmark
 from feedback_materiality import FEEDBACK_MATERIALITY_EPSILON_PP as EPS
 
 
-def _fake_summary(case, *, improved, best_gen, first_scored=1,
-                  first_pass=99.5, bloat=99.8, gain=None,
-                  category="verbose_patterns", difficulty="hard",
-                  cost=0.03, tin=1000, tout=500, wc=0.0):
+def _fake_summary(
+    case,
+    *,
+    improved,
+    best_gen,
+    first_scored=1,
+    first_pass=99.5,
+    bloat=99.8,
+    gain=None,
+    category="verbose_patterns",
+    difficulty="hard",
+    cost=0.03,
+    tin=1000,
+    tout=500,
+    wc=0.0,
+):
     """A summarize_run-shaped row carrying every field benchmark.aggregate() reads."""
     return {
-        "case": case, "category": category, "difficulty": difficulty,
-        "verdict": ("improved (best candidate returned)" if improved
-                    else "no improvement (baseline original returned)"),
+        "case": case,
+        "category": category,
+        "difficulty": difficulty,
+        "verdict": (
+            "improved (best candidate returned)"
+            if improved
+            else "no improvement (baseline original returned)"
+        ),
         "improved_over_baseline": improved,
-        "best_weighted_cost": wc, "bloat_removed_pct": bloat,
+        "best_weighted_cost": wc,
+        "bloat_removed_pct": bloat,
         "first_pass_bloat_removed_pct": first_pass,
         "feedback_gain_pp": gain,
         "generations_attempted": best_gen if best_gen else 1,
-        "best_generation": best_gen, "first_scored_generation": first_scored,
+        "best_generation": best_gen,
+        "first_scored_generation": first_scored,
         "floor_reached": True,
-        "total_cost_usd": cost, "total_input_tokens": tin, "total_output_tokens": tout,
-        "best_flags": [], "halted": None,
+        "total_cost_usd": cost,
+        "total_input_tokens": tin,
+        "total_output_tokens": tout,
+        "best_flags": [],
+        "halted": None,
         "structural_changes_from_first": [],
-        "per_metric": [], "run_dir": f"/runs/{case}",
+        "per_metric": [],
+        "run_dir": f"/runs/{case}",
     }
 
 
@@ -47,7 +71,10 @@ def test_feedback_load_bearing_false_when_all_gains_within_noise():
 
     # The factual record of which cases used a later generation is unchanged.
     assert len(agg["needed_feedback_cases"]) == 2
-    assert {c["case"] for c in agg["needed_feedback_cases"]} == {"format_duration", "int_to_words"}
+    assert {c["case"] for c in agg["needed_feedback_cases"]} == {
+        "format_duration",
+        "int_to_words",
+    }
     # But the gains are within run-to-run noise, so the loop is NOT load-bearing.
     assert agg["feedback_load_bearing"] is False
 

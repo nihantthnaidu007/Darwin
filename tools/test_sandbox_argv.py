@@ -9,6 +9,7 @@ Tier b (Docker-gated): a SMOKE TEST (not a security validation) that wiring the
 example seccomp profile through the opt-in path lets a normal python+pytest candidate
 still run. Skips cleanly if the sandbox image is absent.
 """
+
 from pathlib import Path
 
 import pytest
@@ -26,32 +27,58 @@ CMD = ["python", "candidate.py"]
 # The EXACT current lockdown argv (P6.1/P6.3-verified), pinned byte-for-byte. Every
 # flag here is load-bearing; this list is the contract the opt-in must not disturb.
 EXPECTED_DEFAULT_ARGV = [
-    "docker", "run",
-    "--name", "darwin_sbx_unit",
-    "--network", "none",
-    "--memory", "256m",
-    "--memory-swap", "256m",
-    "--cpus", "1.0",
-    "--pids-limit", "128",
+    "docker",
+    "run",
+    "--name",
+    "darwin_sbx_unit",
+    "--network",
+    "none",
+    "--memory",
+    "256m",
+    "--memory-swap",
+    "256m",
+    "--cpus",
+    "1.0",
+    "--pids-limit",
+    "128",
     "--read-only",
-    "--tmpfs", "/tmp:rw,size=64m,mode=1777",
-    "--cap-drop", "ALL",
-    "--security-opt", "no-new-privileges",
-    "--user", "1000:1000",
-    "-v", "/host/run:/sandbox:ro",
-    "-w", "/sandbox",
-    "-e", "HOME=/tmp",
-    "-e", "TMPDIR=/tmp",
-    "-e", "PYTHONDONTWRITEBYTECODE=1",
-    "-e", "PYTHONPYCACHEPREFIX=/tmp",
+    "--tmpfs",
+    "/tmp:rw,size=64m,mode=1777",
+    "--cap-drop",
+    "ALL",
+    "--security-opt",
+    "no-new-privileges",
+    "--user",
+    "1000:1000",
+    "-v",
+    "/host/run:/sandbox:ro",
+    "-w",
+    "/sandbox",
+    "-e",
+    "HOME=/tmp",
+    "-e",
+    "TMPDIR=/tmp",
+    "-e",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "-e",
+    "PYTHONPYCACHEPREFIX=/tmp",
     "darwin-sandbox:py313",
-    "python", "candidate.py",
+    "python",
+    "candidate.py",
 ]
 
 
 def _argv(extra_security_opts=None):
-    return scon._run_argv(NAME, WORKDIR, CMD, scon.IMAGE, scon.MEMORY, scon.CPUS,
-                          scon.PIDS, extra_security_opts=extra_security_opts)
+    return scon._run_argv(
+        NAME,
+        WORKDIR,
+        CMD,
+        scon.IMAGE,
+        scon.MEMORY,
+        scon.CPUS,
+        scon.PIDS,
+        extra_security_opts=extra_security_opts,
+    )
 
 
 def _strip_pairs(argv, flag, values):
@@ -68,6 +95,7 @@ def _strip_pairs(argv, flag, values):
 
 # =========================================================== tier a: argv
 
+
 def test_default_argv_is_byte_identical_when_opt_in_unset():
     """With no opt-in, the produced argv equals the current lockdown argv exactly."""
     assert _argv(extra_security_opts=()) == EXPECTED_DEFAULT_ARGV
@@ -80,9 +108,11 @@ def test_opt_in_appends_security_opt_and_preserves_every_lockdown_flag():
     extra = ["seccomp=/abs/example-sandbox-seccomp.json", "apparmor=darwin-sandbox"]
     argv = _argv(extra_security_opts=extra)
     for opt in extra:
-        assert opt in argv                                   # each extra appears
-    assert argv.count("--security-opt") == 1 + len(extra)    # no-new-privileges + the extras
-    assert "no-new-privileges" in argv                       # the original security-opt is intact
+        assert opt in argv  # each extra appears
+    assert argv.count("--security-opt") == 1 + len(
+        extra
+    )  # no-new-privileges + the extras
+    assert "no-new-privileges" in argv  # the original security-opt is intact
     # Purely additive: removing the extra pairs reproduces the byte-identical default.
     assert _strip_pairs(argv, "--security-opt", set(extra)) == EXPECTED_DEFAULT_ARGV
 
@@ -101,13 +131,14 @@ def test_run_argv_reads_module_level_opt_in_at_call_time(monkeypatch):
     (populated from the env var at load) is read at call time: set -> appended,
     unset -> byte-identical default."""
     monkeypatch.setattr(scon, "EXTRA_SECURITY_OPTS", ("seccomp=/x.json",))
-    argv = _argv(extra_security_opts=None)                   # None -> use the module-level opt-in
+    argv = _argv(extra_security_opts=None)  # None -> use the module-level opt-in
     assert "seccomp=/x.json" in argv and argv.count("--security-opt") == 2
-    monkeypatch.setattr(scon, "EXTRA_SECURITY_OPTS", ())     # opt-in unset
+    monkeypatch.setattr(scon, "EXTRA_SECURITY_OPTS", ())  # opt-in unset
     assert _argv(extra_security_opts=None) == EXPECTED_DEFAULT_ARGV
 
 
 # =========================================================== tier b: smoke test (Docker)
+
 
 def _docker_available():
     # Robust preflight (inspect-by-tag with a docker-image-ls fallback), so the
@@ -119,8 +150,9 @@ def _docker_available():
         return False
 
 
-@pytest.mark.skipif(not _docker_available(),
-                    reason=f"Docker sandbox image {scon.IMAGE} not available")
+@pytest.mark.skipif(
+    not _docker_available(), reason=f"Docker sandbox image {scon.IMAGE} not available"
+)
 def test_example_seccomp_profile_smoke(monkeypatch):
     """SMOKE TEST, NOT a security validation: wiring the example seccomp profile
     through the opt-in path lets a NORMAL python+pytest candidate still run (the
@@ -130,4 +162,6 @@ def test_example_seccomp_profile_smoke(monkeypatch):
     assert profile.is_file()
     monkeypatch.setattr(scon, "EXTRA_SECURITY_OPTS", (f"seccomp={profile}",))
     res = scon.run({"candidate.py": GOOD, "test_suite.py": TEST}, PYTEST_CMD)
-    assert res.status == scon.OK, f"profile broke a normal run: {res.stdout!r} {res.stderr!r}"
+    assert res.status == scon.OK, (
+        f"profile broke a normal run: {res.stdout!r} {res.stderr!r}"
+    )

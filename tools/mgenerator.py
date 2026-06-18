@@ -32,6 +32,7 @@ hardcoded or printed.
 
 Usage: python mgenerator.py <case_dir> <out_dir> [model]
 """
+
 import ast
 import json
 import os
@@ -50,6 +51,7 @@ from generator import (
     _load_dotenv,
     request_kwargs,
 )
+
 # The one-call hardening (client construction with the explicit timeout + retry
 # budget, failure classification, and the model-capability check) is shared with
 # generator via llm_client.
@@ -60,7 +62,9 @@ from llm_client import (
 import logsetup
 import runinput
 
-log = logsetup.get_logger("mgenerator")  # operational log -> stderr (configured at the entry point)
+log = logsetup.get_logger(
+    "mgenerator"
+)  # operational log -> stderr (configured at the entry point)
 
 DEFAULT_MODEL = os.environ.get("MGENERATOR_MODEL", _GEN_DEFAULT_MODEL)
 
@@ -101,11 +105,11 @@ _BLOCK_RE = re.compile(
 
 @dataclass
 class MGenResult:
-    files: dict           # relative-path -> source for the emitted files ({} if none)
-    raw_text: str         # the model's full text response (kept for the audit log)
-    valid: bool           # all files parse, __init__ exposes the entry, paths safe
-    error: str | None     # why invalid (fed back as next-gen feedback); None if valid
-    candidate_dir: str | None   # set iff valid AND an out_dir was given (materialized)
+    files: dict  # relative-path -> source for the emitted files ({} if none)
+    raw_text: str  # the model's full text response (kept for the audit log)
+    valid: bool  # all files parse, __init__ exposes the entry, paths safe
+    error: str | None  # why invalid (fed back as next-gen feedback); None if valid
+    candidate_dir: str | None  # set iff valid AND an out_dir was given (materialized)
     model: str
     input_tokens: int
     output_tokens: int
@@ -114,6 +118,7 @@ class MGenResult:
 
 
 # ---------------------------------------------------------------- prompt
+
 
 def _format_unit(files):
     """Render a {path: source} map as path-labelled fenced blocks for the prompt."""
@@ -150,12 +155,16 @@ def _build_user(meta, original_files, prev_files, prev_feedback):
             "preserving exact behavior at the public API.",
         ]
     else:
-        parts += ["", "Rewrite the unit to be as simple and clean as possible while "
-                  "preserving exact behavior at the public API."]
+        parts += [
+            "",
+            "Rewrite the unit to be as simple and clean as possible while "
+            "preserving exact behavior at the public API.",
+        ]
     return "\n".join(parts)
 
 
 # ---------------------------------------------------------------- parsing
+
 
 def parse_emission(text):
     """Map relative-path -> source for every `### FILE:` block in the model text.
@@ -173,6 +182,7 @@ def parse_emission(text):
 
 # ------------------------------------------------------------ validation
 
+
 def _path_error(path):
     """None if `path` is a safe relative .py path that stays inside the unit root,
     else a specific reason. Pure string analysis; touches no filesystem."""
@@ -181,15 +191,21 @@ def _path_error(path):
         return "an emitted file block has an empty path."
     norm = raw.replace("\\", "/")
     if norm.startswith("/") or re.match(r"^[A-Za-z]:", norm):
-        return (f"path '{raw}' is absolute; every emitted path must be relative to "
-                f"the unit root and stay inside it.")
+        return (
+            f"path '{raw}' is absolute; every emitted path must be relative to "
+            f"the unit root and stay inside it."
+        )
     segments = [s for s in norm.split("/") if s != "" and s != "."]
     if any(s == ".." for s in segments):
-        return (f"path '{raw}' uses '..' to escape the unit root; emitted paths must "
-                f"stay inside the candidate directory.")
+        return (
+            f"path '{raw}' uses '..' to escape the unit root; emitted paths must "
+            f"stay inside the candidate directory."
+        )
     if not norm.endswith(".py"):
-        return (f"path '{raw}' does not end in .py; only Python source files may be "
-                f"emitted.")
+        return (
+            f"path '{raw}' does not end in .py; only Python source files may be "
+            f"emitted."
+        )
     if not segments or segments[-1] in ("..", "."):
         return f"path '{raw}' is not a valid file path."
     return None
@@ -200,11 +216,14 @@ def _exposes(init_src, entry):
     defined there (class/function/assignment) or imported and re-exported under
     that exact name. Static (ast) only — nothing is imported or run."""
     for node in ast.parse(init_src).body:
-        if (isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
-                and node.name == entry):
+        if (
+            isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == entry
+        ):
             return True
         if isinstance(node, ast.Assign) and any(
-                isinstance(t, ast.Name) and t.id == entry for t in node.targets):
+            isinstance(t, ast.Name) and t.id == entry for t in node.targets
+        ):
             return True
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             for alias in node.names:
@@ -218,9 +237,11 @@ def validate(files, entry):
     exposing `entry`; else a specific, actionable error string (the loop forwards
     it as feedback). Does no filesystem or runtime work whatsoever."""
     if not files:
-        return ("your response contained no `### FILE:` blocks at all; emit each "
-                "file as a `### FILE: <path.py>` marker followed by a fenced "
-                "```python code block.")
+        return (
+            "your response contained no `### FILE:` blocks at all; emit each "
+            "file as a `### FILE: <path.py>` marker followed by a fenced "
+            "```python code block."
+        )
     # Path safety first: a single unsafe path invalidates the whole emission, and
     # nothing is ever written for an invalid result.
     for path in sorted(files):
@@ -232,19 +253,26 @@ def validate(files, entry):
         try:
             ast.parse(files[path])
         except SyntaxError as e:
-            return (f"file '{path}' is not valid Python: {e.__class__.__name__}: "
-                    f"{e.msg} (line {e.lineno}).")
+            return (
+                f"file '{path}' is not valid Python: {e.__class__.__name__}: "
+                f"{e.msg} (line {e.lineno})."
+            )
     if "__init__.py" not in files:
-        return ("no __init__.py at the unit root; the candidate must be an "
-                "importable package whose __init__.py exposes the entry class.")
+        return (
+            "no __init__.py at the unit root; the candidate must be an "
+            "importable package whose __init__.py exposes the entry class."
+        )
     if not _exposes(files["__init__.py"], entry):
-        return (f"__init__.py does not expose the entry class `{entry}`; define it "
-                f"there or import and re-export it (for example "
-                f"`from .submodule import {entry}`).")
+        return (
+            f"__init__.py does not expose the entry class `{entry}`; define it "
+            f"there or import and re-export it (for example "
+            f"`from .submodule import {entry}`)."
+        )
     return None
 
 
 # ----------------------------------------------------------- materialize
+
 
 def materialize(files, dest):
     """Write a path->source map into `dest` as a package directory, creating parent
@@ -277,8 +305,16 @@ def read_unit(unit_dir):
 
 # ---------------------------------------------------------------- generate
 
-def generate(meta, original_files, prev_files=None, prev_feedback=None,
-             model=DEFAULT_MODEL, client=None, out_dir=None):
+
+def generate(
+    meta,
+    original_files,
+    prev_files=None,
+    prev_feedback=None,
+    model=DEFAULT_MODEL,
+    client=None,
+    out_dir=None,
+):
     """One LLM call -> a candidate MGenResult. The candidate is parsed and STATICALLY
     validated; it is never run on the host. If the result is valid and `out_dir` is
     given, the candidate package is materialized there and candidate_dir is set; an
@@ -295,9 +331,15 @@ def generate(meta, original_files, prev_files=None, prev_feedback=None,
         client = build_client()
     resp = create_message(
         client,
-        model=model, max_tokens=MAX_TOKENS, system=SYSTEM,
-        messages=[{"role": "user",
-                   "content": _build_user(meta, original_files, prev_files, prev_feedback)}],
+        model=model,
+        max_tokens=MAX_TOKENS,
+        system=SYSTEM,
+        messages=[
+            {
+                "role": "user",
+                "content": _build_user(meta, original_files, prev_files, prev_feedback),
+            }
+        ],
         **request_kwargs(model),
     )
     text = "".join(b.text for b in resp.content if b.type == "text")
@@ -311,32 +353,50 @@ def generate(meta, original_files, prev_files=None, prev_feedback=None,
     in_rate, out_rate = PRICING.get(model, (0.0, 0.0))
     u = resp.usage
     return MGenResult(
-        files=files, raw_text=text, valid=error is None, error=error,
-        candidate_dir=candidate_dir, model=model,
-        input_tokens=u.input_tokens, output_tokens=u.output_tokens,
+        files=files,
+        raw_text=text,
+        valid=error is None,
+        error=error,
+        candidate_dir=candidate_dir,
+        model=model,
+        input_tokens=u.input_tokens,
+        output_tokens=u.output_tokens,
         cost_usd=round(u.input_tokens * in_rate + u.output_tokens * out_rate, 6),
     )
 
 
 def main():
     import sys
+
     if len(sys.argv) not in (3, 4):
         sys.exit("usage: python mgenerator.py <case_dir> <out_dir> [model]")
-    logsetup.configure()   # entry point: wire logging once (never at import)
+    logsetup.configure()  # entry point: wire logging once (never at import)
     case_dir = Path(sys.argv[1])
     out_dir = sys.argv[2]
     model = sys.argv[3] if len(sys.argv) == 4 else DEFAULT_MODEL
     meta = runinput.load_mcase_meta(case_dir)
     original_files = read_unit(case_dir / "original")
     r = generate(meta, original_files, model=model, out_dir=out_dir)
-    result = {"valid": r.valid, "error": r.error, "files": sorted(r.files),
-              "candidate_dir": r.candidate_dir, "model": r.model,
-              "input_tokens": r.input_tokens, "output_tokens": r.output_tokens,
-              "cost_usd": r.cost_usd}
-    log.info(json.dumps(result, indent=2),
-             extra={"model": r.model, "valid": r.valid,
-                    "input_tokens": r.input_tokens, "output_tokens": r.output_tokens,
-                    "cost_usd": r.cost_usd})
+    result = {
+        "valid": r.valid,
+        "error": r.error,
+        "files": sorted(r.files),
+        "candidate_dir": r.candidate_dir,
+        "model": r.model,
+        "input_tokens": r.input_tokens,
+        "output_tokens": r.output_tokens,
+        "cost_usd": r.cost_usd,
+    }
+    log.info(
+        json.dumps(result, indent=2),
+        extra={
+            "model": r.model,
+            "valid": r.valid,
+            "input_tokens": r.input_tokens,
+            "output_tokens": r.output_tokens,
+            "cost_usd": r.cost_usd,
+        },
+    )
 
 
 # The API key is loaded by generate() (via generator._load_dotenv) at the point the

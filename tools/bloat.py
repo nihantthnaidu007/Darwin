@@ -6,6 +6,7 @@ It is never hardcoded, logged, or printed.
 
 Usage: python bloat.py <reference.py> [-o original.py]
 """
+
 import sys
 
 import anthropic

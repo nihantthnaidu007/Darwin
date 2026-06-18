@@ -71,6 +71,7 @@ PREREQUISITE (Phase I1): Docker must be running and the sandbox image built once
 (docker build -f tools/Dockerfile.sandbox -t darwin-sandbox:py313 tools/); the
 container run() raises RuntimeError with that hint if the image is missing.
 """
+
 import json
 import secrets
 import sys
@@ -86,19 +87,20 @@ from pathlib import Path
 import sandbox_container as sandbox
 
 # Rejection taxonomy (Phase 1). A passing candidate has code == None.
-TESTS_FAILED = "tests-failed"            # pytest ran and an assertion failed (exit 1)
-COULD_NOT_RUN = "could-not-run"          # syntax/import/collection error (exit != 0,1)
-CRASHED = "crashed"                      # killed by a signal mid-run
-TIMED_OUT = "timed-out"                  # hit the sandbox wall-clock timeout
+TESTS_FAILED = "tests-failed"  # pytest ran and an assertion failed (exit 1)
+COULD_NOT_RUN = "could-not-run"  # syntax/import/collection error (exit != 0,1)
+CRASHED = "crashed"  # killed by a signal mid-run
+TIMED_OUT = "timed-out"  # hit the sandbox wall-clock timeout
 BEHAVIOR_MISMATCH = "behavior-mismatch"  # tests pass but golden I/O diverges
 
 
 @dataclass
 class VerifyResult:
-    ok: bool             # passed BOTH gates
-    code: str | None     # None if ok; else one of the taxonomy constants above
-    gate: str | None     # which gate decided it: "tests" / "golden" / None if ok
-    reason: str          # human-readable detail (pytest output / mismatch / status)
+    ok: bool  # passed BOTH gates
+    code: str | None  # None if ok; else one of the taxonomy constants above
+    gate: str | None  # which gate decided it: "tests" / "golden" / None if ok
+    reason: str  # human-readable detail (pytest output / mismatch / status)
+
 
 # The trusted in-container golden driver. The candidate is untrusted code that this
 # driver `import`s, so it runs in THE SAME process as this trusted emission. The
@@ -146,7 +148,9 @@ def _golden_driver(token):
         "    fn = getattr(candidate, inputs['entry_point'])\n"
         # json.dumps (pre-bound) does the tuple->list normalization golden relies on.
         "    results = [fn(*c['args'], **c['kwargs']) for c in inputs['cases']]\n"
-        "    _write(_fd, ('\\n' + " + repr(token) + " + _dumps({'results': results}) + '\\n').encode())\n"
+        "    _write(_fd, ('\\n' + "
+        + repr(token)
+        + " + _dumps({'results': results}) + '\\n').encode())\n"
         "    os._exit(0)\n"
         "_run()\n"
     )
@@ -162,7 +166,9 @@ def _extract_results(stdout, token):
     legitimate frame in place — e.g. overwriting the driver's _dumps local via a
     frame-walk (PEP 667) emits exactly one (forged) frame and passes this check. That
     is an OPEN bypass; see the module docstring and test_behavior_gate_limits.py."""
-    frames = [line[len(token):] for line in stdout.splitlines() if line.startswith(token)]
+    frames = [
+        line[len(token) :] for line in stdout.splitlines() if line.startswith(token)
+    ]
     if len(frames) != 1:
         return None
     try:
@@ -187,8 +193,10 @@ def _classify_run(res, mismatch_code):
 
 
 _LABEL = {
-    TESTS_FAILED: "tests failed", COULD_NOT_RUN: "candidate could not run",
-    CRASHED: "candidate crashed", TIMED_OUT: "candidate timed out",
+    TESTS_FAILED: "tests failed",
+    COULD_NOT_RUN: "candidate could not run",
+    CRASHED: "candidate crashed",
+    TIMED_OUT: "candidate timed out",
 }
 
 
@@ -217,27 +225,32 @@ def classify(candidate_path, test_suite_path, golden_path, timeout=10.0):
     if pytest_res.status != sandbox.OK:
         code = _classify_run(pytest_res, TESTS_FAILED)
         detail = pytest_res.stdout + pytest_res.stderr
-        return VerifyResult(False, code, "tests",
-                            f"pytest: {_LABEL[code]}:\n" + detail)
+        return VerifyResult(False, code, "tests", f"pytest: {_LABEL[code]}:\n" + detail)
 
     # Layer 2 (golden replay). Send the candidate the INPUTS only; keep the expected
     # outputs here on the HOST. The in-container driver emits actual results; we compare.
     golden = json.loads(golden_src)
     token = secrets.token_hex(16)
-    inputs = {"entry_point": golden["entry_point"],
-              "cases": [{"args": c["args"], "kwargs": c["kwargs"]}
-                        for c in golden["cases"]]}
+    inputs = {
+        "entry_point": golden["entry_point"],
+        "cases": [{"args": c["args"], "kwargs": c["kwargs"]} for c in golden["cases"]],
+    }
     golden_res = sandbox.run(
-        {"candidate.py": candidate_src,
-         "inputs.json": json.dumps(inputs),
-         "driver.py": _golden_driver(token)},
+        {
+            "candidate.py": candidate_src,
+            "inputs.json": json.dumps(inputs),
+            "driver.py": _golden_driver(token),
+        },
         ["python", "driver.py"],
         timeout,
     )
     if golden_res.status != sandbox.OK:
         code = _classify_run(golden_res, BEHAVIOR_MISMATCH)
-        reason = (golden_res.stdout.strip() or golden_res.stderr.strip()
-                  or f"golden replay {golden_res.status}")
+        reason = (
+            golden_res.stdout.strip()
+            or golden_res.stderr.strip()
+            or f"golden replay {golden_res.status}"
+        )
         return VerifyResult(False, code, "golden", reason)
 
     # Driver exited 0: compare the actual results (held nowhere but here) to golden.
@@ -245,15 +258,22 @@ def classify(candidate_path, test_suite_path, golden_path, timeout=10.0):
     if actuals is None or len(actuals) != len(golden["cases"]):
         # No verifiable results: candidate suppressed/corrupted the driver's output.
         # Fail closed — a replay we cannot verify is not a pass.
-        return VerifyResult(False, COULD_NOT_RUN, "golden",
-                            "golden replay produced no verifiable results "
-                            "(candidate may have suppressed or corrupted driver output)")
+        return VerifyResult(
+            False,
+            COULD_NOT_RUN,
+            "golden",
+            "golden replay produced no verifiable results "
+            "(candidate may have suppressed or corrupted driver output)",
+        )
     for case, actual in zip(golden["cases"], actuals):
         if actual != case["output"]:
             return VerifyResult(
-                False, BEHAVIOR_MISMATCH, "golden",
+                False,
+                BEHAVIOR_MISMATCH,
+                "golden",
                 "golden mismatch for args=%s kwargs=%s: expected %r, got %r"
-                % (case["args"], case["kwargs"], case["output"], actual))
+                % (case["args"], case["kwargs"], case["output"], actual),
+            )
 
     return VerifyResult(True, None, None, "pytest passed and all golden I/O matched")
 
@@ -266,8 +286,10 @@ def verify(candidate_path, test_suite_path, golden_path, timeout=10.0):
 
 def main():
     if len(sys.argv) != 4:
-        sys.exit("usage: python verify_case.py <candidate.py> <test_suite.py> "
-                 "<golden_io.json>")
+        sys.exit(
+            "usage: python verify_case.py <candidate.py> <test_suite.py> "
+            "<golden_io.json>"
+        )
     ok, reason = verify(*sys.argv[1:4])
     print("PASS" if ok else "FAIL: " + reason)
     sys.exit(0 if ok else 1)

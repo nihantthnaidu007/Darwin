@@ -23,6 +23,7 @@ v1 isolation = subprocess in a fresh temp dir. Memory limits, network isolation,
 and Docker-level isolation are explicitly v2 and NOT implemented here. (Unix only:
 the process-group kill relies on setsid + killpg.)
 """
+
 import os
 import shutil
 import signal
@@ -36,9 +37,9 @@ from pathlib import Path
 # abort, ...). A Python-level exception is an ordinary non-zero exit and so lands
 # in `failed`, with its traceback captured in stderr — the generic layer cannot
 # tell a raised exception from a deliberate non-zero exit (see assumption #3).
-OK = "ok"                # completed successfully (exit 0)
-FAILED = "failed"        # completed with a non-zero exit code
-CRASHED = "crashed"      # terminated abnormally by a signal
+OK = "ok"  # completed successfully (exit 0)
+FAILED = "failed"  # completed with a non-zero exit code
+CRASHED = "crashed"  # terminated abnormally by a signal
 TIMED_OUT = "timed_out"  # killed by the sandbox's wall-clock timeout
 
 # After a timeout kill, how long to wait for the pipe to drain before giving up.
@@ -48,12 +49,12 @@ _KILL_GRACE = 2.0
 
 @dataclass
 class SandboxResult:
-    status: str            # one of OK / FAILED / CRASHED / TIMED_OUT
+    status: str  # one of OK / FAILED / CRASHED / TIMED_OUT
     exit_code: int | None  # process returncode; None when timed out
-    stdout: str            # captured standard output
-    stderr: str            # captured standard error
-    duration: float        # wall-clock seconds the command actually ran
-    timed_out: bool        # convenience flag, == (status == TIMED_OUT)
+    stdout: str  # captured standard output
+    stderr: str  # captured standard error
+    duration: float  # wall-clock seconds the command actually ran
+    timed_out: bool  # convenience flag, == (status == TIMED_OUT)
 
 
 def run(files, command, timeout=10.0):
@@ -73,8 +74,11 @@ def run(files, command, timeout=10.0):
 
         start = time.monotonic()
         proc = subprocess.Popen(
-            command, cwd=workdir,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            command,
+            cwd=workdir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
             start_new_session=True,  # own session/group -> whole tree killable
         )
         try:
@@ -87,14 +91,15 @@ def run(files, command, timeout=10.0):
                 # (Retrying communicate after a timeout does not lose output.)
                 stdout, stderr = proc.communicate(timeout=_KILL_GRACE)
             except subprocess.TimeoutExpired:
-                proc.kill()                 # SIGKILL the direct child...
+                proc.kill()  # SIGKILL the direct child...
                 try:
                     proc.wait(timeout=_KILL_GRACE)  # ...and reap it (it is dead)
                 except subprocess.TimeoutExpired:
                     pass
-                stdout, stderr = "", ""     # give up on output; never block
-            return SandboxResult(TIMED_OUT, None, stdout, stderr,
-                                 time.monotonic() - start, True)
+                stdout, stderr = "", ""  # give up on output; never block
+            return SandboxResult(
+                TIMED_OUT, None, stdout, stderr, time.monotonic() - start, True
+            )
 
         duration = time.monotonic() - start
         rc = proc.returncode
@@ -135,8 +140,9 @@ def _descendants(root):
     """All transitive child PIDs of `root`, from a `ps` pid->ppid snapshot. Uses
     no extra dependency; returns [] if `ps` is unavailable (Tier 1 still holds)."""
     try:
-        out = subprocess.run(["ps", "-eo", "pid=,ppid="],
-                             capture_output=True, text=True, timeout=5).stdout
+        out = subprocess.run(
+            ["ps", "-eo", "pid=,ppid="], capture_output=True, text=True, timeout=5
+        ).stdout
     except (OSError, subprocess.SubprocessError):
         return []
     kids = {}

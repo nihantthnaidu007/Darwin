@@ -30,6 +30,7 @@ from the recorded one, rather than mix two configs into one aggregate labeled wi
 only the new config. Resume also assumes the SAME corpus; after the corpus changes,
 start a fresh run (the default), not a resume.
 """
+
 import json
 import os
 from pathlib import Path
@@ -44,12 +45,14 @@ class ConfigMismatchError(Exception):
         self.diffs = diffs  # {field: (saved_value, current_value)}
         fields = ", ".join(
             f"{k} (saved {saved!r}, now {current!r})"
-            for k, (saved, current) in sorted(diffs.items()))
+            for k, (saved, current) in sorted(diffs.items())
+        )
         super().__init__(
             f"resume refused: the run configuration does not match the saved "
             f"run-state -- {fields}. Re-run with the original configuration to "
             f"resume, or start a fresh run (omit --resume) to overwrite the saved "
-            f"state with this configuration.")
+            f"state with this configuration."
+        )
 
 
 def run_config(model, cap, plateau):
@@ -144,8 +147,11 @@ class RunState:
         verify and the completed map is whatever is on disk."""
         recorded = self.read_config()
         if recorded is not None:
-            diffs = {k: (recorded.get(k), config[k])
-                     for k in config if recorded.get(k) != config[k]}
+            diffs = {
+                k: (recorded.get(k), config[k])
+                for k in config
+                if recorded.get(k) != config[k]
+            }
             if diffs:
                 raise ConfigMismatchError(diffs)
         return self.completed()

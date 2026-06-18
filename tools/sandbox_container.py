@@ -43,6 +43,7 @@ run() raises RuntimeError with this hint if the image is missing.
 
 SCOPE: this is the primitive only. Wiring the evaluator across the boundary is I1.
 """
+
 import os
 import shutil
 import stat
@@ -56,18 +57,18 @@ from pathlib import Path
 # The four-way outcome, identical to sandbox.py so the taxonomy is shared. OOM is
 # reported separately (oom_killed) and mapped to CRASHED here: a candidate killed
 # by the memory cap was terminated abnormally, like a signal death.
-OK = "ok"                # completed successfully (exit 0)
-FAILED = "failed"        # completed with a non-zero exit code
-CRASHED = "crashed"      # terminated abnormally (signal, or killed by the memory cap)
+OK = "ok"  # completed successfully (exit 0)
+FAILED = "failed"  # completed with a non-zero exit code
+CRASHED = "crashed"  # terminated abnormally (signal, or killed by the memory cap)
 TIMED_OUT = "timed_out"  # killed by the sandbox's wall-clock timeout
 
 IMAGE = "darwin-sandbox:py313"  # built from tools/Dockerfile.sandbox
 
 # Default container caps. Generous enough for a pytest run on the tiny cases,
 # tight enough to contain a hostile candidate.
-MEMORY = "256m"   # RAM cap; swap is disabled by setting --memory-swap == --memory
-CPUS = "1.0"      # at most one core
-PIDS = 128        # process cap; contains fork bombs
+MEMORY = "256m"  # RAM cap; swap is disabled by setting --memory-swap == --memory
+CPUS = "1.0"  # at most one core
+PIDS = 128  # process cap; contains fork bombs
 
 # Bound the host-side waits so nothing can hang us. The container's wall clock is
 # `timeout`; _STARTUP_GRACE covers image-start latency (measured ~0.1-0.4s warm, so
@@ -108,17 +109,16 @@ EXTRA_SECURITY_OPTS = _load_extra_security_opts()
 
 @dataclass
 class ContainerResult:
-    status: str            # one of OK / FAILED / CRASHED / TIMED_OUT
+    status: str  # one of OK / FAILED / CRASHED / TIMED_OUT
     exit_code: int | None  # container exit code; None when timed out
-    stdout: str            # captured standard output (capped at _MAX_OUTPUT)
-    stderr: str            # captured standard error (capped at _MAX_OUTPUT)
-    duration: float        # wall-clock seconds the container actually ran
-    timed_out: bool        # convenience flag, == (status == TIMED_OUT)
-    oom_killed: bool       # True if the container was killed by the memory cap
+    stdout: str  # captured standard output (capped at _MAX_OUTPUT)
+    stderr: str  # captured standard error (capped at _MAX_OUTPUT)
+    duration: float  # wall-clock seconds the container actually ran
+    timed_out: bool  # convenience flag, == (status == TIMED_OUT)
+    oom_killed: bool  # True if the container was killed by the memory cap
 
 
-def run(files, command, timeout=10.0, image=IMAGE,
-        memory=MEMORY, cpus=CPUS, pids=PIDS):
+def run(files, command, timeout=10.0, image=IMAGE, memory=MEMORY, cpus=CPUS, pids=PIDS):
     """Write `files` (name -> text) into a fresh host temp dir, run `command` in a
     locked-down container with that dir read-only-mounted at /sandbox, and return a
     ContainerResult. Enforces a hard `timeout` in seconds: on expiry the container
@@ -143,8 +143,9 @@ def run(files, command, timeout=10.0, image=IMAGE,
         with open(out_path, "wb") as out_f, open(err_path, "wb") as err_f:
             # No --rm: keep the container after exit so we can inspect OOM/exit;
             # the finally below force-removes it on every path.
-            proc = subprocess.Popen(argv, stdout=out_f, stderr=err_f,
-                                    start_new_session=True)
+            proc = subprocess.Popen(
+                argv, stdout=out_f, stderr=err_f, start_new_session=True
+            )
             timed_out = False
             try:
                 proc.communicate(timeout=timeout + _STARTUP_GRACE)
@@ -167,8 +168,9 @@ def run(files, command, timeout=10.0, image=IMAGE,
         stderr = _read_capped(err_path, _MAX_OUTPUT)
 
         if timed_out:
-            return ContainerResult(TIMED_OUT, None, stdout, stderr,
-                                   duration, True, False)
+            return ContainerResult(
+                TIMED_OUT, None, stdout, stderr, duration, True, False
+            )
 
         # Not timed out: the container exists (no --rm), so inspect is authoritative
         # for the exit code and the OOM flag. Fall back to the client's returncode
@@ -177,8 +179,7 @@ def run(files, command, timeout=10.0, image=IMAGE,
         if exit_code is None:
             exit_code = proc.returncode
         status = _classify(exit_code, oom)
-        return ContainerResult(status, exit_code, stdout, stderr,
-                               duration, False, oom)
+        return ContainerResult(status, exit_code, stdout, stderr, duration, False, oom)
     finally:
         # Guaranteed teardown on every path (success, failure, crash, timeout).
         # Idempotent: a "No such container" from an already-removed container is
@@ -238,8 +239,9 @@ def _extra_security_opt_args(extra_security_opts):
     return args
 
 
-def _run_argv(name, workdir, command, image, memory, cpus, pids,
-              extra_security_opts=None):
+def _run_argv(
+    name, workdir, command, image, memory, cpus, pids, extra_security_opts=None
+):
     """The locked-down `docker run` argv. Every flag here is one lockdown item.
 
     extra_security_opts is the OPT-IN defense-in-depth hook (P6.4.1, decision 0033):
@@ -251,27 +253,44 @@ def _run_argv(name, workdir, command, image, memory, cpus, pids,
     env var and tests both take effect."""
     opts = EXTRA_SECURITY_OPTS if extra_security_opts is None else extra_security_opts
     return [
-        "docker", "run",
-        "--name", name,
-        "--network", "none",              # no network
-        "--memory", memory,
-        "--memory-swap", memory,          # == memory -> swap disabled -> real OOM
-        "--cpus", str(cpus),              # CPU cap
-        "--pids-limit", str(pids),        # process cap -> contains fork bombs
-        "--read-only",                    # read-only root filesystem
-        "--tmpfs", "/tmp:rw,size=64m,mode=1777",  # only writable area, in RAM
-        "--cap-drop", "ALL",              # drop all Linux capabilities
-        "--security-opt", "no-new-privileges",
+        "docker",
+        "run",
+        "--name",
+        name,
+        "--network",
+        "none",  # no network
+        "--memory",
+        memory,
+        "--memory-swap",
+        memory,  # == memory -> swap disabled -> real OOM
+        "--cpus",
+        str(cpus),  # CPU cap
+        "--pids-limit",
+        str(pids),  # process cap -> contains fork bombs
+        "--read-only",  # read-only root filesystem
+        "--tmpfs",
+        "/tmp:rw,size=64m,mode=1777",  # only writable area, in RAM
+        "--cap-drop",
+        "ALL",  # drop all Linux capabilities
+        "--security-opt",
+        "no-new-privileges",
         # OPT-IN extras (off by default): zero elements when unset, so the argv above
         # and below is unchanged; appended here as additional --security-opt entries.
         *_extra_security_opt_args(opts),
-        "--user", "1000:1000",            # non-root (image USER is also sandbox)
-        "-v", f"{workdir}:/sandbox:ro",   # the ONLY host path, read-only
-        "-w", "/sandbox",
-        "-e", "HOME=/tmp",                # writable HOME on the read-only root
-        "-e", "TMPDIR=/tmp",
-        "-e", "PYTHONDONTWRITEBYTECODE=1",
-        "-e", "PYTHONPYCACHEPREFIX=/tmp",
+        "--user",
+        "1000:1000",  # non-root (image USER is also sandbox)
+        "-v",
+        f"{workdir}:/sandbox:ro",  # the ONLY host path, read-only
+        "-w",
+        "/sandbox",
+        "-e",
+        "HOME=/tmp",  # writable HOME on the read-only root
+        "-e",
+        "TMPDIR=/tmp",
+        "-e",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "-e",
+        "PYTHONPYCACHEPREFIX=/tmp",
         image,
         *command,
     ]
@@ -298,7 +317,8 @@ def _inspect(name):
     """Return (exit_code, oom_killed) from `docker inspect`, or (None, False) if it
     cannot be read. Bounded; never hangs the caller."""
     rc, out, _ = _docker(
-        ["inspect", "--format", "{{.State.ExitCode}} {{.State.OOMKilled}}", name])
+        ["inspect", "--format", "{{.State.ExitCode}} {{.State.OOMKilled}}", name]
+    )
     if rc != 0:
         return None, False
     parts = out.split()
@@ -312,8 +332,9 @@ def _docker(args):
     on timeout or launch failure returns a non-zero rc and empty output. Teardown
     and inspection rely on this never blocking longer than _OP_TIMEOUT."""
     try:
-        p = subprocess.run(["docker", *args], capture_output=True, text=True,
-                           timeout=_OP_TIMEOUT)
+        p = subprocess.run(
+            ["docker", *args], capture_output=True, text=True, timeout=_OP_TIMEOUT
+        )
         return p.returncode, p.stdout.strip(), p.stderr.strip()
     except subprocess.TimeoutExpired:
         return 124, "", "docker timed out"
@@ -330,8 +351,10 @@ def _read_capped(path, limit):
     except OSError:
         return ""
     if len(data) > limit:
-        return (data[:limit].decode("utf-8", "replace")
-                + f"\n...[truncated at {limit} bytes]")
+        return (
+            data[:limit].decode("utf-8", "replace")
+            + f"\n...[truncated at {limit} bytes]"
+        )
     return data.decode("utf-8", "replace")
 
 
@@ -362,9 +385,10 @@ def _require_image(image):
     with the same precise build-command remediation as before."""
     rc, _, _ = _docker(["image", "inspect", image])
     if rc == 0:
-        return                                  # present by tag: happy path, no extra call
-    if _image_present_by_listing(image):        # runs only on inspect failure
-        return                                  # inspect false-negatived; image is present
+        return  # present by tag: happy path, no extra call
+    if _image_present_by_listing(image):  # runs only on inspect failure
+        return  # inspect false-negatived; image is present
     raise RuntimeError(
         f"sandbox image {image!r} not found. Build it once with:\n"
-        f"    docker build -f tools/Dockerfile.sandbox -t {image} tools/")
+        f"    docker build -f tools/Dockerfile.sandbox -t {image} tools/"
+    )

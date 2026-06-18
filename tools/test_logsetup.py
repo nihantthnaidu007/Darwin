@@ -13,6 +13,7 @@ Covers:
 
   cd tools && python -m pytest test_logsetup.py -q -p no:cacheprovider
 """
+
 import io
 import json
 import logging
@@ -38,12 +39,13 @@ def _reset_darwin():
 
 # ------------------------------------------------- console handler
 
+
 def test_console_is_message_only_no_prefix():
     _reset_darwin()
     buf = io.StringIO()
     logsetup.configure(level="INFO", console_stream=buf)
     log = logsetup.get_logger("demo")
-    log.info("=" * 20)                       # an aligned block line
+    log.info("=" * 20)  # an aligned block line
     log.info("case=%s done", "sum_evens")
     # Exactly the messages, in order, no level/timestamp prefix.
     assert buf.getvalue() == ("=" * 20) + "\ncase=sum_evens done\n"
@@ -51,18 +53,26 @@ def test_console_is_message_only_no_prefix():
 
 # ------------------------------------------------- JSON handler
 
+
 def test_json_handler_one_object_per_record_with_fields(tmp_path):
     _reset_darwin()
     jp = tmp_path / "log.jsonl"
     logsetup.configure(level="INFO", json_path=str(jp), console_stream=io.StringIO())
     log = logsetup.get_logger("benchmark")
-    log.info("case=%s done", "sum_evens",
-             extra={"model": "claude-opus-4-8", "total_cost_usd": 0.012,
-                    "verdict": "improved (best candidate returned)",
-                    "total_input_tokens": 1000, "total_output_tokens": 2000})
+    log.info(
+        "case=%s done",
+        "sum_evens",
+        extra={
+            "model": "claude-opus-4-8",
+            "total_cost_usd": 0.012,
+            "verdict": "improved (best candidate returned)",
+            "total_input_tokens": 1000,
+            "total_output_tokens": 2000,
+        },
+    )
     lines = jp.read_text(encoding="utf-8").splitlines()
     assert len(lines) == 1
-    rec = json.loads(lines[0])               # one valid JSON object per record
+    rec = json.loads(lines[0])  # one valid JSON object per record
     # Envelope.
     for key in ("timestamp", "level", "logger", "message"):
         assert key in rec
@@ -80,11 +90,12 @@ def test_json_handler_only_when_path_given():
     _reset_darwin()
     logsetup.configure(level="INFO", console_stream=io.StringIO())  # no json_path
     handlers = logging.getLogger("darwin").handlers
-    assert len(handlers) == 1                 # console only
+    assert len(handlers) == 1  # console only
     assert isinstance(handlers[0], logging.StreamHandler)
 
 
 # ------------------------------------------------- level filtering
+
 
 def test_level_filtering_suppresses_debug_on_console(tmp_path):
     _reset_darwin()
@@ -95,10 +106,15 @@ def test_level_filtering_suppresses_debug_on_console(tmp_path):
     log.debug("a debug diagnostic", extra={"x": 1})
     log.info("an info line")
     console = buf.getvalue()
-    assert "a debug diagnostic" not in console     # DEBUG filtered from the console at INFO
+    assert (
+        "a debug diagnostic" not in console
+    )  # DEBUG filtered from the console at INFO
     assert "an info line" in console
     # The JSON handler still records the DEBUG line at full fidelity.
-    levels = [json.loads(line)["level"] for line in jp.read_text(encoding="utf-8").splitlines()]
+    levels = [
+        json.loads(line)["level"]
+        for line in jp.read_text(encoding="utf-8").splitlines()
+    ]
     assert "DEBUG" in levels and "INFO" in levels
 
 
@@ -116,13 +132,21 @@ def test_higher_console_level_suppresses_info(tmp_path):
 
 # ------------------------------------------------- machine artifact unchanged
 
-@pytest.mark.parametrize("module, name", [
-    (benchmark, "aggregate.json"),
-    (mbenchmark, "maggregate.json"),
-])
+
+@pytest.mark.parametrize(
+    "module, name",
+    [
+        (benchmark, "aggregate.json"),
+        (mbenchmark, "maggregate.json"),
+    ],
+)
 def test_logging_does_not_alter_written_artifact(tmp_path, module, name):
-    agg = {"model": "m", "n_cases": 1,
-           "cases": [{"case": "a", "total_cost_usd": 0.01}], "improved": 1}
+    agg = {
+        "model": "m",
+        "n_cases": 1,
+        "cases": [{"case": "a", "total_cost_usd": 0.01}],
+        "improved": 1,
+    }
     # Without logging configured.
     _reset_darwin()
     plain_path = module.write_aggregate(agg, tmp_path / "plain")
@@ -132,13 +156,17 @@ def test_logging_does_not_alter_written_artifact(tmp_path, module, name):
     # trailing newline. This pins the extraction to the exact pre-refactor bytes.
     assert plain == json.dumps(agg, indent=2).encode("utf-8")
     # With logging configured (console + JSON).
-    logsetup.configure(level="INFO", json_path=str(tmp_path / "log.jsonl"),
-                       console_stream=io.StringIO())
+    logsetup.configure(
+        level="INFO",
+        json_path=str(tmp_path / "log.jsonl"),
+        console_stream=io.StringIO(),
+    )
     logged = module.write_aggregate(agg, tmp_path / "logged").read_bytes()
-    assert plain == logged                    # the artifact bytes are identical
+    assert plain == logged  # the artifact bytes are identical
 
 
 # ------------------------------------------------- import is side-effect-free
+
 
 def test_importing_core_path_module_is_side_effect_free():
     script = (
@@ -148,14 +176,15 @@ def test_importing_core_path_module_is_side_effect_free():
         "assert logging.getLogger().handlers == root_before, 'import configured root logging'; "
         "print('side-effect-free')"
     )
-    r = subprocess.run([sys.executable, "-c", script], cwd=str(TOOLS),
-                       capture_output=True, text=True)
+    r = subprocess.run(
+        [sys.executable, "-c", script], cwd=str(TOOLS), capture_output=True, text=True
+    )
     assert r.returncode == 0, r.stderr
     assert r.stdout.strip() == "side-effect-free"
-    assert r.stderr == ""                     # nothing emitted on import
+    assert r.stderr == ""  # nothing emitted on import
 
 
 def test_get_logger_does_not_add_root_handlers():
     root_before = list(logging.getLogger().handlers)
-    logsetup.get_logger("loop")               # lookup only, no configuration
+    logsetup.get_logger("loop")  # lookup only, no configuration
     assert logging.getLogger().handlers == root_before

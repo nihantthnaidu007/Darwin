@@ -10,6 +10,7 @@ args) or an object {"args": [...], "kwargs": {...}}.
 
 Output JSON: {"entry_point": ..., "cases": [{"args", "kwargs", "output"}, ...]}
 """
+
 import importlib.util
 import json
 import sys
@@ -41,18 +42,22 @@ def record(reference_path, entry_point, arg_sets):
     for arg_set in arg_sets:
         args, kwargs = _split(arg_set)
         output = fn(*args, **kwargs)
-        cases.append({
-            "args": _normalize(args),
-            "kwargs": _normalize(kwargs),
-            "output": _normalize(output),
-        })
+        cases.append(
+            {
+                "args": _normalize(args),
+                "kwargs": _normalize(kwargs),
+                "output": _normalize(output),
+            }
+        )
     return {"entry_point": entry_point, "cases": cases}
 
 
 def main():
     if len(sys.argv) not in (4, 6):
-        sys.exit("usage: python record_golden.py <reference.py> <entry_point> "
-                 "<arg_sets.json> [-o out.json]")
+        sys.exit(
+            "usage: python record_golden.py <reference.py> <entry_point> "
+            "<arg_sets.json> [-o out.json]"
+        )
     ref, entry, arg_file = sys.argv[1:4]
     arg_sets = runinput.load_json(arg_file)
     golden = record(ref, entry, arg_sets)

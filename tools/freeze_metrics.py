@@ -3,6 +3,7 @@
 Usage: python freeze_metrics.py <path.py>
 Prints a JSON object with the frozen metrics to stdout.
 """
+
 import ast
 import json
 import sys
@@ -16,9 +17,17 @@ from vulture import Vulture
 # Block statements that increase nesting depth. ClassDef/FunctionDef are
 # included so over-abstraction (nested wrappers) shows up as deeper nesting.
 NEST_NODES = (
-    ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef,
-    ast.If, ast.For, ast.AsyncFor, ast.While,
-    ast.With, ast.AsyncWith, ast.Try, ast.ExceptHandler,
+    ast.FunctionDef,
+    ast.AsyncFunctionDef,
+    ast.ClassDef,
+    ast.If,
+    ast.For,
+    ast.AsyncFor,
+    ast.While,
+    ast.With,
+    ast.AsyncWith,
+    ast.Try,
+    ast.ExceptHandler,
 )
 
 # Vulture reports unused functions/vars at 60 and unused imports at 90; 60

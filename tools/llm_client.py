@@ -19,6 +19,7 @@ backoff, jitter, and Retry-After handling; we set max_retries to a tuned value
 and describe the SDK's actual backoff rather than hand-rolling a second loop that
 would duplicate the SDK and risk dropping Retry-After.
 """
+
 import re
 
 import anthropic
@@ -35,7 +36,9 @@ import httpx
 # for the full read budget on a connection that will never produce bytes.
 LLM_CONNECT_TIMEOUT_SECONDS = 10.0
 LLM_READ_TIMEOUT_SECONDS = 600.0
-LLM_TIMEOUT = httpx.Timeout(LLM_READ_TIMEOUT_SECONDS, connect=LLM_CONNECT_TIMEOUT_SECONDS)
+LLM_TIMEOUT = httpx.Timeout(
+    LLM_READ_TIMEOUT_SECONDS, connect=LLM_CONNECT_TIMEOUT_SECONDS
+)
 
 # --- Retries + backoff -------------------------------------------------------
 # Tuned above the SDK default of 2 so a brief blip (a couple of 429s, or a
@@ -67,6 +70,7 @@ def sdk_version():
 
 
 # --- Error taxonomy ----------------------------------------------------------
+
 
 class LLMCallError(anthropic.APIError):
     """A classified, human-actionable generation failure.
@@ -123,14 +127,20 @@ def create_message(client, **kwargs):
     """
     try:
         return client.messages.create(**kwargs)
-    except anthropic.APIConnectionError as e:  # includes APITimeoutError; carries no status
-        what = (f"the request exceeded the {LLM_READ_TIMEOUT_SECONDS:.0f}s read timeout"
-                if isinstance(e, anthropic.APITimeoutError)
-                else "the API could not be reached (connection error)")
+    except (
+        anthropic.APIConnectionError
+    ) as e:  # includes APITimeoutError; carries no status
+        what = (
+            f"the request exceeded the {LLM_READ_TIMEOUT_SECONDS:.0f}s read timeout"
+            if isinstance(e, anthropic.APITimeoutError)
+            else "the API could not be reached (connection error)"
+        )
         raise _retryable(what, e) from e
     except anthropic.APIStatusError as e:  # carries an HTTP status code
         if _is_retryable_status(e.status_code):
-            raise _retryable(f"the API returned a transient HTTP {e.status_code}", e) from e
+            raise _retryable(
+                f"the API returned a transient HTTP {e.status_code}", e
+            ) from e
         raise _fatal(e) from e
     except anthropic.APIError as e:  # any other SDK-level API error
         raise _retryable("the API call failed", e) from e
@@ -148,7 +158,9 @@ def create_message(client, **kwargs):
 #   * everything else — Haiku, pre-4.6 Opus/Sonnet, an unrecognized family, or an
 #     unparseable id — takes the conservative no-thinking path, which runs without
 #     claiming a capability the model may not support.
-_MODEL_RE = re.compile(r"^claude-(?P<family>[a-z]+)-(?P<major>\d+)(?:[-.](?P<minor>\d+))?")
+_MODEL_RE = re.compile(
+    r"^claude-(?P<family>[a-z]+)-(?P<major>\d+)(?:[-.](?P<minor>\d+))?"
+)
 _ALWAYS_THINKING_FAMILIES = {"fable", "mythos"}
 _THINKING_SINCE = {"opus": (4, 6), "sonnet": (4, 6)}
 

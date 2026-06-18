@@ -30,21 +30,27 @@ NEAR_DONE_PCT = 90.0
 
 
 def _is_marginal(c):
-    return ((c["feedback_gain_pp"] or 0) < MARGINAL_PP
-            and (c["first_pass_bloat_removed_pct"] or 0) >= NEAR_DONE_PCT)
+    return (c["feedback_gain_pp"] or 0) < MARGINAL_PP and (
+        c["first_pass_bloat_removed_pct"] or 0
+    ) >= NEAR_DONE_PCT
 
 
 def _change_str(c):
     chg = c["structural_changes_from_first"]
-    return (", ".join(f"{x['metric']} {x['first_pass']}→{x['best']}" for x in chg)
-            if chg else "no structural change (informational metrics only)")
+    return (
+        ", ".join(f"{x['metric']} {x['first_pass']}→{x['best']}" for x in chg)
+        if chg
+        else "no structural change (informational metrics only)"
+    )
 
 
 def _headline(agg):
     n, imp = agg["n_cases"], agg["improved"]
     if imp == 0:
-        return (f"On all {n} cases the engine returned the baseline original — no "
-                f"gate-passing candidate measurably simpler than the baseline was found.")
+        return (
+            f"On all {n} cases the engine returned the baseline original — no "
+            f"gate-passing candidate measurably simpler than the baseline was found."
+        )
     need = agg["needed_feedback_cases"]
     one_shot = imp - len(need)
     if not need:
@@ -56,13 +62,20 @@ def _headline(agg):
             f"load-bearing** here: its demonstrated value on this corpus is *verification* "
             f"(the gates), *best-of-N retention*, and the *never-worse-than-baseline* "
             f"guarantee — not iterative feedback. Directed feedback is expected to become "
-            f"load-bearing only at multi-file / system scope, which is deferred to v2.")
-    def detail(qualifier):  # qualifier differs by branch so "only" never collides with "substantial"
+            f"load-bearing only at multi-file / system scope, which is deferred to v2."
+        )
+
+    def detail(
+        qualifier,
+    ):  # qualifier differs by branch so "only" never collides with "substantial"
         return "; ".join(
             f"`{c['case']}` reached its best in generation {c['best_generation']}, but "
             f"generation 1 alone had already removed {c['first_pass_bloat_removed_pct']}% of "
             f"the bloat and the later gain was {qualifier}+{c['feedback_gain_pp']} percentage "
-            f"points ({_change_str(c)})" for c in need)
+            f"points ({_change_str(c)})"
+            for c in need
+        )
+
     if all(_is_marginal(c) for c in need):
         return (
             f"**Single-function optimization is effectively one-shot on this corpus, with "
@@ -73,59 +86,77 @@ def _headline(agg):
             f"at all on the other {one_shot}. Its v1 value is verification (the gates), "
             f"best-of-N retention, and the never-worse-than-baseline guarantee; "
             f"load-bearing multi-generation feedback is expected only at multi-file / "
-            f"system scope (deferred to v2).")
+            f"system scope (deferred to v2)."
+        )
     return (
         f"On this corpus {len(need)} of {imp} improved cases required generation 2 or "
         f"later to reach their best, and the later-generation gain was substantial: "
         f"{detail('')}. The remaining {one_shot} were one-shot (generation 1). Directed "
-        f"feedback was load-bearing for the former.")
+        f"feedback was load-bearing for the former."
+    )
 
 
 def _gen_table(agg):
-    rows = ["| case | category | difficulty | result | best gen | gens run | floor? |",
-            "|------|----------|-----------|--------|---------:|---------:|:------:|"]
+    rows = [
+        "| case | category | difficulty | result | best gen | gens run | floor? |",
+        "|------|----------|-----------|--------|---------:|---------:|:------:|",
+    ]
     for c in agg["cases"]:
         result = "improved" if c["improved_over_baseline"] else "baseline kept"
         rows.append(
             f"| `{c['case']}` | {c['category']} | {c['difficulty']} | {result} | "
             f"{c['best_generation']} | {c['generations_attempted']} | "
-            f"{'yes' if c['floor_reached'] else 'no'} |")
+            f"{'yes' if c['floor_reached'] else 'no'} |"
+        )
     return "\n".join(rows)
 
 
 def _reduction_table(agg):
-    rows = ["| case | weighted cost (orig→best) | bloat removed | cost (USD) |",
-            "|------|:-------------------------:|:-------------:|-----------:|"]
+    rows = [
+        "| case | weighted cost (orig→best) | bloat removed | cost (USD) |",
+        "|------|:-------------------------:|:-------------:|-----------:|",
+    ]
     for c in agg["cases"]:
         bw = c["best_weighted_cost"]
         bloat = f"{c['bloat_removed_pct']}%"
         if bw is not None and bw < 0:  # closed the whole gap AND scored below the floor
             bloat += " ↓floor"
-        rows.append(f"| `{c['case']}` | 1.0 → {bw} | {bloat} | ${c['total_cost_usd']} |")
+        rows.append(
+            f"| `{c['case']}` | 1.0 → {bw} | {bloat} | ${c['total_cost_usd']} |"
+        )
     return "\n".join(rows)
 
 
 def _per_metric_blocks(agg):
     out = []
     for c in agg["cases"]:
-        out.append(f"\n**`{c['case']}`** — structural metrics "
-                   f"(original → best, with floor and remaining distance to it):\n")
+        out.append(
+            f"\n**`{c['case']}`** — structural metrics "
+            f"(original → best, with floor and remaining distance to it):\n"
+        )
         out.append("| metric | original | best | floor | to floor | norm cost |")
         out.append("|--------|---------:|-----:|------:|---------:|----------:|")
         for pm in c["per_metric"]:
             nc = "n/a" if pm["norm_cost"] is None else f"{pm['norm_cost']:.3f}"
-            out.append(f"| {pm['metric']} | {pm['original']} | {pm['best']} | "
-                       f"{pm['floor']} | {pm['best'] - pm['floor']} | {nc} |")
+            out.append(
+                f"| {pm['metric']} | {pm['original']} | {pm['best']} | "
+                f"{pm['floor']} | {pm['best'] - pm['floor']} | {nc} |"
+            )
     return "\n".join(out)
 
 
 def _breakdown(title, table):
-    rows = [f"**By {title}:**", "",
-            f"| {title} | cases | improved | one-shot | avg bloat removed (vs floor) |",
-            "|------|------:|---------:|---------:|----------------------------:|"]
+    rows = [
+        f"**By {title}:**",
+        "",
+        f"| {title} | cases | improved | one-shot | avg bloat removed (vs floor) |",
+        "|------|------:|---------:|---------:|----------------------------:|",
+    ]
     for key, d in sorted(table.items()):
-        rows.append(f"| {key} | {d['n']} | {d['improved']} | {d['one_shot']} | "
-                    f"{d['avg_bloat_removed_pct']}% |")
+        rows.append(
+            f"| {key} | {d['n']} | {d['improved']} | {d['one_shot']} | "
+            f"{d['avg_bloat_removed_pct']}% |"
+        )
     return "\n".join(rows)
 
 
@@ -133,10 +164,12 @@ def build_markdown(agg, generated_at):
     cap, plateau = agg["config"]["cap"], agg["config"]["plateau_limit"]
     md = []
     md.append("# Self-Evolving Code-Optimization Engine — Validation Results\n")
-    md.append(f"_Generated {generated_at} · model `{agg['model']}` · "
-              f"loop config cap={cap}, plateau={plateau} · run UNMODIFIED over "
-              f"every case in `cases/`, each candidate executed inside the I0 "
-              f"locked-down container (v2 OS isolation)._\n")
+    md.append(
+        f"_Generated {generated_at} · model `{agg['model']}` · "
+        f"loop config cap={cap}, plateau={plateau} · run UNMODIFIED over "
+        f"every case in `cases/`, each candidate executed inside the I0 "
+        f"locked-down container (v2 OS isolation)._\n"
+    )
 
     md.append("## Headline finding\n")
     md.append(_headline(agg) + "\n")
@@ -150,7 +183,8 @@ def build_markdown(agg, generated_at):
         "load-bearing on this corpus — and that is exactly what `best gen` shows. "
         "`gens run` is how many generations the loop *attempted* before stopping "
         "(it can exceed 1 due to the plateau rule even when the kept best is gen 1); "
-        "`best gen` is the generation that produced the candidate actually returned.\n")
+        "`best gen` is the generation that produced the candidate actually returned.\n"
+    )
     md.append(_gen_table(agg) + "\n")
     one_shot = agg["improved"] - len(agg["needed_feedback_cases"])
     md.append(
@@ -158,45 +192,55 @@ def build_markdown(agg, generated_at):
         f"{agg['baseline_returned']}/{agg['n_cases']} returned the baseline original. "
         f"Of the improved cases, **{one_shot} were one-shot (best from generation 1)** "
         f"and **{len(agg['needed_feedback_cases'])} required generation 2+**. "
-        + ("No case required generation 2 or later, so multi-generation feedback did "
-           "not change any returned result on this corpus.\n"
-           if not agg["needed_feedback_cases"]
-           else "The magnitude of those gen-2+ gains is broken out below — direction is "
-                "not magnitude.\n"))
+        + (
+            "No case required generation 2 or later, so multi-generation feedback did "
+            "not change any returned result on this corpus.\n"
+            if not agg["needed_feedback_cases"]
+            else "The magnitude of those gen-2+ gains is broken out below — direction is "
+            "not magnitude.\n"
+        )
+    )
 
     if agg["needed_feedback_cases"]:
         md.append("### Magnitude of the gen-2+ gains (direction ≠ load-bearing)\n")
         md.append(
             "A best candidate arriving in generation 2+ only matters if the later "
             "generation did **real** work. For each such case, here is what generation 1 "
-            "alone already achieved versus what the feedback added on top:\n")
-        rows = ["| case | best gen | gen 1 alone removed | best removed | feedback added | "
-                "structural change |",
-                "|------|---------:|--------------------:|-------------:|---------------:|"
-                "-------------------|"]
+            "alone already achieved versus what the feedback added on top:\n"
+        )
+        rows = [
+            "| case | best gen | gen 1 alone removed | best removed | feedback added | "
+            "structural change |",
+            "|------|---------:|--------------------:|-------------:|---------------:|"
+            "-------------------|",
+        ]
         for c in agg["needed_feedback_cases"]:
             rows.append(
                 f"| `{c['case']}` | {c['best_generation']} | "
                 f"{c['first_pass_bloat_removed_pct']}% | {c['best_bloat_removed_pct']}% | "
-                f"+{c['feedback_gain_pp']} pp | {_change_str(c)} |")
+                f"+{c['feedback_gain_pp']} pp | {_change_str(c)} |"
+            )
         md.append("\n".join(rows) + "\n")
 
     md.append("## Reduction achieved (verified by the gates)\n")
     md.append(
         "Every `best` candidate below passed the correctness gate (test suite) and the "
         "behavior gate (exact golden I/O replay) before it was scored — these are not "
-        "merely \"smaller\" numbers, they are verified behavior-preserving "
+        'merely "smaller" numbers, they are verified behavior-preserving '
         "simplifications. `weighted cost` is the engine's own Method-A score on the "
         "case's original→floor scale (1.0 = the bloated original, 0.0 = the clean "
         "reference floor; lower is better); `bloat removed` is (1 − best cost) — i.e. the "
         "fraction of the original→floor span the engine closed. A value above 100% (marked "
         "`↓floor`) would mean the candidate closed the whole gap and scored *below* the "
         "clean reference floor; the engine flags such candidates `suspiciously-simple` "
-        "rather than rewarding them (there is no objective readability oracle).\n")
+        "rather than rewarding them (there is no objective readability oracle).\n"
+    )
     md.append(_reduction_table(agg) + "\n")
-    md.append(f"\n**Totals:** ${agg['total_cost_usd']} across {agg['n_cases']} cases "
-              f"({agg['total_input_tokens']} input / {agg['total_output_tokens']} output "
-              f"tokens), real API token counts straight from the loop's own logs.\n")
+    md.append(
+        f"\n**Totals:** ${agg['total_cost_usd']} across {agg['n_cases']} cases "
+        f"({agg['total_input_tokens']} input / {agg['total_output_tokens']} output "
+        f"tokens), real API token counts straight from the loop's own logs.\n"
+    )
 
     md.append("## Per-metric structural reduction\n")
     md.append(
@@ -205,12 +249,15 @@ def build_markdown(agg, generated_at):
         "1.0 at the original; `n/a` means the case offers no signal on that axis "
         "(original already equals the floor). maintainability_index is omitted here — "
         "it is weight-0 / informational because it is cosmetic-gameable at "
-        "single-function scale.\n")
+        "single-function scale.\n"
+    )
     md.append(_per_metric_blocks(agg) + "\n")
 
     md.append("## Breakdown by category and difficulty\n")
-    md.append("(\"bloat removed\" is always relative to each case's own reference floor; "
-              "100% means the case reached its floor, not absolute optimality.)\n")
+    md.append(
+        '("bloat removed" is always relative to each case\'s own reference floor; '
+        "100% means the case reached its floor, not absolute optimality.)\n"
+    )
     md.append(_breakdown("category", agg["by_category"]) + "\n")
     md.append("\n" + _breakdown("difficulty", agg["by_difficulty"]) + "\n")
 
@@ -225,7 +272,8 @@ def build_markdown(agg, generated_at):
         "**generation 1 does substantially all of the reduction**, and whatever the "
         "sample, the never-worse-than-baseline guarantee and best-of-N retention bound "
         "the result. This report reflects the single run stamped above; re-running may "
-        "shift one case's generation count by one without changing the headline.\n")
+        "shift one case's generation count by one without changing the headline.\n"
+    )
 
     md.append("## Limitations (stated plainly)\n")
     md.append(
@@ -252,7 +300,8 @@ def build_markdown(agg, generated_at):
         "- **No objective readability oracle.** The `suspiciously-simple` / "
         "`fragmentation-smell` guards FLAG golfed-but-correct candidates rather than "
         "rejecting them, because there is no LLM-free readability oracle and rejecting a "
-        "genuinely simpler correct answer would violate \"objective only.\"\n")
+        'genuinely simpler correct answer would violate "objective only."\n'
+    )
 
     md.append("## What these results do NOT claim\n")
     md.append(
@@ -260,6 +309,7 @@ def build_markdown(agg, generated_at):
         "not support it at single-function scope.\n"
         "- They do **not** present 5 cases as a benchmark.\n"
         "- They do **not** credit multi-generation feedback with any returned result that "
-        "the data attributes to generation 1.\n")
+        "the data attributes to generation 1.\n"
+    )
 
     return "\n".join(md) + "\n"

@@ -17,6 +17,7 @@ for the comparison and the recommendation.
 
 Usage: python evaluator.py <candidate.py> <case_dir>
 """
+
 import json
 import sys
 from dataclasses import dataclass, field
@@ -27,7 +28,9 @@ import runinput
 from freeze_metrics import freeze
 from verify_case import classify
 
-log = logsetup.get_logger("evaluator")  # operational log -> stderr (configured at the entry point)
+log = logsetup.get_logger(
+    "evaluator"
+)  # operational log -> stderr (configured at the entry point)
 
 # --- Method A: weighted sum -------------------------------------------------
 #
@@ -52,16 +55,18 @@ log = logsetup.get_logger("evaluator")  # operational log -> stderr (configured 
 # gameable that way — a docstring changes none of them — so they carry the score; MI
 # is still computed and logged in the basket for human observability, never scored.
 WEIGHTS = {
-    "cyclomatic_total": 3.0,       # total branching; fragmentation does NOT reduce it
-    "logical_loc": 2.0,            # total logical lines; fragmentation INCREASES it
+    "cyclomatic_total": 3.0,  # total branching; fragmentation does NOT reduce it
+    "logical_loc": 2.0,  # total logical lines; fragmentation INCREASES it
     "maintainability_index": 0.0,  # DROPPED: cosmetic-gameable at fn scale (see note); informational only
-    "max_nesting_depth": 1.0,      # the "deeply nested" bloat pattern
-    "dependency_count": 1.0,       # unnecessary imports (a core bloat category)
-    "dead_code_count": 1.0,        # dead helpers (a core bloat category)
-    "cyclomatic_max": 0.5,         # LOW on purpose: this is what fragmentation games
-    "source_loc": 0.0,             # dropped: near-duplicate of logical_loc, no double count
+    "max_nesting_depth": 1.0,  # the "deeply nested" bloat pattern
+    "dependency_count": 1.0,  # unnecessary imports (a core bloat category)
+    "dead_code_count": 1.0,  # dead helpers (a core bloat category)
+    "cyclomatic_max": 0.5,  # LOW on purpose: this is what fragmentation games
+    "source_loc": 0.0,  # dropped: near-duplicate of logical_loc, no double count
 }
-HIGHER_BETTER = {"maintainability_index"}  # up-is-good metric — but weight 0 now (informational only)
+HIGHER_BETTER = {
+    "maintainability_index"
+}  # up-is-good metric — but weight 0 now (informational only)
 
 
 def _cost(metric, cand, orig, floor):
@@ -116,109 +121,167 @@ def weighted_cost(costs):
 # would violate "objective only" and could throw away a better answer.
 def guard_flags(metrics, floor):
     flags = []
-    if (metrics["logical_loc"] < floor["logical_loc"]
-            or metrics["cyclomatic_total"] < floor["cyclomatic_total"]):
+    if (
+        metrics["logical_loc"] < floor["logical_loc"]
+        or metrics["cyclomatic_total"] < floor["cyclomatic_total"]
+    ):
         flags.append("suspiciously-simple")
-    if (metrics["cyclomatic_total"] > floor["cyclomatic_total"]
-            and metrics["cyclomatic_max"] < floor["cyclomatic_max"]
-            and metrics["logical_loc"] > floor["logical_loc"]):
+    if (
+        metrics["cyclomatic_total"] > floor["cyclomatic_total"]
+        and metrics["cyclomatic_max"] < floor["cyclomatic_max"]
+        and metrics["logical_loc"] > floor["logical_loc"]
+    ):
         flags.append("fragmentation-smell")
     return flags
 
 
 @dataclass
 class Evaluation:
-    verdict: str                    # "scored" | "rejected"
-    reason_code: str | None         # taxonomy code if rejected; None if scored
-    gate: str | None                # "tests" / "golden" if rejected; None if scored
-    metrics: dict | None            # full freeze() basket; None if rejected
-    weighted_cost: float | None     # Method A score (0=floor,1=original); None if rejected
-    metric_costs: dict | None       # per-metric normalized cost; None if rejected
+    verdict: str  # "scored" | "rejected"
+    reason_code: str | None  # taxonomy code if rejected; None if scored
+    gate: str | None  # "tests" / "golden" if rejected; None if scored
+    metrics: dict | None  # full freeze() basket; None if rejected
+    weighted_cost: float | None  # Method A score (0=floor,1=original); None if rejected
+    metric_costs: dict | None  # per-metric normalized cost; None if rejected
     flags: list = field(default_factory=list)  # guard flags
-    feedback: str = ""              # human-readable, specific (Phase 3 feeds this back)
+    feedback: str = ""  # human-readable, specific (Phase 3 feeds this back)
 
 
 def evaluate(candidate_path, case_dir, timeout=10.0):
     case_dir = Path(case_dir)
-    baseline = runinput.load_json(case_dir / "baseline_metrics.json", "baseline_metrics.json")
+    baseline = runinput.load_json(
+        case_dir / "baseline_metrics.json", "baseline_metrics.json"
+    )
 
     # Layers 1 & 2 (delegated to the existing gatekeeper; the sandbox runs there).
-    v = classify(candidate_path, str(case_dir / "test_suite.py"),
-                 str(case_dir / "golden_io.json"), timeout)
+    v = classify(
+        candidate_path,
+        str(case_dir / "test_suite.py"),
+        str(case_dir / "golden_io.json"),
+        timeout,
+    )
     if not v.ok:
-        return Evaluation("rejected", v.code, v.gate, None, None, None,
-                          feedback=_reject_feedback(v))
+        return Evaluation(
+            "rejected", v.code, v.gate, None, None, None, feedback=_reject_feedback(v)
+        )
 
     # Layer 3 (only reached when both gates pass).
     metrics = freeze(candidate_path)
     costs = metric_costs(metrics, baseline)
     cost = weighted_cost(costs)
     flags = guard_flags(metrics, baseline["reference_floor"])
-    return Evaluation("scored", None, None, metrics, cost, costs, flags,
-                      _score_feedback(metrics, baseline, cost, costs, flags))
+    return Evaluation(
+        "scored",
+        None,
+        None,
+        metrics,
+        cost,
+        costs,
+        flags,
+        _score_feedback(metrics, baseline, cost, costs, flags),
+    )
 
 
 def _reject_feedback(v):
     detail = v.reason.strip()
     if len(detail) > 1500:  # keep pytest dumps usable as feedback
         detail = "...\n" + detail[-1500:]
-    return (f"REJECTED at the {v.gate} gate (reason: {v.code}). Not scored: a "
-            f"candidate that is not correct-and-behavior-identical is not a valid "
-            f"answer, regardless of how simple it looks.\n" + detail)
+    return (
+        f"REJECTED at the {v.gate} gate (reason: {v.code}). Not scored: a "
+        f"candidate that is not correct-and-behavior-identical is not a valid "
+        f"answer, regardless of how simple it looks.\n" + detail
+    )
 
 
 def _score_feedback(metrics, baseline, cost, costs, flags):
     floor = baseline["reference_floor"]
-    out = [f"PASSED the correctness and behavior gates. Weighted complexity cost "
-           f"{cost} (0.0 = clean reference floor, 1.0 = bloated original; lower is better)."]
+    out = [
+        f"PASSED the correctness and behavior gates. Weighted complexity cost "
+        f"{cost} (0.0 = clean reference floor, 1.0 = bloated original; lower is better)."
+    ]
 
     # Name the metrics still furthest from the floor, by weighted contribution.
     ranked = sorted(
-        ((m, c) for m, c in costs.items() if c is not None and WEIGHTS[m] > 0 and c > 0.05),
-        key=lambda kv: WEIGHTS[kv[0]] * kv[1], reverse=True)
+        (
+            (m, c)
+            for m, c in costs.items()
+            if c is not None and WEIGHTS[m] > 0 and c > 0.05
+        ),
+        key=lambda kv: WEIGHTS[kv[0]] * kv[1],
+        reverse=True,
+    )
     if ranked:
         # Direction-neutral wording: on some cases an axis is "perverse" (the bloated
         # original sits below the clean floor, e.g. merge_intervals cyclomatic_max,
         # where fragmentation lowered per-function max), so we show value+floor+cost
         # rather than claiming "above".
-        gaps = "; ".join(f"{m}={metrics[m]} (floor {floor[m]}, cost {round(c, 2)})"
-                         for m, c in ranked[:3])
-        out.append(f"Largest weighted gaps from the reference floor: {gaps}. "
-                   f"Biggest contributor: {ranked[0][0]}.")
+        gaps = "; ".join(
+            f"{m}={metrics[m]} (floor {floor[m]}, cost {round(c, 2)})"
+            for m, c in ranked[:3]
+        )
+        out.append(
+            f"Largest weighted gaps from the reference floor: {gaps}. "
+            f"Biggest contributor: {ranked[0][0]}."
+        )
     else:
-        out.append("Every weighted metric is at or below the reference floor — near-optimal.")
+        out.append(
+            "Every weighted metric is at or below the reference floor — near-optimal."
+        )
 
     # Concrete, basket-grounded structural hints (no fabricated code locations).
     if metrics["dependency_count"] > floor["dependency_count"]:
-        out.append(f"Unnecessary dependencies remain: {metrics['dependencies']} "
-                   f"({metrics['dependency_count']} vs floor {floor['dependency_count']}).")
+        out.append(
+            f"Unnecessary dependencies remain: {metrics['dependencies']} "
+            f"({metrics['dependency_count']} vs floor {floor['dependency_count']})."
+        )
     if metrics["dead_code_count"] > floor["dead_code_count"]:
-        out.append(f"Dead code remains: {metrics['dead_code_count']} item(s) flagged "
-                   f"(floor {floor['dead_code_count']}).")
+        out.append(
+            f"Dead code remains: {metrics['dead_code_count']} item(s) flagged "
+            f"(floor {floor['dead_code_count']})."
+        )
     if metrics["max_nesting_depth"] > floor["max_nesting_depth"]:
-        out.append(f"Deepest nesting is {metrics['max_nesting_depth']} levels "
-                   f"(floor {floor['max_nesting_depth']}).")
+        out.append(
+            f"Deepest nesting is {metrics['max_nesting_depth']} levels "
+            f"(floor {floor['max_nesting_depth']})."
+        )
     if "suspiciously-simple" in flags:
-        out.append("FLAG suspiciously-simple: metrics fall below the clean reference "
-                   "floor. Behavior is verified, so logic is intact, but this may be "
-                   "hard-to-read golfing — flagged for review, not rejected.")
+        out.append(
+            "FLAG suspiciously-simple: metrics fall below the clean reference "
+            "floor. Behavior is verified, so logic is intact, but this may be "
+            "hard-to-read golfing — flagged for review, not rejected."
+        )
     if "fragmentation-smell" in flags:
-        out.append("FLAG fragmentation-smell: per-function complexity is below the "
-                   "floor while total complexity and line count are above it — logic may "
-                   "be split across many trivial functions. Scored on totals, not rewarded.")
+        out.append(
+            "FLAG fragmentation-smell: per-function complexity is below the "
+            "floor while total complexity and line count are above it — logic may "
+            "be split across many trivial functions. Scored on totals, not rewarded."
+        )
     return "\n".join(out)
 
 
 def main():
     if len(sys.argv) != 3:
         sys.exit("usage: python evaluator.py <candidate.py> <case_dir>")
-    logsetup.configure()   # entry point: wire logging once (never at import)
+    logsetup.configure()  # entry point: wire logging once (never at import)
     e = evaluate(sys.argv[1], sys.argv[2])
-    result = {"verdict": e.verdict, "reason_code": e.reason_code, "gate": e.gate,
-              "weighted_cost": e.weighted_cost, "flags": e.flags, "metrics": e.metrics}
-    log.info(json.dumps(result, indent=2),
-             extra={"verdict": e.verdict, "reason_code": e.reason_code, "gate": e.gate,
-                    "weighted_cost": e.weighted_cost, "flags": e.flags})
+    result = {
+        "verdict": e.verdict,
+        "reason_code": e.reason_code,
+        "gate": e.gate,
+        "weighted_cost": e.weighted_cost,
+        "flags": e.flags,
+        "metrics": e.metrics,
+    }
+    log.info(
+        json.dumps(result, indent=2),
+        extra={
+            "verdict": e.verdict,
+            "reason_code": e.reason_code,
+            "gate": e.gate,
+            "weighted_cost": e.weighted_cost,
+            "flags": e.flags,
+        },
+    )
     log.info("\nFEEDBACK:\n%s", e.feedback)
 
 
