@@ -58,7 +58,7 @@ GOLDEN = (
 )  # the REAL host path; readable in v1, unreachable in-container
 
 PASS, FAIL = "PASS", "FAIL"
-_results = []
+_results: list[tuple[str, bool]] = []
 
 
 def check(label, ok, detail):

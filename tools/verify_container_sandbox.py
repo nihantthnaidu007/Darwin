@@ -24,7 +24,7 @@ REPO = Path(__file__).resolve().parent.parent
 HOST_ENV = REPO / ".env"  # a real host secret; the container must NOT reach it
 
 PASS, FAIL = "PASS", "FAIL"
-_results = []
+_results: list[tuple[str, bool]] = []
 
 
 def check(label, ok, evidence):
