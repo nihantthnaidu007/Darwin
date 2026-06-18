@@ -1,0 +1,309 @@
+{
+  "model": "claude-opus-4-8",
+  "config": {
+    "cap": 5,
+    "plateau_limit": 2
+  },
+  "n_cases": 3,
+  "improved": 3,
+  "baseline_returned": 0,
+  "one_shot": 2,
+  "needed_feedback": 1,
+  "needed_feedback_cases": [
+    {
+      "case": "rate_limiter",
+      "best_generation": 2,
+      "first_scored_generation": 1,
+      "first_pass_bloat_removed_pct": 87.0,
+      "best_bloat_removed_pct": 102.1,
+      "feedback_gain_pp": 15.11,
+      "structural_changes_from_first": [
+        {
+          "metric": "cyclomatic_total",
+          "first_pass": 48,
+          "best": 42
+        },
+        {
+          "metric": "logical_loc",
+          "first_pass": 71,
+          "best": 64
+        },
+        {
+          "metric": "cyclomatic_max",
+          "first_pass": 4,
+          "best": 3
+        }
+      ]
+    }
+  ],
+  "feedback_load_bearing": true,
+  "total_cost_usd": 0.291685,
+  "total_input_tokens": 14812,
+  "total_output_tokens": 8705,
+  "by_kind": {
+    "document store with bounded undo/redo (history statefulness)": {
+      "n": 1,
+      "improved": 1,
+      "one_shot": 1,
+      "avg_bloat_removed_pct": 101.6
+    },
+    "token-bucket rate limiter (logical-time statefulness)": {
+      "n": 1,
+      "improved": 1,
+      "one_shot": 0,
+      "avg_bloat_removed_pct": 102.1
+    },
+    "priority job scheduler (retry/state-machine statefulness)": {
+      "n": 1,
+      "improved": 1,
+      "one_shot": 1,
+      "avg_bloat_removed_pct": 106.8
+    }
+  },
+  "by_difficulty": {
+    "medium": {
+      "n": 3,
+      "improved": 3,
+      "one_shot": 2,
+      "avg_bloat_removed_pct": 103.5
+    }
+  },
+  "cases": [
+    {
+      "case": "doc_history",
+      "kind": "document store with bounded undo/redo (history statefulness)",
+      "difficulty": "medium",
+      "verdict": "improved (best candidate returned)",
+      "improved_over_baseline": true,
+      "best_weighted_cost": -0.0165,
+      "bloat_removed_pct": 101.6,
+      "first_pass_bloat_removed_pct": 101.6,
+      "feedback_gain_pp": 0.0,
+      "generations_attempted": 1,
+      "best_generation": 1,
+      "first_scored_generation": 1,
+      "floor_reached": true,
+      "total_cost_usd": 0.04887,
+      "total_input_tokens": 2894,
+      "total_output_tokens": 1376,
+      "best_flags": [],
+      "halted": null,
+      "structural_changes_from_first": [],
+      "per_metric": [
+        {
+          "metric": "cyclomatic_total",
+          "original": 79,
+          "best": 53,
+          "floor": 45,
+          "norm_cost": 0.23529411764705882,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "logical_loc",
+          "original": 176,
+          "best": 90,
+          "floor": 82,
+          "norm_cost": 0.0851063829787234,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "max_nesting_depth",
+          "original": 5,
+          "best": 3,
+          "floor": 4,
+          "norm_cost": -1.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "dependency_count",
+          "original": 0,
+          "best": 0,
+          "floor": 0,
+          "norm_cost": null,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "dead_code_count",
+          "original": 11,
+          "best": 7,
+          "floor": 7,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "cyclomatic_max",
+          "original": 6,
+          "best": 4,
+          "floor": 4,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        }
+      ],
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/doc_history_20260618T003039Z"
+    },
+    {
+      "case": "rate_limiter",
+      "kind": "token-bucket rate limiter (logical-time statefulness)",
+      "difficulty": "medium",
+      "verdict": "improved (best candidate returned)",
+      "improved_over_baseline": true,
+      "best_weighted_cost": -0.0213,
+      "bloat_removed_pct": 102.1,
+      "first_pass_bloat_removed_pct": 87.0,
+      "feedback_gain_pp": 15.11,
+      "generations_attempted": 2,
+      "best_generation": 2,
+      "first_scored_generation": 1,
+      "floor_reached": true,
+      "total_cost_usd": 0.1586,
+      "total_input_tokens": 7215,
+      "total_output_tokens": 4901,
+      "best_flags": [
+        "suspiciously-simple"
+      ],
+      "halted": null,
+      "structural_changes_from_first": [
+        {
+          "metric": "cyclomatic_total",
+          "first_pass": 48,
+          "best": 42
+        },
+        {
+          "metric": "logical_loc",
+          "first_pass": 71,
+          "best": 64
+        },
+        {
+          "metric": "cyclomatic_max",
+          "first_pass": 4,
+          "best": 3
+        }
+      ],
+      "per_metric": [
+        {
+          "metric": "cyclomatic_total",
+          "original": 73,
+          "best": 42,
+          "floor": 37,
+          "norm_cost": 0.1388888888888889,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "logical_loc",
+          "original": 173,
+          "best": 64,
+          "floor": 68,
+          "norm_cost": -0.0380952380952381,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "max_nesting_depth",
+          "original": 4,
+          "best": 3,
+          "floor": 3,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "dependency_count",
+          "original": 0,
+          "best": 0,
+          "floor": 0,
+          "norm_cost": null,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "dead_code_count",
+          "original": 9,
+          "best": 6,
+          "floor": 6,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "cyclomatic_max",
+          "original": 5,
+          "best": 3,
+          "floor": 4,
+          "norm_cost": -1.0,
+          "at_or_below_floor": true
+        }
+      ],
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/rate_limiter_20260618T003055Z"
+    },
+    {
+      "case": "task_scheduler",
+      "kind": "priority job scheduler (retry/state-machine statefulness)",
+      "difficulty": "medium",
+      "verdict": "improved (best candidate returned)",
+      "improved_over_baseline": true,
+      "best_weighted_cost": -0.0684,
+      "bloat_removed_pct": 106.8,
+      "first_pass_bloat_removed_pct": 106.8,
+      "feedback_gain_pp": 0.0,
+      "generations_attempted": 1,
+      "best_generation": 1,
+      "first_scored_generation": 1,
+      "floor_reached": true,
+      "total_cost_usd": 0.084215,
+      "total_input_tokens": 4703,
+      "total_output_tokens": 2428,
+      "best_flags": [
+        "suspiciously-simple"
+      ],
+      "halted": null,
+      "structural_changes_from_first": [],
+      "per_metric": [
+        {
+          "metric": "cyclomatic_total",
+          "original": 150,
+          "best": 51,
+          "floor": 63,
+          "norm_cost": -0.13793103448275862,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "logical_loc",
+          "original": 284,
+          "best": 94,
+          "floor": 100,
+          "norm_cost": -0.03260869565217391,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "max_nesting_depth",
+          "original": 4,
+          "best": 4,
+          "floor": 4,
+          "norm_cost": null,
+          "at_or_below_floor": false
+        },
+        {
+          "metric": "dependency_count",
+          "original": 1,
+          "best": 0,
+          "floor": 0,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "dead_code_count",
+          "original": 12,
+          "best": 8,
+          "floor": 8,
+          "norm_cost": 0.0,
+          "at_or_below_floor": true
+        },
+        {
+          "metric": "cyclomatic_max",
+          "original": 5,
+          "best": 4,
+          "floor": 6,
+          "norm_cost": null,
+          "at_or_below_floor": false
+        }
+      ],
+      "run_dir": "/Users/kalisettinihanthnaidu/Desktop/Desktop/Projects/To DO Projects/Darwin/runs/task_scheduler_20260618T003157Z"
+    }
+  ]
+}
