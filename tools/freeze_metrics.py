@@ -11,7 +11,7 @@ import sys
 from radon.complexity import cc_visit
 from radon.metrics import mi_visit
 from radon.raw import analyze
-from radon.visitors import Class, Function
+from radon.visitors import Class
 from vulture import Vulture
 
 # Block statements that increase nesting depth. ClassDef/FunctionDef are

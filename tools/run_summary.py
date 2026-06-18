@@ -75,7 +75,6 @@ def summarize_run(run_dir):
     # normalized cost is the evaluator's own number (0.0 = at the floor, 1.0 = as
     # bloated as the original); we do not invent a new scale.
     best_costs = metric_costs(best_metrics, baseline)
-    orig_costs = metric_costs(original, baseline)
     per_metric = []
     for m in STRUCTURAL:
         c = best_costs[m]
@@ -227,7 +226,7 @@ def print_summary(s):
             f"  {_LABEL[pm['metric']]:<20}{pm['original']:>10}{pm['best']:>8}"
             f"{pm['floor']:>8}{pm['best'] - pm['floor']:>9}{nc:>11}{mark}"
         )
-    print(f"  (maintainability_index informational only — weight 0; not scored)")
+    print("  (maintainability_index informational only — weight 0; not scored)")
     print(f"\n  artifacts: {s['run_dir']}\n")
 
 

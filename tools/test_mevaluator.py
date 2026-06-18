@@ -22,7 +22,6 @@ Covers, per success criterion:
 """
 
 import json
-from pathlib import Path
 
 import pytest
 

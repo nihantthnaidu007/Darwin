@@ -47,7 +47,6 @@ in-process vectors (C, D) are (correctly) still open. Exit 1 = a check behaved o
 Usage (Docker running, image built):  python verify_boundary.py
 """
 
-import sys
 from pathlib import Path
 
 from evaluator import evaluate

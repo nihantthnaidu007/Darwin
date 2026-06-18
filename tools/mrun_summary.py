@@ -253,7 +253,7 @@ def print_summary(s):
             f"{pm['floor']:>8}{pm['best'] - pm['floor']:>9}{nc:>11}{mark}"
         )
     print(
-        f"  (maintainability_index informational only — per-file, weight 0; not scored)"
+        "  (maintainability_index informational only — per-file, weight 0; not scored)"
     )
     print(f"\n  artifacts: {s['run_dir']}\n")
 
