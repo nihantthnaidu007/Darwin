@@ -36,14 +36,17 @@ jobs:
         run: docker build -f tools/Dockerfile.sandbox -t darwin-sandbox:py313 tools/
 
       # Run from tools/ so imports resolve as every other invocation does.
-      # Expected: 75 passed, 2 xfailed (the decision-0008 in-process forgery
-      # vectors). pytest's default exit codes fail CI on any failure or XPASS.
-      # Coverage is reported (term-missing) but NOT gated: there is no
-      # --cov-fail-under, so the gate still fails only on a test failure or an
-      # unexpected pass. The exit behavior is unchanged by the coverage addition.
-      - name: Run the suite (with coverage, reported not gated)
+      # Expected (indicative; the count grows as tests are added): 257 passed,
+      # 2 xfailed (the decision-0008 in-process forgery vectors), plus one
+      # Docker-gated skip when the daemon is absent. pytest's default exit codes
+      # fail CI on any failure or XPASS. Coverage is GATED as of P7.4 at
+      # --cov-fail-under=56: production coverage measured 58 percent via this exact
+      # invocation (the --cov-config omit excludes test files), floored to 58 and
+      # cut by a 2-point cross-version/CI margin. The omit lives in pyproject.toml;
+      # see docs/quality-baseline.md.
+      - name: Run the suite (coverage gated at 56 percent)
         working-directory: tools
-        run: python -m pytest -q -p no:cacheprovider --cov=. --cov-report=term-missing --cov-config=../pyproject.toml
+        run: python -m pytest -q -p no:cacheprovider --cov=. --cov-report=term-missing --cov-config=../pyproject.toml --cov-fail-under=56
 
   # Generate a CycloneDX SBOM of the deployable runtime surface and upload it as a
   # build artifact. The SBOM is generated from requirements.txt (the runtime lock),

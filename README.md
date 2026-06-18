@@ -367,8 +367,10 @@ The project has a GitHub Actions workflow,
 [.github/workflows/ci.yml](.github/workflows/ci.yml), that builds the sandbox image
 and runs the full test suite on `ubuntu-latest`, gating pushes (so a phase branch can
 be seen green before merge) and pull requests to `main`. The expected result is
-**75 passed, 2 xfailed**. The two `xfailed` are the decision-0008 in-process
-forgery vectors in `tools/test_behavior_gate_limits.py`, pinned known-open; pytest's
+indicative (the count grows as tests are added): **257 passed, 2 xfailed**, plus
+one Docker-gated skip when the daemon is absent. The two `xfailed` are the
+decision-0008 in-process forgery vectors in `tools/test_behavior_gate_limits.py`,
+pinned known-open; pytest's
 default exit codes fail CI on any failure or on an unexpected pass (an `xfail` that
 turns `XPASS` is the signal that a forgery vector was closed and the marker must be
 updated). The suite uses fakes and the container and never a live
