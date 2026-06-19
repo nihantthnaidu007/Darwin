@@ -1,6 +1,6 @@
-# Darwin: release metadata for the 0.7.0 GitHub-tagged release.
+# Darwin: release metadata for the 0.8.0 GitHub-tagged release.
 #
-# Version is 0.7.0, staying in the 0.x line on purpose: a 1.0 would signal a
+# Version is 0.8.0, staying in the 0.x line on purpose: a 1.0 would signal a
 # stable, production-grade release. Over 0.2.0, the release line adds multi-file
 # simplification (the multi-file generator, the directed multi-file loop, and the
 # multi-file evaluator plus benchmark harness) on top of the single-function
@@ -43,34 +43,51 @@
 # percent, less a 2-point margin); and a Python 3.12/3.13/3.14 host CI matrix
 # validated against the single hashed dev lock -- again with no change to the
 # optimization, scoring, or equivalence behavior.
+# Over 0.7.0, it adds packaging (v0.8): the flat tools/ scripts became an importable
+# darwin package under src/ (absolute imports, a paths.py walk-up data-root resolver),
+# this [build-system] table and the six darwin-* console scripts below were added so a
+# pip install . path works, all data-root resolution was deferred out of import time
+# (a PEP 562 lazy module-attribute pattern) so the installed CLIs run without a checkout
+# on disk, and the coverage gate was re-based to the package-scoped number
+# (--cov-fail-under=62, from production coverage measured at about 64.6 percent under
+# --cov=darwin, floored to 64 less a 2-point margin) -- again with no change to the
+# optimization, scoring, or equivalence behavior.
 # It still carries the in-process verdict-forgery residual (SECURITY.md, decision
 # 0008): the candidate and the trusted result-emitter share one process, so no
 # part of Darwin is forgery-proof, now with the VerdictEmitter seam prepared to
 # receive its 2.0 out-of-process fix. The multi-file references are soft and the
 # corpus is small (3 multi-file plus 5 single-function validation cases, not a
-# benchmark), so 0.7.0 makes no benchmark-grade claim. 0.7.0 honestly signals
-# "test and CI maturity added on top of supply-chain and isolation hardening,
-# correctness, determinism, and reproducibility, still early."
+# benchmark), so 0.8.0 makes no benchmark-grade claim. 0.8.0 honestly signals
+# "packaging added on top of test and CI maturity, supply-chain and isolation
+# hardening, correctness, determinism, and reproducibility, still early."
 #
 # Multi-file finding, carried forward plainly (decision 0014): generation 1 does
 # most of the work, and the directed feedback loop is opportunistic and
 # high-variance at this scope, not a dependable multi-generation improvement.
 #
-# Darwin is run FROM SOURCE: create a virtualenv and `pip install -r requirements.txt`,
-# then build the sandbox image once (see README "Install"; Docker is a
-# prerequisite). This file declares coherent, honest release metadata: name,
-# version, description, pinned runtime dependencies. It is a GitHub-tagged release;
-# it is NOT published to PyPI.
+# Darwin installs two ways (see README "Install"): the supported, reproducible path is
+# the hash-locked requirements.txt installed with --require-hashes (pip-tools
+# --generate-hashes, decision 0028); the convenience path is `pip install .`, which
+# resolves [project].dependencies below as version ranges and is NOT hash-locked. Either
+# way Docker is a prerequisite and the sandbox image is built once. This file declares
+# coherent, honest release metadata: name, version, description, runtime dependencies.
+# It is a GitHub-tagged release; it is NOT published to PyPI.
 #
-# It intentionally omits a [build-system] table: Darwin is a set of flat scripts
-# under tools/ that are run with `cwd = tools/`, NOT yet structured as an importable
-# / pip-installable package. Adding a build backend now would advertise a
-# `pip install .` path that does not actually work. A pip-installable distribution
-# is deferred to a later release.
+# It declares a [build-system] table (added P8.3): the package was converted from the
+# flat tools/ scripts to an importable darwin package under src/ in P8.2, so a build
+# backend can advertise a `pip install .` path that actually works. The backend is
+# hatchling, configured for the src layout (it discovers the darwin package under src/).
+# [project].version is 0.8.0 as of the P8.4 close-out, the packaging release (decisions
+# 0040-0042); the wheel `pip install .` builds is the convenience artifact, still NOT
+# published to PyPI.
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "darwin"
-version = "0.7.0"
+version = "0.8.0"
 description = "A verified Python code simplifier for single-function and multi-file units with a never-worse-than-baseline guarantee; each candidate runs in a locked-down container that runs on Linux Docker hosts (CI-verified on ubuntu-latest), access-isolated but not a forgery-proof gate (in-process forgery residual open); still early (0.x)."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -114,11 +131,33 @@ dependencies = [
 [project.urls]
 Repository = "https://github.com/nihanthnaidu007/Darwin"
 
+# Console entry points (P8.3). Each maps a darwin-<name> command to the existing
+# zero-arg main() of its module, so an installed wheel puts the six argparse-driven
+# harnesses on PATH. The four non-argparse harnesses (bakeoff, smoke_test,
+# build_case, validate_mcase) get NO console script by design; they
+# stay `python -m darwin.<name>` dev tools.
+[project.scripts]
+darwin-loop = "darwin.loop:main"
+darwin-mloop = "darwin.mloop:main"
+darwin-benchmark = "darwin.benchmark:main"
+darwin-mbenchmark = "darwin.mbenchmark:main"
+darwin-variance = "darwin.variance_harness:main"
+darwin-isolation-audit = "darwin.isolation_audit:main"
+
+# Hatchling src-layout config: the importable package is darwin, living at src/darwin.
+# Pointing the wheel target at that path makes hatchling ship the darwin package (and
+# nothing above it) so docker/ build infra, including the seccomp example, stays OUT
+# of the wheel. mdiffer.py and every other .py under the package ship automatically;
+# the package carries no non-.py runtime data, so no package-data declaration is needed.
+[tool.hatch.build.targets.wheel]
+packages = ["src/darwin"]
+
 # Quality tooling config (P0.2). Blocking as of P7.4: CI fails on any finding
 # (.github/workflows/quality.yml). The gates ran advisory from P0.2 (decision 0016)
 # until P7.3 drove all findings to zero, then P7.4 flipped them to blocking. ruff and
-# mypy target the production code in tools/; cases/ (bloated benchmark fixtures)
-# and spikes/ (experiments) are excluded so they generate no meaningless findings.
+# mypy target the package source in src/darwin and the tests/ suite; cases/ (bloated
+# benchmark fixtures) and spikes/ (experiments) are excluded so they generate no
+# meaningless findings.
 
 [tool.ruff]
 # Default rule selection (E/F), no custom select. target-version matches
@@ -128,14 +167,22 @@ extend-exclude = ["cases", "spikes"]
 
 [tool.mypy]
 # Lenient baseline: tolerate unresolved third-party imports, no strict mode.
-# The tools/ scripts are untyped; this records a baseline, it does not enforce.
+# The src/darwin and tests/ code is largely untyped; this records a baseline, it
+# does not enforce.
 ignore_missing_imports = true
 exclude = ['^cases/', '^spikes/']
 
 [tool.coverage.run]
-# Coverage is reported, not gated. Omit the test files themselves (the suite
-# runs from tools/, so paths are relative to that directory).
-omit = [
-    "test_*.py",
-    "*/test_*.py",
-]
+# Package-scoped coverage: measure the darwin package only (the CI invocation passes
+# --cov=darwin; source pins it here too so the floor always means production
+# coverage). The tests live in tests/, OUTSIDE the package, so they fall out of the
+# measurement naturally -- the test-file omit the flat tools/ layout needed is gone.
+source = ["darwin"]
+
+[tool.pytest.ini_options]
+# The package lives under src/darwin and the tests under tests/, both imported via
+# pythonpath rather than an install: putting src on sys.path makes `import darwin...`
+# resolve, and pinning testpaths to tests/ keeps collection off the case/mcase suites
+# under cases/ and mcases/ (named test_suite.py), which are data, not project tests.
+pythonpath = ["src"]
+testpaths = ["tests"]

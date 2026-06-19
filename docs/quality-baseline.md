@@ -72,13 +72,30 @@ P7.3a format pass accordingly reformatted 55 of those 59 (the other 4 were alrea
 compliant) and mypy now checks 59 (see Current numbers above). The growth is real new
 code, not a measurement change, and all three findings are at zero on the larger count.
 
-## Coverage (gated as of P7.4)
+## Coverage (gated as of P7.4; floor re-based to 62 in P8.4)
 
-Coverage is reported by the test job (`--cov`, term-missing) and gated as of P7.4 at
-`--cov-fail-under=56`. The floor is set from production coverage measured at 58
-percent, less a 2-point cross-version and CI margin, so the test job now fails on a
-coverage drop below 56 as well as on a test failure or an unexpected pass. The floor
-is honest only because the `--cov-config` omit excludes the near-fully-executed test
-files: it measures production coverage, not the suite running itself; counting the
-test files would inflate the number and make the gate trivial. The 56 value is fixed
-here and not re-tuned in this close-out. See decision 0037.
+Coverage is reported by the test job (`--cov=darwin`, term-missing) and gated by
+`--cov-fail-under`. Measurement is package-scoped: `[tool.coverage.run] source =
+["darwin"]` measures the `src/darwin` package only, and the tests live in `tests/`,
+OUTSIDE the package, so they fall out of the measurement naturally. (Before the P8.2
+package conversion the flat layout needed a test-file omit so the suite did not measure
+itself; that omit is gone.)
+
+The floor was first set to `--cov-fail-under=56` in P7.4 on the flat layout, from
+production coverage measured at 58 percent less a 2-point margin (decision 0037). P8.4
+re-based it to **`--cov-fail-under=62`** against the package-scoped number:
+
+- Package-scoped production coverage measures about **64.6 percent** under `--cov=darwin`.
+  The figure is interpreter-dependent across the 3.12/3.13/3.14 CI matrix: measured
+  **64.56 percent** on host Python 3.14.5 and **65.08 percent** on 3.13 (a sub-1-point
+  cross-version band; the lowest leg governs the floor). The packaging audit recorded
+  64.60 percent, which sits inside that band.
+- Floored to 64, less a 2-point cross-version and CI margin, gives **62**. The margin's
+  purpose is exactly this cross-version spread: the floor clears the lowest measured leg
+  (64.56) with about 2.5 points of headroom, so a leg-to-leg coverage wobble does not
+  fail the build while a real coverage regression still does.
+
+The floor stays honest only because the package-scoped measurement excludes the
+near-fully-executed test files (they are outside the package): it measures production
+coverage, not the suite running itself; counting the test files would inflate the number
+and make the gate trivial. See decision 0037.

@@ -10,3 +10,6 @@ reports/maggregate.json
 .coverage
 coverage.xml
 htmlcov/
+# Build artifacts from `python -m build` (throwaway wheels/sdists; never committed).
+dist/
+build/

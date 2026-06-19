@@ -40,34 +40,33 @@ jobs:
       # Host deps via requirements-dev.txt: the runtime deps (radon, vulture,
       # pytest, anthropic; httpx arrives transitively via anthropic) plus
       # pytest-cov for the coverage report below. anthropic is required even
-      # with no API call, because tools/test_mloop.py imports generator, which
-      # imports anthropic at collection time.
+      # with no API call, because tests/test_mloop.py imports darwin.generator,
+      # which imports anthropic at collection time.
       - name: Install host dependencies
         run: pip install --require-hashes -r requirements-dev.txt
 
       # The suite runs candidates via docker run, so the image must exist first.
       # Exact command from the README. The image is pinned to Python 3.13 on every
-      # matrix leg: the tag darwin-sandbox:py313 and tools/Dockerfile.sandbox do not
+      # matrix leg: the tag darwin-sandbox:py313 and docker/Dockerfile.sandbox do not
       # vary with the host leg, because the matrix exercises the host orchestration,
       # not the in-container runner.
       - name: Build the sandbox image
-        run: docker build -f tools/Dockerfile.sandbox -t darwin-sandbox:py313 tools/
+        run: docker build -f docker/Dockerfile.sandbox -t darwin-sandbox:py313 docker/
 
-      # Run from tools/ so imports resolve as every other invocation does.
-      # Expected (indicative; the count grows as tests are added): 257 passed,
-      # 2 xfailed (the decision-0008 in-process forgery vectors), plus one
-      # Docker-gated skip when the daemon is absent. pytest's default exit codes
-      # fail CI on any failure or XPASS. Coverage is GATED as of P7.4 at
-      # --cov-fail-under=56: production coverage measured 58 percent via this exact
-      # invocation (the --cov-config omit excludes test files), floored to 58 and
-      # cut by a 2-point cross-version/CI margin. The omit lives in pyproject.toml;
-      # see docs/quality-baseline.md. That omit is load-bearing for the floor's
-      # honesty: the test files are near-fully executed, so dropping --cov-config
-      # would inflate the percentage and make the 56 gate trivial; the floor measures
-      # production code only (decision 0037).
-      - name: Run the suite (coverage gated at 56 percent)
-        working-directory: tools
-        run: python -m pytest -q -p no:cacheprovider --cov=. --cov-report=term-missing --cov-config=../pyproject.toml --cov-fail-under=56
+      # Run from the repo root: the package is imported via the pyproject
+      # [tool.pytest.ini_options] pythonpath = ["src"], and testpaths = ["tests"]
+      # pins collection to tests/. Expected (indicative; the count grows as tests are
+      # added): 263 passed, 2 xfailed (the decision-0008 in-process forgery vectors),
+      # plus one Docker-gated skip when the daemon is absent. pytest's default exit
+      # codes fail CI on any failure or XPASS. Coverage is GATED (P7.4) and package-scoped
+      # (--cov=darwin): coverage is measured over src/darwin only, and the tests live
+      # outside the package so they fall out naturally (the test_*.py omit is no longer
+      # load-bearing). P8.4 re-based the floor to --cov-fail-under=62 against the
+      # package-scoped number: production coverage measured about 64.6 percent under
+      # --cov=darwin (64.56 on host 3.14, 65.08 on 3.13), floored to 64 less a 2-point
+      # cross-version margin. See docs/quality-baseline.md and decision 0037.
+      - name: Run the suite (coverage gated at 62 percent)
+        run: python -m pytest -q -p no:cacheprovider --cov=darwin --cov-report=term-missing --cov-config=pyproject.toml --cov-fail-under=62
 
   # Generate a CycloneDX SBOM of the deployable runtime surface and upload it as a
   # build artifact. The SBOM is generated from requirements.txt (the runtime lock),

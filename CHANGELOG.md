@@ -1,15 +1,60 @@
 # Changelog
 
-All notable changes to Darwin, newest first. Darwin is run from source and
-GitHub-tagged (it is not published to PyPI); each release is tagged from its merge
-commit on main. Versions stay in the 0.x line until the open boundaries from
-decision 0005 close.
+All notable changes to Darwin, newest first. Darwin is installed from a local checkout
+(`pip install .`) or run from source, and GitHub-tagged (it is not published to PyPI);
+each release is tagged from its merge commit on main. Versions stay in the 0.x line
+until the open boundaries from decision 0005 close.
 
 Note: there is no 0.4.0 release. The v0.4.0 tag was mis-created on the M0 merge
 commit (M0 does not bump the version) and is annotated with the M0 milestone name;
 it contains none of the v0.4 work. Per the never-force-push-tags rule (decisions
 0015 and 0005) it is treated as void and left in place, so the first 0.4.x release
 is 0.4.1. See decision 0020.
+
+## 0.8.0, packaging
+
+Converted Darwin from flat `tools/` scripts to an installable `darwin` package, added a
+build-system and console scripts, deferred all data-root resolution out of import time,
+and re-based the coverage floor to the package-scoped number. No change to the
+optimization, scoring, equivalence, or default-lockdown behavior.
+
+- **Flat-to-package conversion.** The flat `tools/` scripts became an importable
+  `darwin` package under `src/darwin/`, with the test suite moved to `tests/` (outside
+  the package), bare imports rewritten to absolute `darwin.*` imports, and a single
+  `paths.py` data-root resolver. The resolver finds the `cases/`, `mcases/`, `runs/`,
+  and `reports/` data directories by walking UP from a starting file to the first
+  ancestor holding a marker (`pyproject.toml` or `cases/`), so resolution is correct
+  regardless of how deeply a module is nested. To run an installed CLI, set
+  `DARWIN_DATA_ROOT` to the data root; the `--cases-dir` / `--mcases-dir` / `--out` flags
+  override only their own lookup (a checkout-side convenience) and do not on their own
+  satisfy an installed run, which also resolves `runs/` (and `reports/`) under the data root.
+- **Build-system and six console scripts.** A `[build-system]` table (hatchling,
+  configured for the src layout) makes `pip install .` build a wheel that ships only the
+  `darwin` package (no `cases/`, `mcases/`, or `docker/`). The install puts six
+  `darwin-*` console scripts on `PATH`: `darwin-loop`, `darwin-mloop`,
+  `darwin-benchmark`, `darwin-mbenchmark`, `darwin-variance`, and
+  `darwin-isolation-audit`. The four non-argparse harnesses (`bakeoff`, `smoke_test`,
+  `build_case`, `validate_mcase`) get no console script by design and stay
+  `python -m darwin.<name>` dev tools.
+- **Import-time data resolution deferred (PEP 562).** Resolving a data path at import
+  was a defect: an installed CLI has no checkout on disk, so a module that called
+  `paths.cases_dir()` at module scope crashed on `import` (or on `--help`) before
+  argparse could supply `--cases-dir` / `DARWIN_DATA_ROOT`. Every module now defers data
+  resolution to first attribute access via a PEP 562 lazy module-attribute
+  (`__getattr__`), so no `src/darwin` module does filesystem work at import; the
+  attributes stay settable, so a caller or a test can still pin them. P8.3 deferred the
+  six console-script entry points; this release deferred the last four harnesses
+  (`bakeoff`, `smoke_test`, `build_case`, `validate_mcase`).
+- **Two install paths.** The supported, reproducible install is the hash-locked
+  `requirements.txt` installed with `--require-hashes` (decision 0028, intact). The
+  `pip install .` wheel is a convenience path: it resolves `[project].dependencies` as
+  version ranges, NOT the hash-locked closure, so it is not for reproducible or
+  security-reviewed installs. Neither path publishes to PyPI (decisions 0040 and 0041).
+- **Coverage floor re-based to 62.** The old `--cov-fail-under=56` was set on the flat
+  layout. With coverage now package-scoped (`--cov=darwin`), production coverage measures
+  about 64.6 percent (64.56 on host Python 3.14, 65.08 on 3.13); the floor was re-based
+  to `--cov-fail-under=62` (64 floored, less a 2-point cross-version margin). See
+  docs/quality-baseline.md and decision 0037.
 
 ## 0.7.0, test and CI maturity
 
