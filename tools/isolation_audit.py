@@ -284,7 +284,7 @@ def _cmd_loop(args):
     with instrument() as meter:
         summary, run_dir = loop.run_loop(args.case, args.cap, args.plateau, args.model)
     wall = time.perf_counter() - t0
-    loop._print_summary(summary, run_dir)
+    loop._log_summary(summary, run_dir)
     overhead = overhead_block(meter, fixed, wall)
     leak = leak_check()
     audit = audit_candidates([run_dir])

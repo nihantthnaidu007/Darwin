@@ -459,7 +459,7 @@ aggregates the structural metric basket for Layer 3. The differential equivalenc
   only the machine-readable `reports/maggregate.json` (gitignored) and prints the
   per-case table, with `reports/MRESULTS.md` authored separately.
 
-The v1 in-process `sandbox.py` primitive is retained in the tree; the gates route
+The v1 in-process subprocess primitive (`sandbox.py`) was retired; the gates route
 through `sandbox_container.py`, which exposes the same contract across an OS boundary.
 
 ---

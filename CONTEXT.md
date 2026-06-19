@@ -48,8 +48,7 @@ The never-worse-than-baseline guarantee holds throughout.
 Single-function stack (v1 plus v2.0 isolation):
 
 - cases/ : materialized cases. Each has original.py, reference.py, test_suite.py, golden_io.json, baseline_metrics.json, meta.json.
-- tools/sandbox.py : the v1 in-process subprocess sandbox primitive. Retained in the tree.
-- tools/sandbox_container.py : the v2.0 locked-down Docker container primitive. Same contract as sandbox.py across an OS boundary. The gates now route through it.
+- tools/sandbox_container.py : the v2.0 locked-down Docker container primitive, the boundary upgrade that retired the v1 in-process subprocess primitive (sandbox.py). The gates route through it across an OS boundary.
 - tools/verify_case.py : Layer 1 pytest gate then Layer 2 golden-I/O replay. Runs both gates inside the container. The oracle and the comparison stay host-side.
 - tools/evaluator.py : Layer 3 objective scoring. Delegates Layers 1 and 2 to verify_case.classify().
 - tools/loop.py plus tools/generator.py : the orchestrator (baseline, cap, plateau, never-worse fallback, sanitized feedback) and the single Anthropic generation call.
