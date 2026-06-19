@@ -23,14 +23,14 @@ component, touching no consumer.
 ONE protocol, ONE implementation: no registry, factory, plugin system, config-driven
 selection, second implementation, or out-of-process implementation is built here. The
 out-of-process emitter is RECEIVED in 2.0, it is not built now. The only other
-emitter that exists is the test fake in the seam tests (tools/test_verdict_emitter.py),
+emitter that exists is the test fake in the seam tests (tests/test_verdict_emitter.py),
 which is not shipped.
 
 Trust posture (SECURITY.md, decision 0008): the in-process default is acceptable at
 1.0 because forging one's own optimization verdict is pointless under the
 single-user-trusted posture; multi-tenant 2.0 needs the out-of-process emitter for
 forgery resistance. A1 in-process verdict forgery is open-by-design at 1.0 (the two
-decision-0008 xfail vectors in tools/test_behavior_gate_limits.py).
+decision-0008 xfail vectors in tests/test_behavior_gate_limits.py).
 """
 
 from typing import Protocol, runtime_checkable

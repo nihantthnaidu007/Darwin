@@ -9,8 +9,8 @@ the active interpreter (sys.executable), and the remedy.
 These tests need neither docker nor a real missing-pytest environment: the
 spec-finder is injected, so absence and presence are simulated directly.
 
-Run from tools/:
-    python -m pytest test_validate_mcase.py -q -p no:cacheprovider
+Run from the repo root:
+    python -m pytest tests/test_validate_mcase.py -q -p no:cacheprovider
 """
 
 import pytest

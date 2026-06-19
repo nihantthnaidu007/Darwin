@@ -19,8 +19,8 @@ dropped caps / no-network all unchanged in _run_argv).
 
 This test exercises _stage directly and NEVER invokes docker, so CI and any host
 can run it. It FAILS on the pre-fix code (staging dir 0o700) and PASSES after.
-Run from tools/:
-    python -m pytest test_sandbox_container.py -q -p no:cacheprovider
+Run from the repo root:
+    python -m pytest tests/test_sandbox_container.py -q -p no:cacheprovider
 """
 
 import os

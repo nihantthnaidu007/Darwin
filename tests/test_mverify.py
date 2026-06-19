@@ -1,9 +1,9 @@
 """Tests for the V1 containerized equivalence gate (mverify.py).
 
 Docker required (image darwin-sandbox:py313): every candidate replay runs
-inside the v2.0 container. Run from tools/:
+inside the v2.0 container. Run from the repo root:
 
-    ../.venv/bin/python -m pytest test_mverify.py -v
+    python -m pytest tests/test_mverify.py -v
 
 Covers, per success criterion:
 - each mcase's clean reference is EQUIVALENT through the container;

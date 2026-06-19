@@ -1,4 +1,4 @@
-"""Smoke guards for the four standalone harnesses that live in tools/ but are NOT
+"""Smoke guards for the four standalone harnesses that live under src/darwin/ but are NOT
 collected by the suite (isolation_audit, bakeoff, verify_boundary, smoke_test). A
 harness that is committed but never imported by a test can ship broken and green --
 which is exactly what isolation_audit did: its _cmd_loop path called a nonexistent

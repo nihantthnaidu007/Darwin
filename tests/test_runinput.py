@@ -1,4 +1,4 @@
-"""Unit tests for the guarded run-path input helper (tools/runinput.py) (P4.5a).
+"""Unit tests for the guarded run-path input helper (src/darwin/runinput.py) (P4.5a).
 
 No API key, no Docker: the helper is pure file I/O over tmp_path files, plus two
 integration checks that a malformed meta.json stops run_loop BEFORE any generation

@@ -294,7 +294,7 @@ def build_markdown(agg, generated_at):
         "serializer-attribute form. It does NOT split the process, so the untrusted "
         "candidate and the trusted result emitter stay co-resident; in-process forgery "
         "(the frame-locals serializer hijack and compute-and-lie) is therefore still OPEN "
-        "and is pinned, known-open, in `tools/test_behavior_gate_limits.py`. Closing it "
+        "and is pinned, known-open, in `tests/test_behavior_gate_limits.py`. Closing it "
         "needs a process split (architecture change), deferred by decision — not patched "
         "here.\n"
         "- **No objective readability oracle.** The `suspiciously-simple` / "

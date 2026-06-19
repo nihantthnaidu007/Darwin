@@ -1,4 +1,4 @@
-"""Tests for the structured-logging setup (tools/logsetup.py) and the P4.4 routing
+"""Tests for the structured-logging setup (src/darwin/logsetup.py) and the P4.4 routing
 guarantees. No API key, no Docker: logsetup is pure logging configuration, and the
 orchestrator logging is exercised through a console buffer and a JSON file.
 

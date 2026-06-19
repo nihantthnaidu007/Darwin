@@ -1,7 +1,7 @@
 """Shared hardening for the single Anthropic call that both generators make.
 
 This module is the ONE place that owns three concerns, imported by both
-tools/generator.py and tools/mgenerator.py so neither duplicates them:
+src/darwin/generator.py and src/darwin/mgenerator.py so neither duplicates them:
 
 1. Client construction with an explicit, bounded timeout and an explicit,
    tuned retry budget (build_client / the LLM_* constants below).

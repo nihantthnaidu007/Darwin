@@ -1,6 +1,6 @@
 """The multi-file evaluator (v3 / V1). Scores ONE candidate multi-file unit
 against ONE mcase, objectively, with no LLM anywhere. The single-function
-evaluator's three-layer contract (tools/evaluator.py), lifted to the multi-file
+evaluator's three-layer contract (src/darwin/evaluator.py), lifted to the multi-file
 domain, in the same strict order of authority:
 
   Layer 1  Correctness gate   — does the case test suite pass INSIDE the v2.0
@@ -12,9 +12,9 @@ domain, in the same strict order of authority:
 
 Layer 1 reuses the verify_case container-pytest pattern (the candidate is
 untrusted, so its test suite runs in the locked-down container, never imported
-here). Layer 2 reuses tools/mverify.py exactly as built in V1 Prompt 1 (the
+here). Layer 2 reuses src/darwin/mverify.py exactly as built in V1 Prompt 1 (the
 candidate replays inside the container; the original replays host-side; the
-comparison stays host-side). Layer 3 reuses tools/mcase_metrics.py for the
+comparison stays host-side). Layer 3 reuses src/darwin/mcase_metrics.py for the
 multi-file metric basket and the v1 structural scoring (WEIGHTS, _cost,
 weighted_cost, guard_flags from evaluator.py; maintainability index excluded,
 see decision 0004) against the case reference floor. A candidate that fails a

@@ -9,6 +9,9 @@ file would be falsely flagged. maintainability_index stays per-file only
 (weight-0 in v1; no meaningful multi-file aggregate).
 
 Usage: python -m darwin.mcase_metrics <case_name>
+Note: it resolves the case as ../mcases/<case> relative to the current directory, so
+run it from a directory whose parent holds mcases/ (in a checkout, an immediate
+subdirectory of the repo root such as src/), not from the repo root itself.
 Writes ../mcases/<case>/baseline_metrics.json and prints it.
 """
 

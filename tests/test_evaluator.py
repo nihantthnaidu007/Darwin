@@ -14,8 +14,8 @@ FIX: _cost returns None (no signal) whenever the original is NOT strictly worse 
 the floor, that is whenever den <= 0, for both the higher-is-better and
 lower-is-better branches. weighted_cost already excludes None metrics.
 
-These tests FAIL on the pre-fix code and PASS after. Run from tools/:
-    python -m pytest test_evaluator.py -q -p no:cacheprovider
+These tests FAIL on the pre-fix code and PASS after. Run from the repo root:
+    python -m pytest tests/test_evaluator.py -q -p no:cacheprovider
 """
 
 import pytest

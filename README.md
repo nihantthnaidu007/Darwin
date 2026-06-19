@@ -343,10 +343,12 @@ python -m darwin.build_case seeds/<name>               # LLM-bloats the referenc
 python -m darwin.freeze_metrics cases/<name>/original.py   # structural metrics for one file (no LLM)
 ```
 
-When running an **installed** CLI from outside a checkout, prefix these with
-`DARWIN_DATA_ROOT=/path/to/checkout` (or pass `--cases-dir` / `--mcases-dir` / `--out`)
-so the harness can find the data directories. From a checkout, the walk-up resolver
-handles it.
+When running these from an installed package **outside a checkout**, set
+`DARWIN_DATA_ROOT=/path/to/checkout` so the resolver can find the data directories. Both
+harnesses run as `python -m darwin.<name>` and take no `--cases-dir` / `--mcases-dir` /
+`--out` flag; those per-lookup flags override only their own directory and do not on
+their own satisfy an installed run (which also resolves `runs/` and `reports/`). From a
+checkout, the walk-up resolver handles it.
 
 ---
 

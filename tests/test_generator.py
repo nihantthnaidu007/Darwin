@@ -1,4 +1,4 @@
-"""Tests for the single-function generator (tools/generator.py). Like the
+"""Tests for the single-function generator (src/darwin/generator.py). Like the
 multi-file suite, every test runs with NO API key and NO network: the model call
 is exercised through an injected fake client, and the hardening behaviors are
 checked directly.

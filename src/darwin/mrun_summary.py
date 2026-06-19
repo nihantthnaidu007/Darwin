@@ -1,5 +1,5 @@
 """Phase V3 — multi-file per-run summary: a clean, readable view of ONE mloop run.
-The multi-file analogue of tools/run_summary.py.
+The multi-file analogue of src/darwin/run_summary.py.
 
 This is a PURE REPORTING LAYER over the loop's existing logs. It re-instruments
 nothing: it reads the run's own run.json (already written by mloop.py, with real

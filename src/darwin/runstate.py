@@ -1,6 +1,6 @@
 """Shared run-state checkpointing for the multi-case benchmarks (P4.2, P4.2.2).
 
-Both tools/benchmark.py and tools/mbenchmark.py run the loop once per case and
+Both src/darwin/benchmark.py and src/darwin/mbenchmark.py run the loop once per case and
 then aggregate the per-case results. A crash mid-corpus used to discard every
 completed case. This module persists each case result the moment it completes, so
 an interrupted run can resume from the first incomplete case. It is the ONE place

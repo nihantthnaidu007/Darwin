@@ -1,4 +1,4 @@
-"""Unit tests for the shared run-state checkpoint helper (tools/runstate.py).
+"""Unit tests for the shared run-state checkpoint helper (src/darwin/runstate.py).
 
 No API key, no Docker, no real cases: the helper is pure file I/O over a tmp_path
 JSONL file. Covers the format round-trip, clearing prior state, last-write-wins,

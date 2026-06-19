@@ -2,9 +2,9 @@
 
 Docker required (image darwin-sandbox:py313): the correctness gate runs the
 case test suite inside the v2.0 container, and the equivalence gate replays the
-candidate inside it. Run from tools/:
+candidate inside it. Run from the repo root:
 
-    ../.venv/bin/python -m pytest test_mevaluator.py -v
+    python -m pytest tests/test_mevaluator.py -v
 
 Covers, per success criterion:
 - each mcase's clean reference passes both gates and scores AT the floor (0.0);

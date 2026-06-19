@@ -1,6 +1,6 @@
 """Phase V3 — the multi-file validation harness: one command runs the EXISTING
 mloop over EVERY mcase and aggregates the EXISTING per-run logs into summaries +
-a machine-readable aggregate. The multi-file analogue of tools/benchmark.py. It is
+a machine-readable aggregate. The multi-file analogue of src/darwin/benchmark.py. It is
 thin orchestration plus aggregation; it adds no engine, evaluator, sandbox, metric,
 or case logic, and it re-scores nothing.
 

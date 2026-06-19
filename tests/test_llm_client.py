@@ -1,4 +1,4 @@
-"""Tests for the shared LLM-call hardening (tools/llm_client.py). No API key and
+"""Tests for the shared LLM-call hardening (src/darwin/llm_client.py). No API key and
 no network: the retry + classification paths are driven through a real Anthropic
 client wired to an httpx.MockTransport, so the SDK's own retry/backoff logic runs
 exactly as it would in production while we script the HTTP responses. The backoff

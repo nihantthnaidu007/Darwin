@@ -1,7 +1,7 @@
 """Phase V2 multi-file generator — one Anthropic call that rewrites a bloated
 MULTI-FILE unit into a simpler one, emitted as several files and parsed back into
 a candidate package directory that mevaluator.evaluate ingests directly. This is
-the multi-file analogue of tools/generator.py: the loop orchestrates and the
+the multi-file analogue of src/darwin/generator.py: the loop orchestrates and the
 evaluator judges; the generator only proposes.
 
 Fork 1 (directed loop): generation 1 sees the whole original unit (every file
