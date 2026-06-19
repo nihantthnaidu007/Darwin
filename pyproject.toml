@@ -139,3 +139,11 @@ omit = [
     "test_*.py",
     "*/test_*.py",
 ]
+
+[tool.pytest.ini_options]
+# The package lives under src/darwin and the tests under tests/, both imported via
+# pythonpath rather than an install: putting src on sys.path makes `import darwin...`
+# resolve, and pinning testpaths to tests/ keeps collection off the case/mcase suites
+# under cases/ and mcases/ (named test_suite.py), which are data, not project tests.
+pythonpath = ["src"]
+testpaths = ["tests"]
