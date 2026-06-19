@@ -1,5 +1,5 @@
 """Phase V2 multi-file orchestrator — the directed generate -> evaluate -> feedback
-loop for a MULTI-FILE unit. The multi-file analogue of tools/loop.py: it wires
+loop for a MULTI-FILE unit. The multi-file analogue of darwin.loop: it wires
 mgenerator and mevaluator together and adds nothing clever. The intelligence lives
 in mgenerator (the rewrite) and mevaluator (the objective gates + score); the loop
 only wires them, sanitizes feedback, and records the trace honestly. Per run it:
@@ -36,7 +36,10 @@ FLAG 2 (directory hygiene). mgenerator.materialize does not clean a pre-existing
 directory, so each generation is materialized into its own FRESH directory under
 the run dir and no directory is ever reused across generations.
 
-Usage: python mloop.py <case_name> [--cap N] [--plateau N] [--model ID]
+Usage (installed):        darwin-mloop <case_name> [--cap N] [--plateau N] [--model ID]
+Usage (source checkout):  python -m darwin.mloop <case_name> [--cap N] [--plateau N] [--model ID]
+Installed, supply the data root via --mcases-dir or DARWIN_DATA_ROOT; from a checkout
+the walk-up resolver finds mcases/ on its own.
 """
 
 import argparse

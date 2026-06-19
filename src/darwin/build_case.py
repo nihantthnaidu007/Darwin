@@ -25,7 +25,19 @@ from darwin.freeze_metrics import freeze
 from darwin.record_golden import record
 from darwin.verify_case import verify
 
-CASES_DIR = paths.cases_dir()
+# The cases directory resolves LAZILY, never at import: the module must import cleanly
+# without a checkout on disk (the P8.3 audit found import-time resolution broke that).
+# It resolves at first access (inside build or main), not at import; raises RuntimeError
+# via paths.data_root() when no data root is locatable.
+_THIS = sys.modules[__name__]
+
+
+def __getattr__(name):
+    if name == "CASES_DIR":
+        return paths.cases_dir()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 CONSTRAINTS = "deterministic, pure, no I/O, no randomness, no global state"
 CATEGORIES = {
     "unnecessary_dependency",
@@ -49,7 +61,7 @@ def build(seed_dir, force=False):
     test_suite = seed / "test_suite.py"
     entry = spec["entry_point"]
     case_id = spec.get("case_id", seed.name)
-    case_dir = CASES_DIR / case_id
+    case_dir = _THIS.CASES_DIR / case_id
 
     # Protect a verified case: refuse to overwrite unless --force is given.
     if case_dir.exists() and not force:

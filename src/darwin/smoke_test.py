@@ -17,7 +17,19 @@ import sys
 from darwin import paths
 from darwin.evaluator import evaluate
 
-CASES = paths.cases_dir()
+# The cases directory resolves LAZILY, never at import: the module must import cleanly
+# without a checkout on disk (the P8.3 audit found import-time resolution broke that).
+# It resolves at first access (inside _seed_cases via main), not at import; raises
+# RuntimeError via paths.data_root() when no data root is locatable.
+_THIS = sys.modules[__name__]
+
+
+def __getattr__(name):
+    if name == "CASES":
+        return paths.cases_dir()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 COLS = [
     "cyclomatic_total",
     "cyclomatic_max",
@@ -31,7 +43,7 @@ COLS = [
 
 
 def _seed_cases():
-    for d in sorted(CASES.iterdir()):
+    for d in sorted(_THIS.CASES.iterdir()):
         if (d / "reference.py").exists() and (d / "original.py").exists():
             yield d
 

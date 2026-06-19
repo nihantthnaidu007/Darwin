@@ -23,7 +23,10 @@ REJECTED candidate's raw reason can embed a golden EXPECTED output ("expected R,
 got R") — format_feedback() strips that: it names the diverging INPUT (Fork 1's
 "input X") but never the expected output (Fork 3).
 
-Usage: python loop.py <case_name> [--cap N] [--plateau N] [--model ID]
+Usage (installed):        darwin-loop <case_name> [--cap N] [--plateau N] [--model ID]
+Usage (source checkout):  python -m darwin.loop <case_name> [--cap N] [--plateau N] [--model ID]
+Installed, supply the data root via --cases-dir or DARWIN_DATA_ROOT; from a checkout
+the walk-up resolver finds cases/ on its own.
 """
 
 import argparse

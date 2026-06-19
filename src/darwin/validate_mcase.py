@@ -30,7 +30,22 @@ from darwin import paths
 from darwin import runinput
 from darwin.mdiffer import check_equivalence
 
-MCASES = paths.mcases_dir()
+# The mcases directory resolves LAZILY, never at import: the module must import cleanly
+# without a checkout on disk (the P8.3 audit found import-time resolution broke that).
+# MCASES stays a settable, monkeypatchable module attribute -- an assigned
+# `validate_mcase.MCASES` (a test sets it) shadows the lazy default below, because an
+# assigned module global wins over module __getattr__ (PEP 562). It resolves at first
+# access (inside validate_case or main), not at import; raises RuntimeError via
+# paths.data_root() when no data root is locatable.
+_THIS = sys.modules[__name__]
+
+
+def __getattr__(name):
+    if name == "MCASES":
+        return paths.mcases_dir()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 TOOLS = Path(__file__).parent.resolve()
 
 
@@ -95,7 +110,7 @@ def _show_witness(witness, indent="        "):
 
 
 def validate_case(case_name):
-    case_dir = MCASES / case_name
+    case_dir = _THIS.MCASES / case_name
     meta = runinput.load_json(case_dir / "meta.json")
     entry = meta["entry"]
     original = case_dir / "original"
@@ -176,7 +191,7 @@ def main():
     if len(sys.argv) != 2:
         sys.exit("usage: python validate_mcase.py <case_name>|--all")
     names = (
-        sorted(p.name for p in MCASES.iterdir() if (p / "meta.json").exists())
+        sorted(p.name for p in _THIS.MCASES.iterdir() if (p / "meta.json").exists())
         if sys.argv[1] == "--all"
         else [sys.argv[1]]
     )

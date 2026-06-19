@@ -58,14 +58,15 @@ jobs:
       # pins collection to tests/. Expected (indicative; the count grows as tests are
       # added): 263 passed, 2 xfailed (the decision-0008 in-process forgery vectors),
       # plus one Docker-gated skip when the daemon is absent. pytest's default exit
-      # codes fail CI on any failure or XPASS. Coverage is GATED as of P7.4 at
-      # --cov-fail-under=56, now package-scoped (--cov=darwin): coverage is measured
-      # over src/darwin only, and the tests live outside the package so they fall out
-      # naturally (the test_*.py omit is no longer load-bearing). See
-      # docs/quality-baseline.md and decision 0037; P8.4 may re-set the floor with
-      # margin against the package-scoped number.
-      - name: Run the suite (coverage gated at 56 percent)
-        run: python -m pytest -q -p no:cacheprovider --cov=darwin --cov-report=term-missing --cov-config=pyproject.toml --cov-fail-under=56
+      # codes fail CI on any failure or XPASS. Coverage is GATED (P7.4) and package-scoped
+      # (--cov=darwin): coverage is measured over src/darwin only, and the tests live
+      # outside the package so they fall out naturally (the test_*.py omit is no longer
+      # load-bearing). P8.4 re-based the floor to --cov-fail-under=62 against the
+      # package-scoped number: production coverage measured about 64.6 percent under
+      # --cov=darwin (64.56 on host 3.14, 65.08 on 3.13), floored to 64 less a 2-point
+      # cross-version margin. See docs/quality-baseline.md and decision 0037.
+      - name: Run the suite (coverage gated at 62 percent)
+        run: python -m pytest -q -p no:cacheprovider --cov=darwin --cov-report=term-missing --cov-config=pyproject.toml --cov-fail-under=62
 
   # Generate a CycloneDX SBOM of the deployable runtime surface and upload it as a
   # build artifact. The SBOM is generated from requirements.txt (the runtime lock),

@@ -14,13 +14,28 @@ sandbox, real Layer-3 metrics), so the rankings are over candidates that genuine
 pass correctness and behavior. Run: python bakeoff.py
 """
 
+import sys
 import tempfile
 from pathlib import Path
 
 from darwin import paths
 from darwin.evaluator import HIGHER_BETTER, evaluate
 
-CASES = paths.cases_dir()
+# The cases directory resolves LAZILY, never at import: the module must import cleanly
+# without a checkout on disk (the P8.3 audit found import-time resolution broke that).
+# CASES stays a settable, monkeypatchable module attribute -- an assigned `bakeoff.CASES`
+# wins over the lazy default below, because an assigned module global shadows module
+# __getattr__ (PEP 562). It resolves at first access (inside _evaluate_candidate,
+# run_case, or main), not at import; raises RuntimeError via paths.data_root() when no
+# data root is locatable.
+_THIS = sys.modules[__name__]
+
+
+def __getattr__(name):
+    if name == "CASES":
+        return paths.cases_dir()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 # Pareto basket: the meaningful STRUCTURAL metrics. source_loc is dropped (near-duplicate
 # of logical_loc — would double-count size in the dominance test). maintainability_index
@@ -258,7 +273,7 @@ def merge_intervals(intervals):
 
 def _evaluate_candidate(kind, payload, case_dir):
     if kind == "file":
-        return evaluate(str(CASES / payload), case_dir)
+        return evaluate(str(_THIS.CASES / payload), case_dir)
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "candidate.py"
         path.write_text(payload, encoding="utf-8")
@@ -374,7 +389,7 @@ def run_case(name, candidates):
 
     results = []
     for lbl, kind, payload, expect in candidates:
-        e = _evaluate_candidate(kind, payload, CASES / name)
+        e = _evaluate_candidate(kind, payload, _THIS.CASES / name)
         results.append((lbl, e))
         assert e.verdict == expect, (
             f"{lbl}: expected {expect}, got {e.verdict} ({e.reason_code})"
@@ -450,7 +465,7 @@ def demo_suspiciously_simple():
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "candidate.py"
         path.write_text(GOLFED_MERGE, encoding="utf-8")
-        e = evaluate(str(path), CASES / "merge_intervals")
+        e = evaluate(str(path), _THIS.CASES / "merge_intervals")
     assert e.verdict == "scored", e.reason_code
     print(
         f"  golfed merge_intervals -> verdict={e.verdict}, weighted_cost={e.weighted_cost} "
