@@ -204,7 +204,7 @@ sandbox image built once:
 
 ```bash
 # one-time host setup, from the repository root
-docker build -f tools/Dockerfile.sandbox -t darwin-sandbox:py313 tools/
+docker build -f docker/Dockerfile.sandbox -t darwin-sandbox:py313 docker/
 ```
 
 CI builds this same image and exercises the container lockdown probes green on
@@ -379,7 +379,7 @@ and runs the full test suite on `ubuntu-latest`, gating pushes (so a phase branc
 be seen green before merge) and pull requests to `main`. The expected result is
 indicative (the count grows as tests are added): **257 passed, 2 xfailed**, plus
 one Docker-gated skip when the daemon is absent. The two `xfailed` are the
-decision-0008 in-process forgery vectors in `tools/test_behavior_gate_limits.py`,
+decision-0008 in-process forgery vectors in `tests/test_behavior_gate_limits.py`,
 pinned known-open; pytest's
 default exit codes fail CI on any failure or on an unexpected pass (an `xfail` that
 turns `XPASS` is the signal that a forgery vector was closed and the marker must be
@@ -501,7 +501,7 @@ Only genuinely remaining work (v1 through v4 are done and merged):
   plus 3 multi-file cases). Tightening the references and growing the corpus across
   categories and difficulties is the prerequisite for any benchmark-grade claim.
 - **A robustness fix to `_require_image`** (the sandbox-image preflight in
-  `tools/sandbox_container.py`): it treats any non-zero `docker image inspect` as
+  `src/darwin/sandbox_container.py`): it treats any non-zero `docker image inspect` as
   image-absent, so a transient daemon error reads as a missing image rather than a
   daemon problem.
 - **Variance-data reproducibility.** Retain per-run snapshots or a fixed regeneration

@@ -22,48 +22,48 @@ The never-worse-than-baseline guarantee holds throughout.
 
 ## Domain language
 
-- evaluator: the objective scorer. Three layers in strict order, no LLM. tools/evaluator.py.
+- evaluator: the objective scorer. Three layers in strict order, no LLM. src/darwin/evaluator.py.
 - correctness gate (Layer 1): the case pytest suite passes inside the sandbox. Blocking.
 - behavior gate (Layer 2): the candidate reproduces every recorded golden pair exactly. Blocking.
-- complexity scoring (Layer 3): fixed weighted sum of structural metrics, only for candidates that cleared both gates. Method A in tools/evaluator.py.
-- the loop: the directed generate -> evaluate -> feedback cycle. tools/loop.py plus tools/generator.py.
+- complexity scoring (Layer 3): fixed weighted sum of structural metrics, only for candidates that cleared both gates. Method A in src/darwin/evaluator.py.
+- the loop: the directed generate -> evaluate -> feedback cycle. src/darwin/loop.py plus src/darwin/generator.py.
 - reference floor: the clean hidden reference version of a case, the structural-complexity target. Score 0.0 at the floor, 1.0 at the bloated original.
 - never-worse guarantee: the loop returns the best gate-passing candidate found, or the baseline original if none beats it; never a worse-scoring result by the metric.
 - golden I/O: recorded input to output pairs for the behavior gate. golden_io.json per case.
-- the container boundary: the locked-down Docker container that every candidate executes inside. The v2.0 security boundary for access. tools/sandbox_container.py.
+- the container boundary: the locked-down Docker container that every candidate executes inside. The v2.0 security boundary for access. src/darwin/sandbox_container.py.
 - the forgery boundary: the candidate and the trusted result-emitter share one process inside the container, so in-process verdict forgery stays open. Access is closed; the verdict is not.
 - the one-shot finding: single-function optimization reached the structural floor in generation 1 on every improved case (5 of 5), so the feedback loop was verified but not load-bearing at this scope.
 - mcase: a multi-file case. A stateful, order-dependent unit under mcases/.
 - sequence corpus: the load-bearing artifact of an mcase. build_corpus() yields (name, ctor_args, calls) sequences over a domain tuned to force state collisions.
 - differential testing at the public API: multi-file correctness check. For the same call sequence, original and candidate must produce identical per-call observables on fresh instances.
-- the catch-test: an mcase is sound only if its corpus catches every planted break in breaks.py, except breaks marked expect_caught=False (documented irreducible misses). tools/validate_mcase.py.
-- comparator conventions: typed equality via canon() (True is not 1), list order observable, dict key order not observable, exception type and message observable. tools/mdiffer.py.
-- multi-file evaluator: the multi-file objective scorer. Mirrors the single-function three-layer contract (correctness gate, equivalence gate, complexity scoring) across the container boundary, no LLM. tools/mevaluator.py.
-- multi-file metric basket: structural-complexity metrics aggregated across a multi-file unit, the Layer 3 input to the multi-file evaluator. tools/mcase_metrics.py.
-- multi-file generator: one model call that rewrites a bloated unit into a candidate package, parsed and statically validated from the model output, never executed on the host. tools/mgenerator.py.
-- multi-file loop: the directed generate-evaluate-feedback loop on a multi-file unit. Sanitizes feedback so the generator never sees the oracle. tools/mloop.py.
+- the catch-test: an mcase is sound only if its corpus catches every planted break in breaks.py, except breaks marked expect_caught=False (documented irreducible misses). src/darwin/validate_mcase.py.
+- comparator conventions: typed equality via canon() (True is not 1), list order observable, dict key order not observable, exception type and message observable. src/darwin/mdiffer.py.
+- multi-file evaluator: the multi-file objective scorer. Mirrors the single-function three-layer contract (correctness gate, equivalence gate, complexity scoring) across the container boundary, no LLM. src/darwin/mevaluator.py.
+- multi-file metric basket: structural-complexity metrics aggregated across a multi-file unit, the Layer 3 input to the multi-file evaluator. src/darwin/mcase_metrics.py.
+- multi-file generator: one model call that rewrites a bloated unit into a candidate package, parsed and statically validated from the model output, never executed on the host. src/darwin/mgenerator.py.
+- multi-file loop: the directed generate-evaluate-feedback loop on a multi-file unit. Sanitizes feedback so the generator never sees the oracle. src/darwin/mloop.py.
 
 ## Architecture
 
 Single-function stack (v1 plus v2.0 isolation):
 
 - cases/ : materialized cases. Each has original.py, reference.py, test_suite.py, golden_io.json, baseline_metrics.json, meta.json.
-- tools/sandbox_container.py : the v2.0 locked-down Docker container primitive, the boundary upgrade that retired the v1 in-process subprocess primitive (sandbox.py). The gates route through it across an OS boundary.
-- tools/verify_case.py : Layer 1 pytest gate then Layer 2 golden-I/O replay. Runs both gates inside the container. The oracle and the comparison stay host-side.
-- tools/evaluator.py : Layer 3 objective scoring. Delegates Layers 1 and 2 to verify_case.classify().
-- tools/loop.py plus tools/generator.py : the orchestrator (baseline, cap, plateau, never-worse fallback, sanitized feedback) and the single Anthropic generation call.
-- tools/benchmark.py : runs the loop over the corpus and aggregates each run's own logs into reports/RESULTS.md and reports/aggregate.json.
+- src/darwin/sandbox_container.py : the v2.0 locked-down Docker container primitive, the boundary upgrade that retired the v1 in-process subprocess primitive (sandbox.py). The gates route through it across an OS boundary.
+- src/darwin/verify_case.py : Layer 1 pytest gate then Layer 2 golden-I/O replay. Runs both gates inside the container. The oracle and the comparison stay host-side.
+- src/darwin/evaluator.py : Layer 3 objective scoring. Delegates Layers 1 and 2 to verify_case.classify().
+- src/darwin/loop.py plus src/darwin/generator.py : the orchestrator (baseline, cap, plateau, never-worse fallback, sanitized feedback) and the single Anthropic generation call.
+- src/darwin/benchmark.py : runs the loop over the corpus and aggregates each run's own logs into reports/RESULTS.md and reports/aggregate.json.
 
 Multi-file stack (v3):
 
 - mcases/ : multi-file cases. Each has original/, reference/, corpus.py, test_suite.py, breaks.py, conventions.md, baseline_metrics.json, meta.json.
-- tools/mdiffer.py : the differential equivalence core. Promoted from the M0 spike. Reused, not reimplemented, by the verifiers.
-- tools/validate_mcase.py : the V0 case validator. Suite, self-equivalence, reference-equivalence, and the catch-test. Trusts both units (in-process).
-- tools/mverify.py : the V1 equivalence gate. The candidate is untrusted, so it executes across the container boundary while the original replays host-side and the comparison stays host-side.
-- tools/mcase_metrics.py : the V1 multi-file metric basket. Aggregates structural metrics across a unit (the Layer 3 input).
-- tools/mevaluator.py : the V1 multi-file evaluator. Three layers in strict order: correctness gate (the case suite inside the container), equivalence gate (mverify), complexity scoring (mcase_metrics against the reference floor). Scored only when both gates pass. No LLM.
-- tools/mgenerator.py : the V2 multi-file generator. One model call rewrites the bloated unit into a candidate package, parsed and statically validated from the model output (never executed on the host), path-safe. Reuses generator.py's call machinery.
-- tools/mloop.py : the V2 directed multi-file loop. Mirrors loop.py: baseline as guaranteed fallback, generate via mgenerator, score via mevaluator, feed sanitized feedback back (no oracle to the generator), best-kept, never worse than baseline, stop on cap, floor, or plateau.
+- src/darwin/mdiffer.py : the differential equivalence core. Promoted from the M0 spike. Reused, not reimplemented, by the verifiers.
+- src/darwin/validate_mcase.py : the V0 case validator. Suite, self-equivalence, reference-equivalence, and the catch-test. Trusts both units (in-process).
+- src/darwin/mverify.py : the V1 equivalence gate. The candidate is untrusted, so it executes across the container boundary while the original replays host-side and the comparison stays host-side.
+- src/darwin/mcase_metrics.py : the V1 multi-file metric basket. Aggregates structural metrics across a unit (the Layer 3 input).
+- src/darwin/mevaluator.py : the V1 multi-file evaluator. Three layers in strict order: correctness gate (the case suite inside the container), equivalence gate (mverify), complexity scoring (mcase_metrics against the reference floor). Scored only when both gates pass. No LLM.
+- src/darwin/mgenerator.py : the V2 multi-file generator. One model call rewrites the bloated unit into a candidate package, parsed and statically validated from the model output (never executed on the host), path-safe. Reuses generator.py's call machinery.
+- src/darwin/mloop.py : the V2 directed multi-file loop. Mirrors loop.py: baseline as guaranteed fallback, generate via mgenerator, score via mevaluator, feed sanitized feedback back (no oracle to the generator), best-kept, never worse than baseline, stop on cap, floor, or plateau.
 
 ## Current state
 
@@ -77,16 +77,16 @@ Multi-file stack (v3):
 
 Open deferred items (honest ledger):
 
-- In-process verdict forgery is deferred. It matters only if the gate verdict becomes a third-party-trusted artifact. Pinned known-open by xfail in tools/test_behavior_gate_limits.py. SECURITY.md.
+- In-process verdict forgery is deferred. It matters only if the gate verdict becomes a third-party-trusted artifact. Pinned known-open by xfail in tests/test_behavior_gate_limits.py. SECURITY.md.
 - Native-Linux isolation is verified in CI (v0.6, P6.3, decision 0030). A dedicated matrix (.github/workflows/isolation.yml) runs the container lockdown probe on ubuntu-22.04 and ubuntu-24.04, both cgroup v2, recording each runner's cgroup version, kernel, and Docker version, with the probe's exit code gating each leg; SECURITY.md carries a native-Linux section scoped to that recorded evidence. cgroup v1 and non-Ubuntu distributions are not exercised (hosted runners are Ubuntu on cgroup v2); a real v1 or alternate-distribution run is a documented self-hosted / VM follow-up. SECURITY.md.
 - Multi-file equivalence is a strong-but-not-total signal, strictly weaker than single-function golden I/O. The guarantee is sequence-relative and API-relative. reports/M0_EQUIVALENCE.md.
 - Per-unit sequence-domain authoring (the corpus reach envelope) is real per-case work, not engineered away. reports/M0_EQUIVALENCE.md, mcases/README.md.
-- mverify reads back container stdout capped at 1 MB per stream, used as-is at V1 scope. The fail-closed-on-overflow path is tested (test_mevaluator.py test_outcome_bloated_candidate_fails_closed). tools/mverify.py, tools/sandbox_container.py.
-- Host Python may range 3.12 to 3.14; the sandbox container is pinned to 3.13 (tools/Dockerfile.sandbox). Cross-version determinism of the canonical equivalence outcomes was verified: the per-call canonical reference outcomes are byte-identical across host 3.12 and 3.14 for all three mcases, so the host-replays-original, container-replays-candidate split is safe across this range. README and tools/mverify.py now state the verified 3.12 to 3.14 host range (the 3.13-specific wording was broadened in v4). v0.7 added a CI matrix that runs the full suite on host Python 3.12, 3.13, and 3.14, each leg on the single hashed lock with the sandbox image fixed at 3.13 (decision 0038), backing this range with continuous evidence; done.
-- The multi-file loop's feedback sanitizer now strips the oracle by the shared witness prefixes in tools/oracle_markers.py, imported by both the producer (tools/mevaluator.py) and the sanitizer (tools/mloop.py), and guarded by a real-producer oracle-leak test (tools/test_oracle_leak.py, decision 0025). Residual: the verdict and gate routing-key literals the sanitizer branches on are still bare and duplicated across producer and sanitizer (the reason codes are shared); they are guarded by the same leak test, which fails if their drift causes a misroute, and sharing them is a follow-up.
+- mverify reads back container stdout capped at 1 MB per stream, used as-is at V1 scope. The fail-closed-on-overflow path is tested (test_mevaluator.py test_outcome_bloated_candidate_fails_closed). src/darwin/mverify.py, src/darwin/sandbox_container.py.
+- Host Python may range 3.12 to 3.14; the sandbox container is pinned to 3.13 (docker/Dockerfile.sandbox). Cross-version determinism of the canonical equivalence outcomes was verified: the per-call canonical reference outcomes are byte-identical across host 3.12 and 3.14 for all three mcases, so the host-replays-original, container-replays-candidate split is safe across this range. README and src/darwin/mverify.py now state the verified 3.12 to 3.14 host range (the 3.13-specific wording was broadened in v4). v0.7 added a CI matrix that runs the full suite on host Python 3.12, 3.13, and 3.14, each leg on the single hashed lock with the sandbox image fixed at 3.13 (decision 0038), backing this range with continuous evidence; done.
+- The multi-file loop's feedback sanitizer now strips the oracle by the shared witness prefixes in src/darwin/oracle_markers.py, imported by both the producer (src/darwin/mevaluator.py) and the sanitizer (src/darwin/mloop.py), and guarded by a real-producer oracle-leak test (tests/test_oracle_leak.py, decision 0025). Residual: the verdict and gate routing-key literals the sanitizer branches on are still bare and duplicated across producer and sanitizer (the reason codes are shared); they are guarded by the same leak test, which fails if their drift causes a misroute, and sharing them is a follow-up.
 - Container startup and teardown adds measured overhead (about 0.174 s fixed per spin-up). reports/ISOLATION.md.
-- The inverted-span no-signal rule means a candidate that regresses a metric above the original on an inverted-span metric is unscored rather than penalized (decision 0013). A guard flag for "regressed above original" is a future enhancement. tools/evaluator.py.
-- The variance-reproducibility harness (tools/variance_harness.py, decision 0023) persists each run's maggregate.json as a committed snapshot under reports/variance_runs/ and derives the variance dataset from those snapshots, deterministically. The artifact-backed regeneration (P5.3b) ran on 2026-06-17 (decision 0035): six committed snapshots under reports/variance_runs/run_00 .. run_05 now back reports/mvariance.json, which derive regenerates byte-identically, and reports/MRESULTS.md is regenerated from them. The 2026-06-13 hand-recorded dataset is superseded and F1 is fully closed. reports/mvariance.json, reports/variance_runs/, tools/variance_harness.py.
+- The inverted-span no-signal rule means a candidate that regresses a metric above the original on an inverted-span metric is unscored rather than penalized (decision 0013). A guard flag for "regressed above original" is a future enhancement. src/darwin/evaluator.py.
+- The variance-reproducibility harness (src/darwin/variance_harness.py, decision 0023) persists each run's maggregate.json as a committed snapshot under reports/variance_runs/ and derives the variance dataset from those snapshots, deterministically. The artifact-backed regeneration (P5.3b) ran on 2026-06-17 (decision 0035): six committed snapshots under reports/variance_runs/run_00 .. run_05 now back reports/mvariance.json, which derive regenerates byte-identically, and reports/MRESULTS.md is regenerated from them. The 2026-06-13 hand-recorded dataset is superseded and F1 is fully closed. reports/mvariance.json, reports/variance_runs/, src/darwin/variance_harness.py.
 - The multi-file references are soft (all 18 of 18 best candidates at or below floor across the six 2026-06-17 runs; decision 0035). Tightening them is a prerequisite for any benchmark-grade multi-file claim. reports/MRESULTS.md.
 
 ## Conventions

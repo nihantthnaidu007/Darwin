@@ -17,13 +17,13 @@ pinned by a test in the repo.
 
 When the loop evaluates a candidate, that candidate **is executed** (twice: the
 `pytest` correctness gate, then the golden-I/O replay). In v2.0 each execution
-happens inside a locked-down Docker container — [tools/sandbox_container.py](tools/sandbox_container.py),
-the Phase I0 boundary, with the image in [tools/Dockerfile.sandbox](tools/Dockerfile.sandbox).
+happens inside a locked-down Docker container — [src/darwin/sandbox_container.py](src/darwin/sandbox_container.py),
+the Phase I0 boundary, with the image in [docker/Dockerfile.sandbox](docker/Dockerfile.sandbox).
 The container **is the security boundary**, and it is what `verify_case.py` now
-drives ([tools/verify_case.py](tools/verify_case.py)).
+drives ([src/darwin/verify_case.py](src/darwin/verify_case.py)).
 
 The lockdown (each item independently verifiable via
-[tools/verify_container_sandbox.py](tools/verify_container_sandbox.py)):
+[src/darwin/verify_container_sandbox.py](src/darwin/verify_container_sandbox.py)):
 
 | Control | v2.0 status |
 |---|---|
@@ -43,7 +43,7 @@ The lockdown (each item independently verifiable via
 - **The golden-oracle read** — the expected (golden) outputs are **never placed in
   the container**. Only inputs go in; the in-container driver emits the *actual*
   results, and the comparison against the answer key happens **host-side**, outside
-  the boundary ([tools/verify_case.py](tools/verify_case.py)). A candidate cannot
+  the boundary ([src/darwin/verify_case.py](src/darwin/verify_case.py)). A candidate cannot
   read its own answer key because the answer key is not there.
 - **The literal `import __main__` driver hijack** — the v1 in-process driver-hijack
   path is closed by the OS boundary: the trusted comparison no longer runs in the
@@ -96,7 +96,7 @@ justified by the audit evidence above — not overlooked.
 
 ### The known-open vector is pinned by a test
 
-[tools/test_behavior_gate_limits.py](tools/test_behavior_gate_limits.py) carries
+[tests/test_behavior_gate_limits.py](tests/test_behavior_gate_limits.py) carries
 the frame-locals serializer hijack as an executable, expected-fail regression
 marker (`@pytest.mark.xfail(strict=True)`): it asserts the forging candidate is
 *rejected*, that assertion **currently fails** (the behavior-wrong candidate is
@@ -117,7 +117,7 @@ Closing the in-process forgery surface in 2.0 requires moving the trusted verdic
 producer **out of the candidate's process**. v1.0 makes that a **one-component swap**
 ahead of time, without changing any 1.0 behavior. The loop and the benchmark no
 longer call the evaluator directly; they depend on a typed **`VerdictEmitter`** seam
-— [tools/verdict_emitter.py](tools/verdict_emitter.py) — with a single method,
+— [src/darwin/verdict_emitter.py](src/darwin/verdict_emitter.py) — with a single method,
 `emit(case_dir, candidate_dir, timeout) -> MEvaluation`:
 
 - The **only shipped implementation is `InProcessEmitter`**, the 1.0 default: its
@@ -131,7 +131,7 @@ longer call the evaluator directly; they depend on a typed **`VerdictEmitter`** 
   `VerdictEmitter`, the 2.0 **out-of-process emitter swaps in by replacing this one
   component**, touching no consumer. A test fake implementing the Protocol drives the
   loop to completion on canned verdicts, proving the swap holds
-  ([tools/test_verdict_emitter.py](tools/test_verdict_emitter.py)).
+  ([tests/test_verdict_emitter.py](tests/test_verdict_emitter.py)).
 
 **Trust posture.** The in-process default is acceptable at 1.0 **because forging
 one's own optimization verdict is pointless** under the single-user-trusted posture
@@ -150,7 +150,7 @@ in 2.0, not built here.
 
 ## Native-Linux verification (CI matrix, cgroup v2)
 
-The container lockdown probe ([tools/verify_container_sandbox.py](tools/verify_container_sandbox.py))
+The container lockdown probe ([src/darwin/verify_container_sandbox.py](src/darwin/verify_container_sandbox.py))
 now runs in CI on a matrix of native-Linux runners, so the OS-level lockdown is
 exercised on real Linux kernels and Docker daemons, not only on the macOS Docker
 Desktop LinuxKit VM. The workflow is
@@ -189,7 +189,7 @@ probe output) and pass the whole battery under it. On each leg the probe confirm
 **Memory-cap enforcement is version-robust by construction.** It does not depend on the
 inspect OOM flag: an OOM is a `SIGKILL` that Docker reports as exit `137` (≥ 128), and
 `_classify` maps any exit ≥ 128 to `CRASHED` whether or not `.State.OOMKilled` is set
-([tools/sandbox_container.py](tools/sandbox_container.py), `_classify`). On the two
+([src/darwin/sandbox_container.py](src/darwin/sandbox_container.py), `_classify`). On the two
 cgroup-v2 legs above the flag happens to be set, but a cgroup configuration that left it
 unset would still classify the kill as `CRASHED`. The only version-dependent piece is
 the `oom_killed` boolean itself, which reads the inspect flag.
@@ -230,8 +230,8 @@ byte-identical whether or not you adopt them (P6.4.1, decision 0033).
   `DARWIN_SANDBOX_EXTRA_SECURITY_OPTS` (comma-separated `docker run --security-opt`
   values, for example `seccomp=/abs/path/example-sandbox-seccomp.json`) and each entry
   is appended as an **additional** `--security-opt`, never replacing a lockdown flag
-  ([tools/sandbox_container.py](tools/sandbox_container.py)). An **example starting
-  point** ships at [tools/seccomp/example-sandbox-seccomp.json](tools/seccomp/example-sandbox-seccomp.json)
+  ([src/darwin/sandbox_container.py](src/darwin/sandbox_container.py)). An **example starting
+  point** ships at [docker/seccomp/example-sandbox-seccomp.json](docker/seccomp/example-sandbox-seccomp.json)
   — it is an **EXAMPLE, NOT a validated production profile** (it allows by default and
   only denies a curated administrative-syscall set; a production profile should
   default-deny with a validated allowlist). The repo **smoke-tests** only that the
@@ -249,7 +249,7 @@ byte-identical whether or not you adopt them (P6.4.1, decision 0033).
   `--device-write-bps` / `--device-read-bps`) and a file-size cap
   (`--ulimit fsize=<bytes>`). A writable-area size cap is **already in place** in the
   1.0 default — the only writable mount is the in-RAM tmpfs at `/tmp`, created with a
-  fixed `size=64m` ([tools/sandbox_container.py](tools/sandbox_container.py)) — but the
+  fixed `size=64m` ([src/darwin/sandbox_container.py](src/darwin/sandbox_container.py)) — but the
   block-IO and `fsize` caps above are **multi-tenant guidance, off by default at 1.0**.
 
 These are recorded so the multi-tenant posture is on the record. 1.0 ships the seccomp
@@ -263,8 +263,8 @@ file-size guidance; it does **not** enable any of them by default.
 - The only credential is `ANTHROPIC_API_KEY`. It is read from the environment, or
   from a `.env` file at the repository root that is **gitignored and untracked**.
   It is never passed into the container.
-- The key is never hardcoded, logged, or printed ([tools/generator.py](tools/generator.py),
-  [tools/bloat.py](tools/bloat.py)). Existing environment variables always win over
+- The key is never hardcoded, logged, or printed ([src/darwin/generator.py](src/darwin/generator.py),
+  [src/darwin/bloat.py](src/darwin/bloat.py)). Existing environment variables always win over
   `.env`.
 - No secrets are present in any git-tracked file (verified by scanning tracked
   files and full git history for common key patterns). This check is pattern-based
