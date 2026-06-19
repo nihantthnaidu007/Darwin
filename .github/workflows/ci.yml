@@ -1,10 +1,16 @@
 name: CI
 
-# Build the sandbox image and run the full suite, and (in a separate job)
-# generate a CycloneDX SBOM of the deployable runtime surface as a build artifact
-# (P6.2.2). Runs on push to any branch (so a phase branch can be seen green before
-# merge) and on pull requests to main (so main is gated). No secrets: the suite
-# uses fakes and the container, never a live ANTHROPIC_API_KEY.
+# Build the sandbox image and run the full suite across a host-Python matrix
+# (3.12, 3.13, 3.14; P7.5), and (in a separate job) generate a CycloneDX SBOM of
+# the deployable runtime surface as a build artifact (P6.2.2). The test job runs on
+# all three host interpreters to back the README's verified 3.12-to-3.14 host range;
+# the sandbox container stays pinned to 3.13 on every leg, so the matrix exercises
+# the host orchestration code, not the in-container runner. The single hashed dev
+# lock installs under --require-hashes on all three host versions from one
+# 3.13-compiled file (decision 0028), so no per-version locks are needed. Runs on
+# push to any branch (so a phase branch can be seen green before merge) and on pull
+# requests to main (so main is gated). No secrets: the suite uses fakes and the
+# container, never a live ANTHROPIC_API_KEY.
 on:
   push:
   pull_request:
@@ -13,14 +19,23 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Run the full suite once per supported host Python (P7.5). fail-fast: false so
+    # a failure on one interpreter does not cancel the others; every leg reports its
+    # own result. Versions are quoted strings so YAML does not read 3.x as a float.
+    # The sandbox image below is fixed at 3.13 on every leg, so the matrix varies
+    # only the host orchestration interpreter, not the in-container runner.
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.13', '3.14']
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Set up Python 3.13
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
-          python-version: '3.13'
+          python-version: ${{ matrix.python-version }}
 
       # Host deps via requirements-dev.txt: the runtime deps (radon, vulture,
       # pytest, anthropic; httpx arrives transitively via anthropic) plus
@@ -31,19 +46,28 @@ jobs:
         run: pip install --require-hashes -r requirements-dev.txt
 
       # The suite runs candidates via docker run, so the image must exist first.
-      # Exact command from the README.
+      # Exact command from the README. The image is pinned to Python 3.13 on every
+      # matrix leg: the tag darwin-sandbox:py313 and tools/Dockerfile.sandbox do not
+      # vary with the host leg, because the matrix exercises the host orchestration,
+      # not the in-container runner.
       - name: Build the sandbox image
         run: docker build -f tools/Dockerfile.sandbox -t darwin-sandbox:py313 tools/
 
       # Run from tools/ so imports resolve as every other invocation does.
-      # Expected: 75 passed, 2 xfailed (the decision-0008 in-process forgery
-      # vectors). pytest's default exit codes fail CI on any failure or XPASS.
-      # Coverage is reported (term-missing) but NOT gated: there is no
-      # --cov-fail-under, so the gate still fails only on a test failure or an
-      # unexpected pass. The exit behavior is unchanged by the coverage addition.
-      - name: Run the suite (with coverage, reported not gated)
+      # Expected (indicative; the count grows as tests are added): 257 passed,
+      # 2 xfailed (the decision-0008 in-process forgery vectors), plus one
+      # Docker-gated skip when the daemon is absent. pytest's default exit codes
+      # fail CI on any failure or XPASS. Coverage is GATED as of P7.4 at
+      # --cov-fail-under=56: production coverage measured 58 percent via this exact
+      # invocation (the --cov-config omit excludes test files), floored to 58 and
+      # cut by a 2-point cross-version/CI margin. The omit lives in pyproject.toml;
+      # see docs/quality-baseline.md. That omit is load-bearing for the floor's
+      # honesty: the test files are near-fully executed, so dropping --cov-config
+      # would inflate the percentage and make the 56 gate trivial; the floor measures
+      # production code only (decision 0037).
+      - name: Run the suite (coverage gated at 56 percent)
         working-directory: tools
-        run: python -m pytest -q -p no:cacheprovider --cov=. --cov-report=term-missing --cov-config=../pyproject.toml
+        run: python -m pytest -q -p no:cacheprovider --cov=. --cov-report=term-missing --cov-config=../pyproject.toml --cov-fail-under=56
 
   # Generate a CycloneDX SBOM of the deployable runtime surface and upload it as a
   # build artifact. The SBOM is generated from requirements.txt (the runtime lock),

@@ -33,6 +33,7 @@ not touch the API or Docker.
 
 Usage: python mrun_summary.py <run_dir>     # pretty-print one mloop run's summary
 """
+
 import sys
 from pathlib import Path
 
@@ -49,9 +50,12 @@ MCASES = ROOT / "mcases"
 # is also weight 0. Both are excluded from the scored view here, as in run_summary.
 STRUCTURAL = [m for m, w in WEIGHTS.items() if w > 0]
 _LABEL = {
-    "cyclomatic_total": "cyclomatic_total", "logical_loc": "logical_loc",
-    "max_nesting_depth": "max_nesting_depth", "dependency_count": "dependency_count",
-    "dead_code_count": "dead_code_count", "cyclomatic_max": "cyclomatic_max",
+    "cyclomatic_total": "cyclomatic_total",
+    "logical_loc": "logical_loc",
+    "max_nesting_depth": "max_nesting_depth",
+    "dependency_count": "dependency_count",
+    "dead_code_count": "dead_code_count",
+    "cyclomatic_max": "cyclomatic_max",
 }
 
 
@@ -103,14 +107,16 @@ def summarize_mrun(run_dir):
     per_metric = []
     for m in STRUCTURAL:
         c = best_costs.get(m)
-        per_metric.append({
-            "metric": m,
-            "original": original[m],
-            "best": best_agg[m],
-            "floor": floor[m],
-            "norm_cost": c,                         # None where this case gives no signal
-            "at_or_below_floor": (c is not None and c <= 0.0),
-        })
+        per_metric.append(
+            {
+                "metric": m,
+                "original": original[m],
+                "best": best_agg[m],
+                "floor": floor[m],
+                "norm_cost": c,  # None where this case gives no signal
+                "at_or_below_floor": (c is not None and c <= 0.0),
+            }
+        )
 
     # Weighted costs come straight from the loop's own log — never recomputed here.
     best_wc = run["best_weighted_cost"]
@@ -130,7 +136,9 @@ def summarize_mrun(run_dir):
         feedback_gain_pp = round((first_wc - best_wc) * 100, 2)
         structural_changes = [
             {"metric": m, "first_pass": first_agg[m], "best": best_agg[m]}
-            for m in STRUCTURAL if best_agg.get(m) != first_agg.get(m)]
+            for m in STRUCTURAL
+            if best_agg.get(m) != first_agg.get(m)
+        ]
     else:
         feedback_gain_pp, structural_changes = None, []
 
@@ -138,18 +146,21 @@ def summarize_mrun(run_dir):
         "case": run["case"],
         "model": run["model"],
         "config": run["config"],
-        "verdict": ("improved (best candidate returned)" if run["improved_over_baseline"]
-                    else "no improvement (baseline original returned)"),
+        "verdict": (
+            "improved (best candidate returned)"
+            if run["improved_over_baseline"]
+            else "no improvement (baseline original returned)"
+        ),
         "improved_over_baseline": run["improved_over_baseline"],
         "returned": run["returned"],
         "halted": run["halted"],
         # Honesty fields:
-        "generations_attempted": run["generations"],   # how many gens the loop ran
-        "best_generation": best_gen,                    # which gen produced the kept best
+        "generations_attempted": run["generations"],  # how many gens the loop ran
+        "best_generation": best_gen,  # which gen produced the kept best
         "first_scored_generation": (first["generation"] if first else None),
         "first_pass_weighted_cost": first_wc,
-        "first_pass_bloat_removed_pct": first_bloat,    # what gen 1 alone achieved
-        "feedback_gain_pp": feedback_gain_pp,           # extra pp the later gens added
+        "first_pass_bloat_removed_pct": first_bloat,  # what gen 1 alone achieved
+        "feedback_gain_pp": feedback_gain_pp,  # extra pp the later gens added
         "structural_changes_from_first": structural_changes,  # what feedback actually moved
         "floor_reached": (best_wc is not None and best_wc <= 0.0),
         # Scores on the case's own original->floor scale (1.0 = original, 0.0 = floor):
@@ -158,8 +169,9 @@ def summarize_mrun(run_dir):
         # "bloat removed" = fraction of the original->floor span closed, in %. >100%
         # (below_floor) means the candidate scored BELOW the clean reference floor --
         # the engine flags these (suspiciously-simple), it does not reward them.
-        "bloat_removed_pct": (round((1.0 - best_wc) * 100, 1)
-                              if best_wc is not None else None),
+        "bloat_removed_pct": (
+            round((1.0 - best_wc) * 100, 1) if best_wc is not None else None
+        ),
         "below_floor": (best_wc is not None and best_wc < 0.0),
         "per_metric": per_metric,
         "best_flags": best_rec.get("flags", []),
@@ -176,43 +188,73 @@ def summarize_mrun(run_dir):
 
 def print_summary(s):
     print("=" * 78)
-    print(f"MRUN SUMMARY  {s['case']}   (model={s['model']}, "
-          f"cap={s['config']['cap']}, plateau={s['config']['plateau_limit']})")
+    print(
+        f"MRUN SUMMARY  {s['case']}   (model={s['model']}, "
+        f"cap={s['config']['cap']}, plateau={s['config']['plateau_limit']})"
+    )
     print("=" * 78)
     print(f"  verdict           : {s['verdict']}")
-    print(f"  weighted cost     : baseline 1.0  ->  best {s['best_weighted_cost']}   "
-          f"(0.0 = clean floor; lower is better)")
-    floor_note = ("   [scored BELOW the clean floor -> flagged, not rewarded]"
-                  if s["below_floor"] else "")
-    print(f"  bloat removed     : {s['bloat_removed_pct']}%   (of this case's own "
-          f"original->floor span){floor_note}")
+    print(
+        f"  weighted cost     : baseline 1.0  ->  best {s['best_weighted_cost']}   "
+        f"(0.0 = clean floor; lower is better)"
+    )
+    floor_note = (
+        "   [scored BELOW the clean floor -> flagged, not rewarded]"
+        if s["below_floor"]
+        else ""
+    )
+    print(
+        f"  bloat removed     : {s['bloat_removed_pct']}%   (of this case's own "
+        f"original->floor span){floor_note}"
+    )
     print(f"  floor reached     : {s['floor_reached']}")
-    print(f"  generations run   : {s['generations_attempted']}    "
-          f"best candidate from generation {s['best_generation']}"
-          + ("   <- one-shot (gen 1)" if s['best_generation'] == 1 else
-             "   <- baseline kept" if s['best_generation'] == 0 else
-             f"   <- needed feedback (gen {s['best_generation']})"))
+    print(
+        f"  generations run   : {s['generations_attempted']}    "
+        f"best candidate from generation {s['best_generation']}"
+        + (
+            "   <- one-shot (gen 1)"
+            if s["best_generation"] == 1
+            else "   <- baseline kept"
+            if s["best_generation"] == 0
+            else f"   <- needed feedback (gen {s['best_generation']})"
+        )
+    )
     if s["best_generation"] >= 2:
-        changes = ", ".join(f"{c['metric']} {c['first_pass']}->{c['best']}"
-                            for c in s["structural_changes_from_first"]) or "none (noise only)"
-        print(f"  feedback magnitude: gen 1 alone removed {s['first_pass_bloat_removed_pct']}%; "
-              f"later gens added {s['feedback_gain_pp']} pp  (structural change: {changes})")
+        changes = (
+            ", ".join(
+                f"{c['metric']} {c['first_pass']}->{c['best']}"
+                for c in s["structural_changes_from_first"]
+            )
+            or "none (noise only)"
+        )
+        print(
+            f"  feedback magnitude: gen 1 alone removed {s['first_pass_bloat_removed_pct']}%; "
+            f"later gens added {s['feedback_gain_pp']} pp  (structural change: {changes})"
+        )
     if s["best_flags"]:
         print(f"  guard flags       : {', '.join(s['best_flags'])}")
     if s["halted"]:
         print(f"  HALTED            : {s['halted']}")
-    print(f"  cost              : ${s['total_cost_usd']}   "
-          f"(tokens in/out {s['total_input_tokens']}/{s['total_output_tokens']})")
+    print(
+        f"  cost              : ${s['total_cost_usd']}   "
+        f"(tokens in/out {s['total_input_tokens']}/{s['total_output_tokens']})"
+    )
 
-    print(f"\n  {'metric':<20}{'original':>10}{'best':>8}{'floor':>8}{'to floor':>9}"
-          f"{'norm cost':>11}  (0=floor,1=orig)")
+    print(
+        f"\n  {'metric':<20}{'original':>10}{'best':>8}{'floor':>8}{'to floor':>9}"
+        f"{'norm cost':>11}  (0=floor,1=orig)"
+    )
     print("  " + "-" * 73)
     for pm in s["per_metric"]:
         nc = "n/a" if pm["norm_cost"] is None else f"{pm['norm_cost']:.3f}"
         mark = "  *at/below floor" if pm["at_or_below_floor"] else ""
-        print(f"  {_LABEL[pm['metric']]:<20}{pm['original']:>10}{pm['best']:>8}"
-              f"{pm['floor']:>8}{pm['best'] - pm['floor']:>9}{nc:>11}{mark}")
-    print(f"  (maintainability_index informational only — per-file, weight 0; not scored)")
+        print(
+            f"  {_LABEL[pm['metric']]:<20}{pm['original']:>10}{pm['best']:>8}"
+            f"{pm['floor']:>8}{pm['best'] - pm['floor']:>9}{nc:>11}{mark}"
+        )
+    print(
+        "  (maintainability_index informational only — per-file, weight 0; not scored)"
+    )
     print(f"\n  artifacts: {s['run_dir']}\n")
 
 

@@ -41,6 +41,7 @@ def load_unit(pkg_dir):
 
 # ------------------------------------------------------------ comparison
 
+
 def canon(v):
     """Canonical form for strict typed comparison of observable values.
 
@@ -60,8 +61,7 @@ def canon(v):
     if isinstance(v, (list, tuple)):
         return ("seq", tuple(canon(x) for x in v))
     if isinstance(v, dict):
-        return ("dict", tuple(sorted((canon(k), canon(val))
-                                     for k, val in v.items())))
+        return ("dict", tuple(sorted((canon(k), canon(val)) for k, val in v.items())))
     return ("other", type(v).__name__, repr(v))
 
 
@@ -72,6 +72,7 @@ def canon_outcome(outcome):
 
 
 # ------------------------------------------------------------- execution
+
 
 def _outcome(fn, args, kwargs):
     try:
@@ -121,7 +122,9 @@ def check_equivalence(original_dir, candidate_dir, sequences, entry="Store"):
                     "original": oa[1],
                     "candidate": ob[1],
                 }
-                return False, witness, {"calls_compared": calls_compared,
-                                        "sequences": len(sequences)}
-    return True, None, {"calls_compared": calls_compared,
-                        "sequences": len(sequences)}
+                return (
+                    False,
+                    witness,
+                    {"calls_compared": calls_compared, "sequences": len(sequences)},
+                )
+    return True, None, {"calls_compared": calls_compared, "sequences": len(sequences)}

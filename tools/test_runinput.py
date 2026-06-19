@@ -9,6 +9,7 @@ case and mcase still loads unchanged.
 
   cd tools && python -m pytest test_runinput.py -q -p no:cacheprovider
 """
+
 import json
 import sys
 from pathlib import Path
@@ -34,11 +35,15 @@ def _corpus_cases():
 
 
 def _corpus_mcases():
-    return [d for d in sorted(MCASES.iterdir())
-            if d.is_dir() and (d / "meta.json").is_file()]
+    return [
+        d
+        for d in sorted(MCASES.iterdir())
+        if d.is_dir() and (d / "meta.json").is_file()
+    ]
 
 
 # --------------------------------------------------------------- guarded load
+
 
 def test_missing_meta_raises_runinputerror_naming_file(tmp_path):
     missing = tmp_path / "meta.json"
@@ -50,7 +55,9 @@ def test_missing_meta_raises_runinputerror_naming_file(tmp_path):
 
 def test_truncated_meta_raises_runinputerror_naming_file(tmp_path):
     p = tmp_path / "meta.json"
-    p.write_text('{"case_id": "c", "entry_point": "f"', encoding="utf-8")  # no closing brace
+    p.write_text(
+        '{"case_id": "c", "entry_point": "f"', encoding="utf-8"
+    )  # no closing brace
     with pytest.raises(runinput.RunInputError) as e:
         runinput.load_case_meta(tmp_path)
     msg = str(e.value)
@@ -78,9 +85,11 @@ def test_unreadable_input_raises_runinputerror_not_oserror(tmp_path):
 
 # --------------------------------------------------------------- shape rules
 
+
 def test_case_meta_missing_entry_point_fails_naming_key(tmp_path):
     (tmp_path / "meta.json").write_text(
-        json.dumps({"case_id": "c", "category": "x"}), encoding="utf-8")
+        json.dumps({"case_id": "c", "category": "x"}), encoding="utf-8"
+    )
     with pytest.raises(runinput.RunInputError) as e:
         runinput.load_case_meta(tmp_path)
     msg = str(e.value)
@@ -89,7 +98,8 @@ def test_case_meta_missing_entry_point_fails_naming_key(tmp_path):
 
 def test_case_meta_missing_case_id_fails_naming_key(tmp_path):
     (tmp_path / "meta.json").write_text(
-        json.dumps({"entry_point": "f"}), encoding="utf-8")
+        json.dumps({"entry_point": "f"}), encoding="utf-8"
+    )
     with pytest.raises(runinput.RunInputError) as e:
         runinput.load_case_meta(tmp_path)
     assert "case_id" in str(e.value)
@@ -97,7 +107,8 @@ def test_case_meta_missing_case_id_fails_naming_key(tmp_path):
 
 def test_mcase_meta_missing_entry_fails_naming_key(tmp_path):
     (tmp_path / "meta.json").write_text(
-        json.dumps({"case_id": "c", "kind": "x"}), encoding="utf-8")
+        json.dumps({"case_id": "c", "kind": "x"}), encoding="utf-8"
+    )
     with pytest.raises(runinput.RunInputError) as e:
         runinput.load_mcase_meta(tmp_path)
     msg = str(e.value)
@@ -114,14 +125,17 @@ def test_non_object_meta_fails_clearly(tmp_path):
 def test_optional_keys_stay_optional(tmp_path):
     # Exactly the required keys, none of the optional ones: must load unchanged.
     (tmp_path / "meta.json").write_text(
-        json.dumps({"case_id": "c", "entry_point": "f"}), encoding="utf-8")
+        json.dumps({"case_id": "c", "entry_point": "f"}), encoding="utf-8"
+    )
     assert runinput.load_case_meta(tmp_path) == {"case_id": "c", "entry_point": "f"}
     (tmp_path / "meta.json").write_text(
-        json.dumps({"case_id": "c", "entry": "E"}), encoding="utf-8")
+        json.dumps({"case_id": "c", "entry": "E"}), encoding="utf-8"
+    )
     assert runinput.load_mcase_meta(tmp_path) == {"case_id": "c", "entry": "E"}
 
 
 # --------------------------------------------------- baseline / aggregate guard
+
 
 def test_missing_baseline_raises_clear_error(tmp_path):
     with pytest.raises(runinput.RunInputError) as e:
@@ -139,6 +153,7 @@ def test_missing_aggregate_raises_clear_error(tmp_path):
 
 # ---------------------------------------- malformed input stops BEFORE the run
 
+
 def test_case_loop_aborts_before_run_on_missing_key(tmp_path, monkeypatch):
     """A case meta.json missing entry_point stops run_loop at the meta read, before
     any generation or evaluation (the run_dir is never even created)."""
@@ -151,7 +166,7 @@ def test_case_loop_aborts_before_run_on_missing_key(tmp_path, monkeypatch):
     with pytest.raises(runinput.RunInputError) as e:
         loop.run_loop("broken")
     assert "entry_point" in str(e.value)
-    assert not (tmp_path / "runs").exists()       # never reached run_dir creation
+    assert not (tmp_path / "runs").exists()  # never reached run_dir creation
 
 
 def test_mcase_loop_aborts_before_run_on_missing_key(tmp_path, monkeypatch):
@@ -176,6 +191,7 @@ def test_mcase_loop_aborts_before_run_on_missing_key(tmp_path, monkeypatch):
 
 # --------------------------------------- every existing valid input still loads
 
+
 @pytest.mark.parametrize("case_dir", _corpus_cases(), ids=lambda d: d.name)
 def test_valid_corpus_case_meta_loads_identically(case_dir):
     raw = json.loads((case_dir / "meta.json").read_text(encoding="utf-8"))
@@ -191,6 +207,7 @@ def test_valid_corpus_mcase_meta_loads_identically(case_dir):
 # ----------- P4.5b: summary + dev readers fail clearly on a bad input file -----
 # These readers get the guard only (no shape rule). The label defaults to the file
 # name, so the message names the real file even though no label is hand-passed.
+
 
 def test_summarize_run_missing_run_json_raises_clear_error(tmp_path):
     with pytest.raises(runinput.RunInputError) as e:
@@ -231,7 +248,8 @@ def test_build_case_invalid_spec_raises_clear_error(tmp_path):
 def test_record_golden_missing_arg_file_raises_clear_error(tmp_path, monkeypatch):
     missing = tmp_path / "arg_sets.json"
     monkeypatch.setattr(
-        sys, "argv", ["record_golden.py", "ref.py", "entry", str(missing)])
+        sys, "argv", ["record_golden.py", "ref.py", "entry", str(missing)]
+    )
     with pytest.raises(runinput.RunInputError) as e:
         record_golden.main()
     assert "arg_sets.json" in str(e.value) and "not found" in str(e.value)

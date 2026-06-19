@@ -18,6 +18,7 @@ actually carried the oracle before the strip ran.
 
   cd tools && python -m pytest test_oracle_leak.py -q -p no:cacheprovider
 """
+
 import mevaluator
 import mloop
 from oracle_markers import CANDIDATE_OUTCOME_PREFIX, ORIGINAL_OUTCOME_PREFIX
@@ -45,8 +46,14 @@ def test_equivalence_rejection_strips_oracle_keeps_input():
     # Built exactly as mevaluator.evaluate builds an equivalence rejection: real
     # producer, the gate and reason_code mevaluator itself sets.
     ev = mevaluator.MEvaluation(
-        "rejected", mevaluator.NON_EQUIVALENT, "equivalence", None, None, None,
-        feedback=mevaluator._reject_equivalence_feedback(witness, {"sequences": 5}))
+        "rejected",
+        mevaluator.NON_EQUIVALENT,
+        "equivalence",
+        None,
+        None,
+        None,
+        feedback=mevaluator._reject_equivalence_feedback(witness, {"sequences": 5}),
+    )
 
     # Precondition: the RAW producer feedback really carries the oracle, so the strip
     # below has something to strip (the assertions are not a vacuous pass).
@@ -54,34 +61,53 @@ def test_equivalence_rejection_strips_oracle_keeps_input():
     assert CAND_OUTCOME_SENTINEL in ev.feedback
 
     out = mloop.format_feedback(ev)
-    assert ORIG_OUTCOME_SENTINEL not in out        # the oracle's outcome never leaks
-    assert CAND_OUTCOME_SENTINEL not in out        # the candidate's outcome is dropped too
-    assert DIVERGING_INPUT_SENTINEL in out         # the diverging INPUT is still named (Fork 1)
-    assert "withdraw(250)" in out                  # the diverging call (input) is kept
+    assert ORIG_OUTCOME_SENTINEL not in out  # the oracle's outcome never leaks
+    assert CAND_OUTCOME_SENTINEL not in out  # the candidate's outcome is dropped too
+    assert (
+        DIVERGING_INPUT_SENTINEL in out
+    )  # the diverging INPUT is still named (Fork 1)
+    assert "withdraw(250)" in out  # the diverging call (input) is kept
 
 
 def test_tests_failed_rejection_strips_dump_oracle():
     """Tests-failed vector: real producer + real routing. The pytest dump (which can
     print the oracle's expected value) is replaced by the generic message."""
-    dump = ("pytest: tests-failed:\n"
-            "E       assert limiter.allow('x') == " + DUMP_ORACLE_SENTINEL)
+    dump = (
+        "pytest: tests-failed:\n"
+        "E       assert limiter.allow('x') == " + DUMP_ORACLE_SENTINEL
+    )
     ev = mevaluator.MEvaluation(
-        "rejected", TESTS_FAILED, "tests", None, None, None,
-        feedback=mevaluator._reject_tests_feedback(TESTS_FAILED, dump))
+        "rejected",
+        TESTS_FAILED,
+        "tests",
+        None,
+        None,
+        None,
+        feedback=mevaluator._reject_tests_feedback(TESTS_FAILED, dump),
+    )
 
-    assert DUMP_ORACLE_SENTINEL in ev.feedback     # precondition: the raw dump carries it
+    assert DUMP_ORACLE_SENTINEL in ev.feedback  # precondition: the raw dump carries it
     out = mloop.format_feedback(ev)
-    assert DUMP_ORACLE_SENTINEL not in out         # the dump (and its oracle) never leaks
-    assert "Re-examine" in out                     # the generic behavior-changed message
+    assert DUMP_ORACLE_SENTINEL not in out  # the dump (and its oracle) never leaks
+    assert "Re-examine" in out  # the generic behavior-changed message
 
 
 def test_producer_and_sanitizer_bind_to_one_marker():
     """The producer emits the oracle lines with the shared prefixes, and those are
     exactly the prefixes the sanitizer strips -- one source, no per-file copy."""
-    witness = {"sequence": "s", "call_index": 0, "call": "c",
-               "original": ORIG_OUTCOME_SENTINEL, "candidate": CAND_OUTCOME_SENTINEL}
+    witness = {
+        "sequence": "s",
+        "call_index": 0,
+        "call": "c",
+        "original": ORIG_OUTCOME_SENTINEL,
+        "candidate": CAND_OUTCOME_SENTINEL,
+    }
     fb = mevaluator._reject_equivalence_feedback(witness, {})
-    orig_line = next(ln.strip() for ln in fb.splitlines() if ORIG_OUTCOME_SENTINEL in ln)
-    cand_line = next(ln.strip() for ln in fb.splitlines() if CAND_OUTCOME_SENTINEL in ln)
+    orig_line = next(
+        ln.strip() for ln in fb.splitlines() if ORIG_OUTCOME_SENTINEL in ln
+    )
+    cand_line = next(
+        ln.strip() for ln in fb.splitlines() if CAND_OUTCOME_SENTINEL in ln
+    )
     assert orig_line.startswith(ORIGINAL_OUTCOME_PREFIX)
     assert cand_line.startswith(CANDIDATE_OUTCOME_PREFIX)

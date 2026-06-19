@@ -21,6 +21,7 @@ Usage:
   python variance_harness.py derive [--snapshots DIR] [--out FILE] [--mresults]
   python variance_harness.py run --n N [--snapshots DIR] [--cap C] [--plateau P] [--model ID]
 """
+
 import argparse
 import json
 import subprocess
@@ -30,7 +31,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 REPORTS = ROOT / "reports"
 SNAPSHOT_DIR = REPORTS / "variance_runs"
-SNAPSHOT_NAME = "maggregate.json"          # mbenchmark.write_aggregate's fixed filename
+SNAPSHOT_NAME = "maggregate.json"  # mbenchmark.write_aggregate's fixed filename
 MVARIANCE = REPORTS / "mvariance.json"
 # Matches mbenchmark's --out default model; run mode passes --model through explicitly.
 DEFAULT_MODEL = "claude-opus-4-8"
@@ -51,12 +52,15 @@ SNAPSHOT_TO_MVARIANCE = {
 
 # ----------------------------------------------------------------- derive
 
+
 def _load_snapshots(snapshot_dir):
     """Every maggregate.json under snapshot_dir, sorted by its path relative to that
     directory (a stable key), so derive is order-stable and reruns are byte-identical."""
     snapshot_dir = Path(snapshot_dir)
-    paths = sorted(snapshot_dir.rglob(SNAPSHOT_NAME),
-                   key=lambda p: str(p.relative_to(snapshot_dir)))
+    paths = sorted(
+        snapshot_dir.rglob(SNAPSHOT_NAME),
+        key=lambda p: str(p.relative_to(snapshot_dir)),
+    )
     return [json.loads(p.read_text(encoding="utf-8")) for p in paths]
 
 
@@ -74,20 +78,30 @@ def _findings(cases, improved_per_run, n_runs, n_cases):
     improved_count = sum(improved_per_run)
     regressions = case_runs - improved_count
     all_one_shot_runs = sum(
-        1 for i in range(n_runs)
-        if all(c["best_generation"][i] == 1 for c in cases.values()))
+        1
+        for i in range(n_runs)
+        if all(c["best_generation"][i] == 1 for c in cases.values())
+    )
     stable = [
-        (f"Across {n_runs} runs x {n_cases} cases ({case_runs} case-runs), "
-         f"{improved_count} improved over baseline and {regressions} returned baseline "
-         f"(no improvement)."),
-        (f"Generation 1 alone removed {min(gen1_all):g} to {max(gen1_all):g} percent of "
-         f"the original-to-floor span across every case and run."),
+        (
+            f"Across {n_runs} runs x {n_cases} cases ({case_runs} case-runs), "
+            f"{improved_count} improved over baseline and {regressions} returned baseline "
+            f"(no improvement)."
+        ),
+        (
+            f"Generation 1 alone removed {min(gen1_all):g} to {max(gen1_all):g} percent of "
+            f"the original-to-floor span across every case and run."
+        ),
     ]
     unstable = [
-        (f"{all_one_shot_runs} of {n_runs} runs had all {n_cases} cases one-shot "
-         f"(best generation 1)."),
-        (f"feedback_gain_pp ranged from {min(gain_all):g} to {max(gain_all):g} "
-         f"percentage points across cases and runs."),
+        (
+            f"{all_one_shot_runs} of {n_runs} runs had all {n_cases} cases one-shot "
+            f"(best generation 1)."
+        ),
+        (
+            f"feedback_gain_pp ranged from {min(gain_all):g} to {max(gain_all):g} "
+            f"percentage points across cases and runs."
+        ),
     ]
     return stable, unstable
 
@@ -100,16 +114,18 @@ def _derived_note(n_runs, model, config):
     this byte-stable artifact."""
     cap = config.get("cap")
     plateau = config.get("plateau_limit")
-    return (f"Artifact-backed multi-file run-to-run variance, derived by "
-            f"tools/variance_harness.py from {n_runs} committed maggregate.json "
-            f"snapshot(s) under reports/variance_runs/ (one per run, each the "
-            f"unmodified output of tools/mbenchmark.py over the 3-case multi-file "
-            f"corpus). Model {model}, config cap {cap} / plateau {plateau}, N {n_runs}, "
-            f"read from the snapshots. A single live run is one stochastic sample, not "
-            f"the result: these {n_runs} runs exist to characterize the run-to-run "
-            f"variance rather than report one draw as the finding. Reproducible: re-run "
-            f"`python variance_harness.py derive` on the same snapshots for a "
-            f"byte-identical dataset.")
+    return (
+        f"Artifact-backed multi-file run-to-run variance, derived by "
+        f"tools/variance_harness.py from {n_runs} committed maggregate.json "
+        f"snapshot(s) under reports/variance_runs/ (one per run, each the "
+        f"unmodified output of tools/mbenchmark.py over the 3-case multi-file "
+        f"corpus). Model {model}, config cap {cap} / plateau {plateau}, N {n_runs}, "
+        f"read from the snapshots. A single live run is one stochastic sample, not "
+        f"the result: these {n_runs} runs exist to characterize the run-to-run "
+        f"variance rather than report one draw as the finding. Reproducible: re-run "
+        f"`python variance_harness.py derive` on the same snapshots for a "
+        f"byte-identical dataset."
+    )
 
 
 def derive(snapshot_dir=SNAPSHOT_DIR):
@@ -129,11 +145,14 @@ def derive(snapshot_dir=SNAPSHOT_DIR):
         entries = []
         for idx in indexed:
             if name not in idx:
-                raise SystemExit(f"case {name!r} is missing from a snapshot; the "
-                                 f"snapshot set must cover the same cases every run.")
+                raise SystemExit(
+                    f"case {name!r} is missing from a snapshot; the "
+                    f"snapshot set must cover the same cases every run."
+                )
             entries.append(idx[name])
-        arrays = {mv: [e[snap] for e in entries]
-                  for snap, mv in SNAPSHOT_TO_MVARIANCE.items()}
+        arrays = {
+            mv: [e[snap] for e in entries] for snap, mv in SNAPSHOT_TO_MVARIANCE.items()
+        }
         best_gen = arrays["best_generation"]
         cases[name] = {
             **arrays,
@@ -163,12 +182,15 @@ def format_mresults_rows(dataset):
         c = dataset["cases"][case]
         best_gen = ", ".join(str(g) for g in c["best_generation"])
         gains = c["feedback_gain_pp"]
-        rows.append(f"| `{case}` | {best_gen} | {c['one_shot_runs']}/{n} | "
-                    f"{min(gains):g} to {max(gains):g} |")
+        rows.append(
+            f"| `{case}` | {best_gen} | {c['one_shot_runs']}/{n} | "
+            f"{min(gains):g} to {max(gains):g} |"
+        )
     return rows
 
 
 # -------------------------------------------------------------------- run
+
 
 def _mbenchmark_runner(out_dir, *, cap, plateau, model):
     """Invoke the UNMODIFIED mbenchmark.py for ONE run, writing its maggregate.json
@@ -178,15 +200,32 @@ def _mbenchmark_runner(out_dir, *, cap, plateau, model):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     subprocess.run(
-        [sys.executable, str(Path(__file__).with_name("mbenchmark.py")),
-         "--out", str(out_dir), "--cap", str(cap), "--plateau", str(plateau),
-         "--model", model],
-        check=True)
+        [
+            sys.executable,
+            str(Path(__file__).with_name("mbenchmark.py")),
+            "--out",
+            str(out_dir),
+            "--cap",
+            str(cap),
+            "--plateau",
+            str(plateau),
+            "--model",
+            model,
+        ],
+        check=True,
+    )
     return out_dir / SNAPSHOT_NAME
 
 
-def run(n_runs, snapshot_dir=SNAPSHOT_DIR, *, cap=5, plateau=2,
-        model=DEFAULT_MODEL, runner=_mbenchmark_runner):
+def run(
+    n_runs,
+    snapshot_dir=SNAPSHOT_DIR,
+    *,
+    cap=5,
+    plateau=2,
+    model=DEFAULT_MODEL,
+    runner=_mbenchmark_runner,
+):
     """Orchestrate n_runs multi-file benchmark runs into distinct committed snapshot
     paths (run_00, run_01, ...) under snapshot_dir, then derive. `runner` is an
     injectable seam (default the real mbenchmark invocation) so the orchestration is
@@ -202,6 +241,7 @@ def run(n_runs, snapshot_dir=SNAPSHOT_DIR, *, cap=5, plateau=2,
 
 # -------------------------------------------------------------------- CLI
 
+
 def _write_dataset(dataset, out_path):
     Path(out_path).write_text(json.dumps(dataset, indent=2) + "\n", encoding="utf-8")
 
@@ -213,10 +253,15 @@ def main():
     d = sub.add_parser("derive", help="derive mvariance.json from committed snapshots")
     d.add_argument("--snapshots", default=str(SNAPSHOT_DIR))
     d.add_argument("--out", default=str(MVARIANCE))
-    d.add_argument("--mresults", action="store_true",
-                   help="also print the MRESULTS variance table rows")
+    d.add_argument(
+        "--mresults",
+        action="store_true",
+        help="also print the MRESULTS variance table rows",
+    )
 
-    r = sub.add_parser("run", help="AUTHORIZED SPEND (P5.3b): run N benchmarks, then derive")
+    r = sub.add_parser(
+        "run", help="AUTHORIZED SPEND (P5.3b): run N benchmarks, then derive"
+    )
     r.add_argument("--n", type=int, required=True, help="number of runs to orchestrate")
     r.add_argument("--snapshots", default=str(SNAPSHOT_DIR))
     r.add_argument("--out", default=str(MVARIANCE))
@@ -228,10 +273,13 @@ def main():
     if args.mode == "derive":
         dataset = derive(args.snapshots)
     else:
-        dataset, written = run(args.n, args.snapshots, cap=args.cap,
-                               plateau=args.plateau, model=args.model)
-        print(f"orchestrated {len(written)} run(s); wrote "
-              f"{len(written)} snapshot(s) under {args.snapshots}")
+        dataset, written = run(
+            args.n, args.snapshots, cap=args.cap, plateau=args.plateau, model=args.model
+        )
+        print(
+            f"orchestrated {len(written)} run(s); wrote "
+            f"{len(written)} snapshot(s) under {args.snapshots}"
+        )
     _write_dataset(dataset, args.out)
     print(f"wrote {args.out}")
     if getattr(args, "mresults", False):

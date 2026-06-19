@@ -12,6 +12,7 @@ spec-finder is injected, so absence and presence are simulated directly.
 Run from tools/:
     python -m pytest test_validate_mcase.py -q -p no:cacheprovider
 """
+
 import pytest
 
 from validate_mcase import _require_pytest

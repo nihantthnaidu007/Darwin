@@ -11,6 +11,7 @@ correct and independent. No API, no Docker, no model.
 
   cd tools && python -m pytest test_concurrency.py -q -p no:cacheprovider
 """
+
 import sys
 import threading
 
@@ -29,11 +30,12 @@ def _run_threads(targets):
     def wrap(fn):
         def run():
             try:
-                barrier.wait()          # all threads hit the name minting together
+                barrier.wait()  # all threads hit the name minting together
                 fn()
-            except Exception as e:      # capture, do not crash the harness thread
+            except Exception as e:  # capture, do not crash the harness thread
                 with lock:
                     errors.append(repr(e))
+
         return run
 
     threads = [threading.Thread(target=wrap(fn)) for fn in targets]
@@ -59,6 +61,7 @@ def test_load_module_concurrent_no_collision(tmp_path):
             mod = validate_mcase._load_module(path)
             with lock:
                 results[i] = (mod.__name__, mod.VALUE)
+
         return load
 
     errors = _run_threads([make(i) for i in range(n)])
@@ -89,12 +92,14 @@ def test_load_corpus_concurrent_no_collision(tmp_path):
         case_dir = tmp_path / f"case_{i}"
         case_dir.mkdir()
         (case_dir / "corpus.py").write_text(
-            f"def build_corpus():\n    return {i}\n", encoding="utf-8")
+            f"def build_corpus():\n    return {i}\n", encoding="utf-8"
+        )
 
         def load():
             val = mverify._load_corpus(case_dir)
             with lock:
                 results[i] = val
+
         return load
 
     errors = _run_threads([make(i) for i in range(n)])
@@ -124,6 +129,7 @@ def test_load_unit_concurrent_no_collision(tmp_path):
             mod = mdiffer.load_unit(pkg)
             with lock:
                 results[i] = (mod.__name__, mod.VALUE)
+
         return load
 
     errors = _run_threads([make(i) for i in range(n)])

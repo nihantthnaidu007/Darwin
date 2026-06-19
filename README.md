@@ -11,7 +11,7 @@ evaluator decides whether each rewrite is correct, behavior-equivalent, and
 structurally simpler. Nothing is accepted on
 the model's say-so.
 
-**0.6.0 is the current tagged release.** It stays in the 0.x line on purpose: a 1.0
+**0.7.0 is the current tagged release.** It stays in the 0.x line on purpose: a 1.0
 would signal a stable, production-grade release, and Darwin is not there yet. The
 release line, all done and merged:
 
@@ -45,11 +45,21 @@ release line, all done and merged:
   default argv and an example starting-point profile, plus a typed VerdictEmitter seam
   (in-process default, serializable verdict) prepared for the 2.0 out-of-process
   emitter. In-process verdict forgery stays open by design at 1.0 (decision 0008).
+- **v0.7, test and CI maturity (0.7.0).** The pytest 8.3.5 to 9.0.3 bump that clears
+  CVE-2025-71176 (re-locked on Python 3.13, adding `pygments` as a new transitive of
+  the runtime and sandbox closures); direct unit tests for the loop orchestrator and
+  the single-function verifier (`loop.py` and `verify_case.py`, both at 99 percent line
+  coverage); the four quality gates (ruff lint and format, mypy, gitleaks) plus the
+  pip-audit dependency scan driven to zero and flipped from advisory to blocking, with
+  a `--cov-fail-under=56` coverage floor (production coverage measured 58 percent, less
+  a 2-point margin); and a Python 3.12/3.13/3.14 host CI matrix on the single hashed
+  lock, backing the documented 3.12-to-3.14 host range. No change to the optimization,
+  scoring, or equivalence behavior.
 
 It is run **from source** and is **not published to PyPI** (see
 [pyproject.toml](pyproject.toml)).
 
-> **0.6.0 is an honest early release, not a finished product.** Read
+> **0.7.0 is an honest early release, not a finished product.** Read
 > [Scope and limitations](#scope-and-limitations-read-this-first) before anything
 > else. It states plainly what the container closes (untrusted candidate code cannot
 > touch your host, network, or secrets), what it still does **not** do (the behavior
@@ -367,8 +377,10 @@ The project has a GitHub Actions workflow,
 [.github/workflows/ci.yml](.github/workflows/ci.yml), that builds the sandbox image
 and runs the full test suite on `ubuntu-latest`, gating pushes (so a phase branch can
 be seen green before merge) and pull requests to `main`. The expected result is
-**75 passed, 2 xfailed**. The two `xfailed` are the decision-0008 in-process
-forgery vectors in `tools/test_behavior_gate_limits.py`, pinned known-open; pytest's
+indicative (the count grows as tests are added): **257 passed, 2 xfailed**, plus
+one Docker-gated skip when the daemon is absent. The two `xfailed` are the
+decision-0008 in-process forgery vectors in `tools/test_behavior_gate_limits.py`,
+pinned known-open; pytest's
 default exit codes fail CI on any failure or on an unexpected pass (an `xfail` that
 turns `XPASS` is the signal that a forgery vector was closed and the marker must be
 updated). The suite uses fakes and the container and never a live

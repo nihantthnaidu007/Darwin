@@ -1,6 +1,6 @@
-# Darwin: release metadata for the 0.6.0 GitHub-tagged release.
+# Darwin: release metadata for the 0.7.0 GitHub-tagged release.
 #
-# Version is 0.6.0, staying in the 0.x line on purpose: a 1.0 would signal a
+# Version is 0.7.0, staying in the 0.x line on purpose: a 1.0 would signal a
 # stable, production-grade release. Over 0.2.0, the release line adds multi-file
 # simplification (the multi-file generator, the directed multi-file loop, and the
 # multi-file evaluator plus benchmark harness) on top of the single-function
@@ -33,14 +33,24 @@
 # VerdictEmitter seam (in-process default, serializable verdict) prepared for the 2.0
 # out-of-process emitter -- again with no change to the optimization, scoring, or
 # equivalence behavior.
+# Over 0.6.0, it adds test and CI maturity (v0.7): the pytest 8.3.5 to 9.0.3 bump
+# that clears CVE-2025-71176 (re-locked on Python 3.13, pulling pygments in as a new
+# transitive of the runtime and sandbox closures); direct unit tests for the loop
+# orchestrator and the single-function verifier (loop.py and verify_case.py both at
+# 99 percent line coverage); the four quality gates (ruff lint and format, mypy,
+# gitleaks, pip-audit) driven to zero findings and flipped from advisory to blocking,
+# with the coverage gate set at --cov-fail-under=56 (production coverage measured 58
+# percent, less a 2-point margin); and a Python 3.12/3.13/3.14 host CI matrix
+# validated against the single hashed dev lock -- again with no change to the
+# optimization, scoring, or equivalence behavior.
 # It still carries the in-process verdict-forgery residual (SECURITY.md, decision
 # 0008): the candidate and the trusted result-emitter share one process, so no
 # part of Darwin is forgery-proof, now with the VerdictEmitter seam prepared to
 # receive its 2.0 out-of-process fix. The multi-file references are soft and the
 # corpus is small (3 multi-file plus 5 single-function validation cases, not a
-# benchmark), so 0.6.0 makes no benchmark-grade claim. 0.6.0 honestly signals
-# "supply-chain and isolation hardening added on top of correctness, determinism,
-# and reproducibility, still early."
+# benchmark), so 0.7.0 makes no benchmark-grade claim. 0.7.0 honestly signals
+# "test and CI maturity added on top of supply-chain and isolation hardening,
+# correctness, determinism, and reproducibility, still early."
 #
 # Multi-file finding, carried forward plainly (decision 0014): generation 1 does
 # most of the work, and the directed feedback loop is opportunistic and
@@ -60,7 +70,7 @@
 
 [project]
 name = "darwin"
-version = "0.6.0"
+version = "0.7.0"
 description = "A verified Python code simplifier for single-function and multi-file units with a never-worse-than-baseline guarantee; each candidate runs in a locked-down container that runs on Linux Docker hosts (CI-verified on ubuntu-latest), access-isolated but not a forgery-proof gate (in-process forgery residual open); still early (0.x)."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -96,7 +106,7 @@ classifiers = [
 dependencies = [
     "radon==6.0.1",
     "vulture==2.16",
-    "pytest==8.3.5",
+    "pytest==9.0.3",
     "anthropic==0.107.1",
     "httpx==0.28.1",
 ]
@@ -104,8 +114,9 @@ dependencies = [
 [project.urls]
 Repository = "https://github.com/nihanthnaidu007/Darwin"
 
-# Quality tooling config (P0.2). Advisory only: CI surfaces findings without
-# blocking (.github/workflows/quality.yml); the blocking flip is P7.2. ruff and
+# Quality tooling config (P0.2). Blocking as of P7.4: CI fails on any finding
+# (.github/workflows/quality.yml). The gates ran advisory from P0.2 (decision 0016)
+# until P7.3 drove all findings to zero, then P7.4 flipped them to blocking. ruff and
 # mypy target the production code in tools/; cases/ (bloated benchmark fixtures)
 # and spikes/ (experiments) are excluded so they generate no meaningless findings.
 

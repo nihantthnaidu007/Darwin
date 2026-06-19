@@ -32,6 +32,7 @@ single-user-trusted posture; multi-tenant 2.0 needs the out-of-process emitter f
 forgery resistance. A1 in-process verdict forgery is open-by-design at 1.0 (the two
 decision-0008 xfail vectors in tools/test_behavior_gate_limits.py).
 """
+
 from typing import Protocol, runtime_checkable
 
 from mevaluator import MEvaluation, evaluate
@@ -46,8 +47,7 @@ class VerdictEmitter(Protocol):
     out-of-process and returns the same MEvaluation across the boundary. runtime_
     checkable so a consumer or test can assert an object satisfies the seam."""
 
-    def emit(self, case_dir, candidate_dir, timeout: float = 30.0) -> MEvaluation:
-        ...
+    def emit(self, case_dir, candidate_dir, timeout: float = 30.0) -> MEvaluation: ...
 
 
 class InProcessEmitter:

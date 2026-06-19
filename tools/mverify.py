@@ -70,6 +70,7 @@ added beyond the I1 driver pattern this module reuses.
 Usage: python mverify.py <case_dir> <candidate_unit_dir>
 Prints EQUIVALENT or NOT EQUIVALENT (+ first divergence) and exits 0 / 1.
 """
+
 import importlib.util
 import json
 import secrets
@@ -82,7 +83,9 @@ import runinput
 import sandbox_container as sandbox
 from mdiffer import canon_outcome, load_unit, run_sequence
 
-log = logsetup.get_logger("mverify")  # operational log -> stderr (configured at the entry point)
+log = logsetup.get_logger(
+    "mverify"
+)  # operational log -> stderr (configured at the entry point)
 
 TOOLS = Path(__file__).parent.resolve()
 
@@ -113,8 +116,7 @@ def _unit_files(candidate_dir):
     """The candidate's source tree as container files under candidate/."""
     candidate_dir = Path(candidate_dir)
     return {
-        f"candidate/{path.relative_to(candidate_dir)}":
-            path.read_text(encoding="utf-8")
+        f"candidate/{path.relative_to(candidate_dir)}": path.read_text(encoding="utf-8")
         for path in sorted(candidate_dir.rglob("*.py"))
         if "__pycache__" not in path.parts
     }
@@ -154,8 +156,9 @@ def _unit_driver(entry, start, stop, token):
 def _extract_frame(stdout, token):
     """Read the driver's result frame; fail CLOSED unless EXACTLY ONE
     token-prefixed parseable frame is present (same rule as verify_case)."""
-    frames = [line[len(token):] for line in stdout.splitlines()
-              if line.startswith(token)]
+    frames = [
+        line[len(token) :] for line in stdout.splitlines() if line.startswith(token)
+    ]
     if len(frames) != 1:
         return None
     try:
@@ -198,8 +201,10 @@ def check_equivalence_containerized(case_dir, candidate_dir, timeout=30.0):
 
     # The trusted original replays HERE on the host, via mdiffer, unchanged.
     orig_cls = getattr(load_unit(case_dir / "original"), entry)
-    reference = [[_canon_norm(m, o) for m, o in run_sequence(orig_cls, ctor, calls)]
-                 for _name, ctor, calls in sequences]
+    reference = [
+        [_canon_norm(m, o) for m, o in run_sequence(orig_cls, ctor, calls)]
+        for _name, ctor, calls in sequences
+    ]
 
     base_files = {
         **_unit_files(candidate_dir),
@@ -211,12 +216,17 @@ def check_equivalence_containerized(case_dir, candidate_dir, timeout=30.0):
     runs = 0
     for span_start, span_stop in _batch_spans(reference):
         token = secrets.token_hex(16)
-        files = {**base_files,
-                 "driver.py": _unit_driver(entry, span_start, span_stop, token)}
+        files = {
+            **base_files,
+            "driver.py": _unit_driver(entry, span_start, span_stop, token),
+        }
         res = sandbox.run(files, ["python", "driver.py"], timeout)
         runs += 1
-        stats = {"calls_compared": calls_compared, "sequences": len(sequences),
-                 "container_runs": runs}
+        stats = {
+            "calls_compared": calls_compared,
+            "sequences": len(sequences),
+            "container_runs": runs,
+        }
 
         if res.status != sandbox.OK:
             detail = res.stdout.strip() or res.stderr.strip() or res.status
@@ -224,18 +234,25 @@ def check_equivalence_containerized(case_dir, candidate_dir, timeout=30.0):
             return False, None, stats
         frame = _extract_frame(res.stdout, token)
         if frame is None:
-            stats["error"] = ("candidate replay produced no verifiable result "
-                              "frame (missing, duplicated, or unparseable)")
+            stats["error"] = (
+                "candidate replay produced no verifiable result "
+                "frame (missing, duplicated, or unparseable)"
+            )
             return False, None, stats
         if "error" in frame:
             stats["error"] = f"candidate failed to replay: {frame['error']}"
             return False, None, stats
         emitted = frame.get("sequences")
-        if not (isinstance(emitted, list) and len(emitted) == span_stop - span_start
-                and all(isinstance(e, list) and len(e) == 2 and isinstance(e[1], list)
-                        for e in emitted)
-                and [e[0] for e in emitted]
-                    == [s[0] for s in sequences[span_start:span_stop]]):
+        if not (
+            isinstance(emitted, list)
+            and len(emitted) == span_stop - span_start
+            and all(
+                isinstance(e, list) and len(e) == 2 and isinstance(e[1], list)
+                for e in emitted
+            )
+            and [e[0] for e in emitted]
+            == [s[0] for s in sequences[span_start:span_stop]]
+        ):
             stats["error"] = "candidate replay frame does not match the batch"
             return False, None, stats
 
@@ -255,27 +272,51 @@ def check_equivalence_containerized(case_dir, candidate_dir, timeout=30.0):
                         "original": oa[1],
                         "candidate": ob[1],
                     }
-                    return False, witness, {"calls_compared": calls_compared,
-                                            "sequences": len(sequences),
-                                            "container_runs": runs}
-    return True, None, {"calls_compared": calls_compared,
-                        "sequences": len(sequences), "container_runs": runs}
+                    return (
+                        False,
+                        witness,
+                        {
+                            "calls_compared": calls_compared,
+                            "sequences": len(sequences),
+                            "container_runs": runs,
+                        },
+                    )
+    return (
+        True,
+        None,
+        {
+            "calls_compared": calls_compared,
+            "sequences": len(sequences),
+            "container_runs": runs,
+        },
+    )
 
 
 def main():
     if len(sys.argv) != 3:
         sys.exit("usage: python mverify.py <case_dir> <candidate_unit_dir>")
-    logsetup.configure()   # entry point: wire logging once (never at import)
+    logsetup.configure()  # entry point: wire logging once (never at import)
     eq, witness, stats = check_equivalence_containerized(sys.argv[1], sys.argv[2])
-    log.info("%s (%s calls compared, %s sequences, %s container runs)",
-             "EQUIVALENT" if eq else "NOT EQUIVALENT", stats["calls_compared"],
-             stats["sequences"], stats["container_runs"],
-             extra={"equivalent": eq, "calls_compared": stats["calls_compared"],
-                    "sequences": stats["sequences"],
-                    "container_runs": stats["container_runs"]})
+    log.info(
+        "%s (%s calls compared, %s sequences, %s container runs)",
+        "EQUIVALENT" if eq else "NOT EQUIVALENT",
+        stats["calls_compared"],
+        stats["sequences"],
+        stats["container_runs"],
+        extra={
+            "equivalent": eq,
+            "calls_compared": stats["calls_compared"],
+            "sequences": stats["sequences"],
+            "container_runs": stats["container_runs"],
+        },
+    )
     if witness:
-        log.info("  first divergence: seq=%s call#%s %s",
-                 witness["sequence"], witness["call_index"], witness["call"])
+        log.info(
+            "  first divergence: seq=%s call#%s %s",
+            witness["sequence"],
+            witness["call_index"],
+            witness["call"],
+        )
         log.info("    original : %s", witness["original"])
         log.info("    candidate: %s", witness["candidate"])
     if "error" in stats:

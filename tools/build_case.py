@@ -11,6 +11,7 @@ A seed dir holds: reference.py, test_suite.py, and spec.json
 
 Usage: python build_case.py <seed_dir> [--force]
 """
+
 import json
 import shutil
 import sys
@@ -26,8 +27,13 @@ from verify_case import verify
 CASES_DIR = Path(__file__).resolve().parent.parent / "cases"
 CONSTRAINTS = "deterministic, pure, no I/O, no randomness, no global state"
 CATEGORIES = {
-    "unnecessary_dependency", "over_abstraction", "dead_code", "duplication",
-    "excessive_nesting", "verbose_patterns", "defensive_overengineering",
+    "unnecessary_dependency",
+    "over_abstraction",
+    "dead_code",
+    "duplication",
+    "excessive_nesting",
+    "verbose_patterns",
+    "defensive_overengineering",
 }
 DIFFICULTIES = {"easy", "medium", "hard"}
 
@@ -46,12 +52,19 @@ def build(seed_dir, force=False):
 
     # Protect a verified case: refuse to overwrite unless --force is given.
     if case_dir.exists() and not force:
-        return "refused", case_id, (
-            f"case {case_id} already exists; pass --force to regenerate, "
-            "which will overwrite the verified case")
+        return (
+            "refused",
+            case_id,
+            (
+                f"case {case_id} already exists; pass --force to regenerate, "
+                "which will overwrite the verified case"
+            ),
+        )
     if case_dir.exists():  # force is True
-        print(f"WARNING: --force set — regenerating verified case {case_id}; files in "
-              f"{case_dir} will be overwritten only if the new candidate passes verification.")
+        print(
+            f"WARNING: --force set — regenerating verified case {case_id}; files in "
+            f"{case_dir} will be overwritten only if the new candidate passes verification."
+        )
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
@@ -59,7 +72,8 @@ def build(seed_dir, force=False):
         # (a) record golden from the clean reference
         golden_path = tmp / "golden_io.json"
         golden_path.write_text(
-            json.dumps(record(str(reference), entry, spec["arg_sets"]), indent=2) + "\n")
+            json.dumps(record(str(reference), entry, spec["arg_sets"]), indent=2) + "\n"
+        )
 
         # (b) bloat the reference into original.py
         original_path = tmp / "original.py"
@@ -88,7 +102,9 @@ def build(seed_dir, force=False):
         shutil.copy(test_suite, case_dir / "test_suite.py")
         shutil.copy(original_path, case_dir / "original.py")
         shutil.copy(golden_path, case_dir / "golden_io.json")
-        (case_dir / "baseline_metrics.json").write_text(json.dumps(baseline, indent=2) + "\n")
+        (case_dir / "baseline_metrics.json").write_text(
+            json.dumps(baseline, indent=2) + "\n"
+        )
         (case_dir / "meta.json").write_text(json.dumps(meta, indent=2) + "\n")
         return "finalized", case_id, reason
 

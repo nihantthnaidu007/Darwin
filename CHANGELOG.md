@@ -11,6 +11,48 @@ it contains none of the v0.4 work. Per the never-force-push-tags rule (decisions
 0015 and 0005) it is treated as void and left in place, so the first 0.4.x release
 is 0.4.1. See decision 0020.
 
+## 0.7.0, test and CI maturity
+
+Hardened the test and CI surface: cleared the one known dependency CVE, added
+direct unit tests for the two orchestration cores, drove the quality gates to zero
+and flipped them to blocking, and validated the host-Python range with a real CI
+matrix. No change to the optimization, scoring, equivalence, or default-lockdown
+behavior.
+
+- **pytest 9 bump clears CVE-2025-71176.** pytest moves from 8.3.5 to 9.0.3 across
+  the runtime, dev/CI, and sandbox closures, clearing CVE-2025-71176 (the finding
+  the v0.6 advisory pip-audit scan surfaced). The locks were recompiled on the
+  canonical Python 3.13 (decision 0028), which pulled `pygments==2.20.0` in as a new
+  transitive of pytest into the runtime (`requirements.txt`) and sandbox
+  (`tools/requirements-sandbox.txt`) closures. No other dependency moved
+  (decision 0036).
+- **Direct unit tests for the loop and the single-function verifier.** New direct
+  tests for `loop.py` (never-worse-than-baseline fallback, the generation cap, and
+  plateau stop) and `verify_case.py` (the Layer 1 then Layer 2 gate ordering, the
+  withheld oracle, and the failing-gate taxonomy), bringing both to 99 percent line
+  coverage.
+- **Quality gates driven to zero and flipped to blocking.** The four gates -- ruff
+  lint, ruff format, mypy, and the gitleaks secret scan -- plus the pip-audit
+  dependency scan were driven to zero findings and flipped from advisory to blocking,
+  so a finding now fails its job and blocks the merge (decision 0037).
+- **Coverage gate at 56 percent.** A `--cov-fail-under=56` floor was added to the
+  test job, set from production coverage measured at 58 percent (the `--cov-config`
+  omit excludes the test files) less a 2-point cross-version and CI margin
+  (decision 0037).
+- **Python 3.12/3.13/3.14 CI matrix.** The test job runs the full suite on a host
+  matrix of Python 3.12, 3.13, and 3.14 (`fail-fast: false`), each leg installing the
+  single hashed dev lock under `--require-hashes` and building the sandbox image at
+  Python 3.13. The single lock was confirmed to install across all three interpreters
+  (3.12 Linux, 3.13 Linux CI, 3.14 macOS), so no per-version locks were introduced
+  (decision 0038).
+- **A v0.6.1 tag was pushed in error and then deleted.** During the P5.3b merge (the
+  authorized variance regeneration that closed F1), a `v0.6.1` tag was briefly pushed
+  to origin in error and then removed. Deleting a published tag deviates from the
+  never-force-push-or-delete-tags rule (decisions 0005 and 0015); this was a
+  deliberate operator action, recorded here plainly rather than hidden. P5.3b carries
+  no tag by design (it changed no version). This is distinct from the void v0.4.0 tag,
+  which was left in place: v0.6.1 was deleted (decision 0039).
+
 ## 0.6.0, supply-chain and isolation hardening
 
 Closed A2, G2, and A4, and delivered A3 (opt-in defense-in-depth plus the

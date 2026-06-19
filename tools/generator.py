@@ -14,6 +14,7 @@ fatal: generate() returns it as an invalid GenResult with a specific error, and
 the loop feeds that error back and continues. The API key is read from the
 environment (ANTHROPIC_API_KEY) and is never hardcoded or printed.
 """
+
 import ast
 import os
 import re
@@ -31,8 +32,10 @@ from llm_client import (
 )
 
 DEFAULT_MODEL = os.environ.get("GENERATOR_MODEL", "claude-opus-4-8")
-MAX_TOKENS = 8192    # code + adaptive-thinking tokens; well under the SDK stream guard
-EFFORT = "medium"    # focused rewrite; the evaluator (not model deliberation) is the arbiter
+MAX_TOKENS = 8192  # code + adaptive-thinking tokens; well under the SDK stream guard
+EFFORT = (
+    "medium"  # focused rewrite; the evaluator (not model deliberation) is the arbiter
+)
 # Temperature is pinned and explicit, not left to the API default, so a run's
 # configuration is recorded and reproducible (decision 0022). 1.0 is what the prior
 # unset default and the committed variance data ran under, and the adaptive-thinking
@@ -47,11 +50,11 @@ TEMPERATURE = 1.0
 # USD per token (input, output), from the published per-1M pricing. Used only to
 # report real cost from the API's own token counts; it never affects generation.
 PRICING = {
-    "claude-opus-4-8":   (5.00 / 1e6, 25.00 / 1e6),
-    "claude-opus-4-7":   (5.00 / 1e6, 25.00 / 1e6),
-    "claude-opus-4-6":   (5.00 / 1e6, 25.00 / 1e6),
+    "claude-opus-4-8": (5.00 / 1e6, 25.00 / 1e6),
+    "claude-opus-4-7": (5.00 / 1e6, 25.00 / 1e6),
+    "claude-opus-4-6": (5.00 / 1e6, 25.00 / 1e6),
     "claude-sonnet-4-6": (3.00 / 1e6, 15.00 / 1e6),
-    "claude-haiku-4-5":  (1.00 / 1e6,  5.00 / 1e6),
+    "claude-haiku-4-5": (1.00 / 1e6, 5.00 / 1e6),
 }
 
 SYSTEM = (
@@ -71,10 +74,10 @@ SYSTEM = (
 
 @dataclass
 class GenResult:
-    code: str | None        # extracted candidate source (None only if nothing extractable)
-    raw_text: str           # the model's full text response (kept for the audit log)
-    valid: bool             # parses AND defines the entry point at module level
-    error: str | None       # why invalid (fed back as next-gen feedback); None if valid
+    code: str | None  # extracted candidate source (None only if nothing extractable)
+    raw_text: str  # the model's full text response (kept for the audit log)
+    valid: bool  # parses AND defines the entry point at module level
+    error: str | None  # why invalid (fed back as next-gen feedback); None if valid
     model: str
     input_tokens: int
     output_tokens: int
@@ -91,7 +94,9 @@ def _build_user(meta, original_code, prev_code, prev_feedback):
         "Current implementation to simplify:",
         f"```python\n{original_code.rstrip()}\n```",
     ]
-    if prev_code is not None:  # generation N>1: add the previous attempt + feedback (Fork 1)
+    if (
+        prev_code is not None
+    ):  # generation N>1: add the previous attempt + feedback (Fork 1)
         parts += [
             "",
             "Your previous attempt:",
@@ -105,8 +110,11 @@ def _build_user(meta, original_code, prev_code, prev_feedback):
             "preserving exact behavior.",
         ]
     else:
-        parts += ["", "Rewrite it to be as simple and clean as possible while "
-                  "preserving exact behavior."]
+        parts += [
+            "",
+            "Rewrite it to be as simple and clean as possible while "
+            "preserving exact behavior.",
+        ]
     return "\n".join(parts)
 
 
@@ -124,13 +132,19 @@ def _validate(code, entry_point):
     try:
         tree = ast.parse(code)
     except SyntaxError as e:
-        return (f"your output was not valid Python: {e.__class__.__name__}: "
-                f"{e.msg} (line {e.lineno}).")
+        return (
+            f"your output was not valid Python: {e.__class__.__name__}: "
+            f"{e.msg} (line {e.lineno})."
+        )
     for node in tree.body:
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == entry_point:
+        if (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == entry_point
+        ):
             return None
         if isinstance(node, ast.Assign) and any(
-                isinstance(t, ast.Name) and t.id == entry_point for t in node.targets):
+            isinstance(t, ast.Name) and t.id == entry_point for t in node.targets
+        ):
             return None
     return f"your module did not define the required entry point `{entry_point}` at module level."
 
@@ -172,8 +186,14 @@ def request_provenance(model):
     }
 
 
-def generate(meta, original_code, prev_code=None, prev_feedback=None,
-             model=DEFAULT_MODEL, client=None):
+def generate(
+    meta,
+    original_code,
+    prev_code=None,
+    prev_feedback=None,
+    model=DEFAULT_MODEL,
+    client=None,
+):
     """One LLM call -> a candidate GenResult. Raises only on an API failure (after
     the SDK's own retries); the loop treats that as the single halting condition."""
     if client is None:
@@ -184,9 +204,15 @@ def generate(meta, original_code, prev_code=None, prev_feedback=None,
         client = build_client()
     resp = create_message(
         client,
-        model=model, max_tokens=MAX_TOKENS, system=SYSTEM,
-        messages=[{"role": "user",
-                   "content": _build_user(meta, original_code, prev_code, prev_feedback)}],
+        model=model,
+        max_tokens=MAX_TOKENS,
+        system=SYSTEM,
+        messages=[
+            {
+                "role": "user",
+                "content": _build_user(meta, original_code, prev_code, prev_feedback),
+            }
+        ],
         **request_kwargs(model),
     )
     text = "".join(b.text for b in resp.content if b.type == "text")
@@ -194,9 +220,16 @@ def generate(meta, original_code, prev_code=None, prev_feedback=None,
     error = _validate(code, meta["entry_point"])
     in_rate, out_rate = PRICING.get(model, (0.0, 0.0))
     u = resp.usage
-    return GenResult(code, text, error is None, error, model,
-                     u.input_tokens, u.output_tokens,
-                     round(u.input_tokens * in_rate + u.output_tokens * out_rate, 6))
+    return GenResult(
+        code,
+        text,
+        error is None,
+        error,
+        model,
+        u.input_tokens,
+        u.output_tokens,
+        round(u.input_tokens * in_rate + u.output_tokens * out_rate, 6),
+    )
 
 
 # --- API key from the environment (never hardcoded/printed) -----------------
@@ -216,6 +249,7 @@ def _load_dotenv():
         key, val = key.strip(), val.strip().strip('"').strip("'")
         if key and key not in os.environ:
             os.environ[key] = val
+
 
 # Note: _load_dotenv() is invoked explicitly inside generate() at the point the
 # real client is constructed — importing this module must not mutate os.environ.

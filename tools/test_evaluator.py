@@ -17,6 +17,7 @@ lower-is-better branches. weighted_cost already excludes None metrics.
 These tests FAIL on the pre-fix code and PASS after. Run from tools/:
     python -m pytest test_evaluator.py -q -p no:cacheprovider
 """
+
 import pytest
 
 from evaluator import _cost, metric_costs, weighted_cost
@@ -26,15 +27,36 @@ from evaluator import _cost, metric_costs, weighted_cost
 # "best" recorded in reports/maggregate.json (cyclomatic_max 11). maintainability_index
 # and source_loc carry weight 0 (informational), so their values do not affect the
 # score; they are present only so metric_costs can iterate every WEIGHTS key.
-TS_ORIGINAL = {"cyclomatic_total": 150, "logical_loc": 284, "maintainability_index": 43.0,
-               "max_nesting_depth": 4, "dependency_count": 1, "dead_code_count": 12,
-               "cyclomatic_max": 5, "source_loc": 295}
-TS_FLOOR = {"cyclomatic_total": 63, "logical_loc": 100, "maintainability_index": 60.2,
-            "max_nesting_depth": 4, "dependency_count": 0, "dead_code_count": 8,
-            "cyclomatic_max": 6, "source_loc": 108}
-TS_GEN2 = {"cyclomatic_total": 72, "logical_loc": 94, "maintainability_index": 55.0,
-           "max_nesting_depth": 4, "dependency_count": 0, "dead_code_count": 8,
-           "cyclomatic_max": 11, "source_loc": 100}
+TS_ORIGINAL = {
+    "cyclomatic_total": 150,
+    "logical_loc": 284,
+    "maintainability_index": 43.0,
+    "max_nesting_depth": 4,
+    "dependency_count": 1,
+    "dead_code_count": 12,
+    "cyclomatic_max": 5,
+    "source_loc": 295,
+}
+TS_FLOOR = {
+    "cyclomatic_total": 63,
+    "logical_loc": 100,
+    "maintainability_index": 60.2,
+    "max_nesting_depth": 4,
+    "dependency_count": 0,
+    "dead_code_count": 8,
+    "cyclomatic_max": 6,
+    "source_loc": 108,
+}
+TS_GEN2 = {
+    "cyclomatic_total": 72,
+    "logical_loc": 94,
+    "maintainability_index": 55.0,
+    "max_nesting_depth": 4,
+    "dependency_count": 0,
+    "dead_code_count": 8,
+    "cyclomatic_max": 11,
+    "source_loc": 100,
+}
 TS_BASELINE = {"original": TS_ORIGINAL, "reference_floor": TS_FLOOR}
 
 
@@ -65,7 +87,7 @@ def test_cost_normal_span_returns_correct_finite_value():
     # lower-is-better: cyclomatic_total 72, original 150, floor 63.
     assert _cost("cyclomatic_total", 72, 150, 63) == pytest.approx(9 / 87)
     # both anchors land on their fixed costs.
-    assert _cost("cyclomatic_total", 63, 150, 63) == pytest.approx(0.0)   # floor
+    assert _cost("cyclomatic_total", 63, 150, 63) == pytest.approx(0.0)  # floor
     assert _cost("cyclomatic_total", 150, 150, 63) == pytest.approx(1.0)  # original
     # higher-is-better normal span: floor 80 above original 40, candidate 60.
     assert _cost("maintainability_index", 60, 40, 80) == pytest.approx(0.5)

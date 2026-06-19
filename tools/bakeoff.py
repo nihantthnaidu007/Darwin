@@ -13,6 +13,7 @@ Every candidate is run through the REAL evaluator (real Layers 1+2 gates via the
 sandbox, real Layer-3 metrics), so the rankings are over candidates that genuinely
 pass correctness and behavior. Run: python bakeoff.py
 """
+
 import tempfile
 from pathlib import Path
 
@@ -27,8 +28,12 @@ CASES = Path(__file__).resolve().parent.parent / "cases"
 # or the tiebreak — consistent with Method A weighting it 0. MI stays in the display table
 # below as informational only.
 PARETO_METRICS = [
-    "cyclomatic_total", "cyclomatic_max",
-    "logical_loc", "dependency_count", "dead_code_count", "max_nesting_depth",
+    "cyclomatic_total",
+    "cyclomatic_max",
+    "logical_loc",
+    "dependency_count",
+    "dead_code_count",
+    "max_nesting_depth",
 ]
 
 # ---------------------------------------------------------------------------
@@ -44,15 +49,23 @@ PARETO_METRICS = [
 
 SUM_EVENS = [
     ("clean", "file", "sum_evens/reference.py", "scored"),
-    ("middling-loop", "src", '''\
+    (
+        "middling-loop",
+        "src",
+        """\
 def sum_evens(numbers):
     total = 0
     for n in numbers:
         if n % 2 == 0:
             total += n
     return total
-''', "scored"),
-    ("middling-helper+dep", "src", '''\
+""",
+        "scored",
+    ),
+    (
+        "middling-helper+dep",
+        "src",
+        """\
 import functools
 
 
@@ -63,9 +76,14 @@ def _is_even(n):
 def sum_evens(numbers):
     evens = [n for n in numbers if _is_even(n)]
     return functools.reduce(lambda a, b: a + b, evens, 0)
-''', "scored"),
+""",
+        "scored",
+    ),
     ("original (control)", "file", "sum_evens/original.py", "scored"),
-    ("fragmented (trap)", "src", '''\
+    (
+        "fragmented (trap)",
+        "src",
+        """\
 def _is_even(n):
     return n % 2 == 0
 
@@ -87,12 +105,22 @@ def _select_evens(values):
 
 def sum_evens(numbers):
     return _accumulate(_select_evens(numbers))
-''', "scored"),
-    ("broken (test fails)", "src", '''\
+""",
+        "scored",
+    ),
+    (
+        "broken (test fails)",
+        "src",
+        """\
 def sum_evens(numbers):
     return sum(numbers)
-''', "rejected"),
-    ("behavior-mismatch", "src", '''\
+""",
+        "rejected",
+    ),
+    (
+        "behavior-mismatch",
+        "src",
+        """\
 def sum_evens(numbers):
     numbers = list(numbers)
     # Deliberately narrows behavior on an input the suite never probes: no test
@@ -101,12 +129,17 @@ def sum_evens(numbers):
     if len(numbers) == 20:
         return 0
     return sum(n for n in numbers if n % 2 == 0)
-''', "rejected"),
+""",
+        "rejected",
+    ),
 ]
 
 MERGE_INTERVALS = [
     ("clean", "file", "merge_intervals/reference.py", "scored"),
-    ("middling-overlap-helper", "src", '''\
+    (
+        "middling-overlap-helper",
+        "src",
+        """\
 def _overlaps(last, interval):
     return interval[0] <= last[1]
 
@@ -119,8 +152,13 @@ def merge_intervals(intervals):
         else:
             merged.append([interval[0], interval[1]])
     return merged
-''', "scored"),
-    ("middling-sort+dep", "src", '''\
+""",
+        "scored",
+    ),
+    (
+        "middling-sort+dep",
+        "src",
+        """\
 from operator import itemgetter
 
 
@@ -136,9 +174,14 @@ def merge_intervals(intervals):
         else:
             merged.append([start, end])
     return merged
-''', "scored"),
+""",
+        "scored",
+    ),
     ("original (control)", "file", "merge_intervals/original.py", "scored"),
-    ("fragmented (trap)", "src", '''\
+    (
+        "fragmented (trap)",
+        "src",
+        """\
 def _start(iv):
     return iv[0]
 
@@ -175,8 +218,13 @@ def merge_intervals(intervals):
     for iv in _sorted_intervals(intervals):
         _merge_one(merged, iv)
     return merged
-''', "scored"),
-    ("broken (test fails)", "src", '''\
+""",
+        "scored",
+    ),
+    (
+        "broken (test fails)",
+        "src",
+        """\
 def merge_intervals(intervals):
     merged = []
     for start, end in intervals:  # forgot to sort -> unsorted input misbehaves
@@ -185,7 +233,9 @@ def merge_intervals(intervals):
         else:
             merged.append([start, end])
     return merged
-''', "rejected"),
+""",
+        "rejected",
+    ),
 ]
 
 # A deliberately golfed, correct, behavior-matching candidate: an unreadable nested
@@ -193,7 +243,7 @@ def merge_intervals(intervals):
 # (negative weighted cost) — the residual gaming risk Layer 2 cannot catch (behavior
 # is preserved). Demonstrated separately from the rankings precisely because it would
 # rank #1 by raw cost; the suspiciously-simple FLAG is the mitigation.
-GOLFED_MERGE = '''\
+GOLFED_MERGE = """\
 import functools
 
 
@@ -202,7 +252,7 @@ def merge_intervals(intervals):
         lambda m, iv: (m[:-1] + [[m[-1][0], max(m[-1][1], iv[1])]])
         if m and iv[0] <= m[-1][1] else m + [[iv[0], iv[1]]],
         sorted(intervals), [])
-'''
+"""
 
 
 def _evaluate_candidate(kind, payload, case_dir):
@@ -218,13 +268,16 @@ def _evaluate_candidate(kind, payload, case_dir):
 def _oriented(metrics):
     """Re-orient so lower is better on every axis. HIGHER_BETTER members would be
     negated, but the basket is now all lower-better (MI was dropped from scoring)."""
-    return {m: (-metrics[m] if m in HIGHER_BETTER else metrics[m]) for m in PARETO_METRICS}
+    return {
+        m: (-metrics[m] if m in HIGHER_BETTER else metrics[m]) for m in PARETO_METRICS
+    }
 
 
 def _dominates(a, b):
     """a dominates b: <= on every metric AND < on at least one (oriented dicts)."""
-    return (all(a[m] <= b[m] for m in PARETO_METRICS)
-            and any(a[m] < b[m] for m in PARETO_METRICS))
+    return all(a[m] <= b[m] for m in PARETO_METRICS) and any(
+        a[m] < b[m] for m in PARETO_METRICS
+    )
 
 
 def _pareto_layers(scored):
@@ -233,8 +286,11 @@ def _pareto_layers(scored):
     remaining = [(lbl, _oriented(m)) for lbl, m in scored]
     layers = []
     while remaining:
-        front = [(lbl, o) for lbl, o in remaining
-                 if not any(_dominates(o2, o) for lbl2, o2 in remaining if lbl2 != lbl)]
+        front = [
+            (lbl, o)
+            for lbl, o in remaining
+            if not any(_dominates(o2, o) for lbl2, o2 in remaining if lbl2 != lbl)
+        ]
         layers.append([lbl for lbl, _ in front])
         front_labels = {lbl for lbl, _ in front}
         remaining = [(lbl, o) for lbl, o in remaining if lbl not in front_labels]
@@ -246,8 +302,11 @@ def _pareto_layers(scored):
 # anti-fragmentation: totals dominate the order. (maintainability_index was removed
 # from the tiebreak too — cosmetic-gameable, see the PARETO_METRICS note.)
 def _tiebreak(metrics):
-    return (metrics["cyclomatic_total"], metrics["logical_loc"],
-            metrics["cyclomatic_max"])
+    return (
+        metrics["cyclomatic_total"],
+        metrics["logical_loc"],
+        metrics["cyclomatic_max"],
+    )
 
 
 def _method_b_order(scored):
@@ -259,16 +318,32 @@ def _method_b_order(scored):
 
 
 # ---------------------------------------------------------------------------
-_COLS = ["cyclomatic_total", "cyclomatic_max", "logical_loc", "dependency_count",
-         "dead_code_count", "max_nesting_depth", "maintainability_index"]
-_HDR = {"cyclomatic_total": "ccTot", "cyclomatic_max": "ccMax", "logical_loc": "lloc",
-        "dependency_count": "deps", "dead_code_count": "dead",
-        "max_nesting_depth": "nest", "maintainability_index": "MI"}
+_COLS = [
+    "cyclomatic_total",
+    "cyclomatic_max",
+    "logical_loc",
+    "dependency_count",
+    "dead_code_count",
+    "max_nesting_depth",
+    "maintainability_index",
+]
+_HDR = {
+    "cyclomatic_total": "ccTot",
+    "cyclomatic_max": "ccMax",
+    "logical_loc": "lloc",
+    "dependency_count": "deps",
+    "dead_code_count": "dead",
+    "max_nesting_depth": "nest",
+    "maintainability_index": "MI",
+}
 
 
 def _print_table(results):
-    head = f"  {'candidate':<26}{'verdict':<10}{'cost':>6}  " + \
-           "".join(f"{_HDR[c]:>7}" for c in _COLS) + "  flags/reason"
+    head = (
+        f"  {'candidate':<26}{'verdict':<10}{'cost':>6}  "
+        + "".join(f"{_HDR[c]:>7}" for c in _COLS)
+        + "  flags/reason"
+    )
     print(head)
     print("  " + "-" * (len(head) - 2))
     for lbl, e in results:
@@ -285,9 +360,9 @@ def _print_table(results):
 
 def _ranking_line(name, order, costs=None):
     if costs:
-        parts = [f"{i+1}. {lbl} ({costs[lbl]})" for i, lbl in enumerate(order)]
+        parts = [f"{i + 1}. {lbl} ({costs[lbl]})" for i, lbl in enumerate(order)]
     else:
-        parts = [f"{i+1}. {lbl}" for i, lbl in enumerate(order)]
+        parts = [f"{i + 1}. {lbl}" for i, lbl in enumerate(order)]
     print(f"  {name}: " + "  ".join(parts))
 
 
@@ -300,8 +375,9 @@ def run_case(name, candidates):
     for lbl, kind, payload, expect in candidates:
         e = _evaluate_candidate(kind, payload, CASES / name)
         results.append((lbl, e))
-        assert e.verdict == expect, \
+        assert e.verdict == expect, (
             f"{lbl}: expected {expect}, got {e.verdict} ({e.reason_code})"
+        )
     _print_table(results)
 
     scored = [(lbl, e.metrics) for lbl, e in results if e.verdict == "scored"]
@@ -329,8 +405,10 @@ def run_case(name, candidates):
     for mname, order in [("A", a_order), ("B", b_order)]:
         best_ok = order[0] == clean
         worst_ok = order[-1] == orig
-        print(f"    Method {mname}: near-optimal first? {best_ok} ({order[0]});  "
-              f"original last? {worst_ok} ({order[-1]})")
+        print(
+            f"    Method {mname}: near-optimal first? {best_ok} ({order[0]});  "
+            f"original last? {worst_ok} ({order[-1]})"
+        )
 
     # Fragmentation trap: is the fragmented candidate ranked ABOVE clean?
     if frag:
@@ -338,12 +416,21 @@ def run_case(name, candidates):
         fmt = next(mt for lbl, mt in scored if lbl == frag)
         dom_cf = _dominates(_oriented(m), _oriented(fmt))
         dom_fc = _dominates(_oriented(fmt), _oriented(m))
-        rel = ("clean dominates fragmented" if dom_cf else
-               "fragmented dominates clean" if dom_fc else "INCOMPARABLE")
-        print("\n  FRAGMENTATION-TRAP CHECK (does the method rank fragmented above clean?):")
-        print(f"    metric facts: clean ccMax={m['cyclomatic_max']} ccTot={m['cyclomatic_total']} "
-              f"lloc={m['logical_loc']}  |  fragmented ccMax={fmt['cyclomatic_max']} "
-              f"ccTot={fmt['cyclomatic_total']} lloc={fmt['logical_loc']}")
+        rel = (
+            "clean dominates fragmented"
+            if dom_cf
+            else "fragmented dominates clean"
+            if dom_fc
+            else "INCOMPARABLE"
+        )
+        print(
+            "\n  FRAGMENTATION-TRAP CHECK (does the method rank fragmented above clean?):"
+        )
+        print(
+            f"    metric facts: clean ccMax={m['cyclomatic_max']} ccTot={m['cyclomatic_total']} "
+            f"lloc={m['logical_loc']}  |  fragmented ccMax={fmt['cyclomatic_max']} "
+            f"ccTot={fmt['cyclomatic_total']} lloc={fmt['logical_loc']}"
+        )
         print(f"    Pareto relation clean vs fragmented: {rel}")
         for mname, order in [("A", a_order), ("B", b_order), ("NAIVE", naive_order)]:
             above = order.index(frag) < order.index(clean)
@@ -355,21 +442,33 @@ def run_case(name, candidates):
 
 def demo_suspiciously_simple():
     print("=" * 100)
-    print("SUSPICIOUSLY-SIMPLE GUARD (deliberately golfed candidate, shown OUTSIDE the rankings)")
+    print(
+        "SUSPICIOUSLY-SIMPLE GUARD (deliberately golfed candidate, shown OUTSIDE the rankings)"
+    )
     print("=" * 100)
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "candidate.py"
         path.write_text(GOLFED_MERGE, encoding="utf-8")
         e = evaluate(str(path), CASES / "merge_intervals")
     assert e.verdict == "scored", e.reason_code
-    print(f"  golfed merge_intervals -> verdict={e.verdict}, weighted_cost={e.weighted_cost} "
-          f"(NEGATIVE = scores 'better' than the clean floor), flags={e.flags}")
-    print(f"  metrics: cyclomatic_total={e.metrics['cyclomatic_total']} "
-          f"(floor 4), logical_loc={e.metrics['logical_loc']} (floor 8)")
-    print("  -> It games the basket below the floor and would rank #1 by raw cost, beating")
+    print(
+        f"  golfed merge_intervals -> verdict={e.verdict}, weighted_cost={e.weighted_cost} "
+        f"(NEGATIVE = scores 'better' than the clean floor), flags={e.flags}"
+    )
+    print(
+        f"  metrics: cyclomatic_total={e.metrics['cyclomatic_total']} "
+        f"(floor 4), logical_loc={e.metrics['logical_loc']} (floor 8)"
+    )
+    print(
+        "  -> It games the basket below the floor and would rank #1 by raw cost, beating"
+    )
     print("     'clean'. Behavior is verified (Layer 2), so logic is intact; the")
-    print("     suspiciously-simple FLAG is what surfaces the unreadable golfing. Policy:")
-    print("     FLAG for review, do NOT reject (no objective LLM-free readability oracle).")
+    print(
+        "     suspiciously-simple FLAG is what surfaces the unreadable golfing. Policy:"
+    )
+    print(
+        "     FLAG for review, do NOT reject (no objective LLM-free readability oracle)."
+    )
     print()
 
 
@@ -378,11 +477,13 @@ def main():
     run_case("merge_intervals", MERGE_INTERVALS)
     demo_suspiciously_simple()
     print("=" * 100)
-    print("Note: merge_intervals has no 'behavior-mismatch' candidate. Its test suite's "
-          "input set is a SUPERSET of its golden I/O inputs, so any candidate wrong on a "
-          "golden input is also wrong on a test -> Layer 1 catches it first. The Layer-2 "
-          "gate is therefore demonstrated on sum_evens (golden has a length-20 input the "
-          "suite never probes).")
+    print(
+        "Note: merge_intervals has no 'behavior-mismatch' candidate. Its test suite's "
+        "input set is a SUPERSET of its golden I/O inputs, so any candidate wrong on a "
+        "golden input is also wrong on a test -> Layer 1 catches it first. The Layer-2 "
+        "gate is therefore demonstrated on sum_evens (golden has a length-20 input the "
+        "suite never probes)."
+    )
     print("See the final report for the A-vs-B recommendation.")
 
 

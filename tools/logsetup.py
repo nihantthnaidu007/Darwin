@@ -29,6 +29,7 @@ Environment:
 
 The documented structured field names are in docs/decisions/0018-structured-logging.md.
 """
+
 import json
 import logging
 import os
@@ -48,7 +49,9 @@ class JsonFormatter(logging.Formatter):
 
     def format(self, record):
         obj = {
-            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(),
+            "timestamp": datetime.fromtimestamp(
+                record.created, tz=timezone.utc
+            ).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -83,19 +86,21 @@ def configure(level=None, json_path=None, console_stream=None):
     json_path = json_path or os.environ.get("DARWIN_LOG_JSON")
 
     root = logging.getLogger(_NAMESPACE)
-    root.setLevel(logging.DEBUG)        # the handlers do the filtering
-    root.propagate = False              # isolated from the root/global logger
+    root.setLevel(logging.DEBUG)  # the handlers do the filtering
+    root.propagate = False  # isolated from the root/global logger
     for handler in list(root.handlers):  # drop prior handlers (incl. the NullHandler)
         root.removeHandler(handler)
 
     console = logging.StreamHandler(console_stream or sys.stderr)
     console.setLevel(console_level)
-    console.setFormatter(logging.Formatter("%(message)s"))  # no prefix: aligned blocks intact
+    console.setFormatter(
+        logging.Formatter("%(message)s")
+    )  # no prefix: aligned blocks intact
     root.addHandler(console)
 
     if json_path:
         jh = logging.FileHandler(json_path, encoding="utf-8")
-        jh.setLevel(logging.DEBUG)      # the JSON record is the full-fidelity stream
+        jh.setLevel(logging.DEBUG)  # the JSON record is the full-fidelity stream
         jh.setFormatter(JsonFormatter())
         root.addHandler(jh)
 

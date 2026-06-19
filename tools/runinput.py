@@ -22,6 +22,7 @@ other key a reader touches (category, difficulty, kind, public_api,
 stateful_because, constraints, description) is accessed with a default and stays
 optional, so a valid existing case or mcase loads unchanged.
 """
+
 import json
 from pathlib import Path
 

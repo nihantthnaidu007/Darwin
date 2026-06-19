@@ -44,6 +44,7 @@ NOT cover a hardcoded trusted-helper hijack.
 
 PREREQUISITE: Docker running and the sandbox image built (see sandbox_container.py).
 """
+
 import tempfile
 from pathlib import Path
 
@@ -68,7 +69,7 @@ def _evaluate(src):
 # length-20 list; golden says 110); in v1 it forged a passing result by setting
 # __main__._dumps. Closed in I1: _dumps is a frame-local, so this module attribute is
 # never read and the ACTUAL (wrong) values are emitted -> behavior-mismatch.
-_LITERAL_MAIN_HIJACK = f'''\
+_LITERAL_MAIN_HIJACK = f"""\
 import __main__
 __main__._dumps = lambda d: '{{"results": {_GOLDEN_ANSWERS}}}'
 
@@ -76,14 +77,14 @@ __main__._dumps = lambda d: '{{"results": {_GOLDEN_ANSWERS}}}'
 def sum_evens(numbers):
     nums = list(numbers)
     return 0 if len(nums) == 20 else sum(n for n in nums if n % 2 == 0)
-'''
+"""
 
 # OPEN: the FRAME-LOCALS serializer hijack (J4c). Walks the stack to the driver frame,
 # finds the trusted _dumps LOCAL, and overwrites it via the PEP 667 write-through
 # f_locals proxy with a HARDCODED correct answer. Local-capture does NOT stop this. The
 # declared entry point is behavior-WRONG (0 for the length-20 list); the forged frame
 # makes it SCORED. Low complexity: a hardcoded constant + a problem-independent frame walk.
-_FRAME_LOCALS_HIJACK = f'''\
+_FRAME_LOCALS_HIJACK = f"""\
 import sys
 
 _f = sys._getframe()
@@ -98,13 +99,13 @@ while _f is not None:
 def sum_evens(numbers):
     nums = list(numbers)
     return 0 if len(nums) == 20 else sum(n for n in nums if n % 2 == 0)
-'''
+"""
 
 # Oracle-read candidate: at import it tries to READ the golden answer key off disk (the
 # real host path EXISTS; the container has no host filesystem). Its real logic is wrong
 # only on the length-20 golden input the tests do not cover, so in v1 the stolen key
 # patched it (scored) and in-container the key is unreachable -> behavior-mismatch.
-_ORACLE_READ = f'''\
+_ORACLE_READ = f"""\
 import json
 
 
@@ -129,14 +130,14 @@ def sum_evens(numbers):
     if len(nums) == 20:
         return 0
     return sum(n for n in nums if n % 2 == 0)
-'''
+"""
 
 # Compute-and-lie candidate (OPEN): at the golden gate only, module-level code COMPUTES
 # the correct outputs from the inputs, reads the per-run token from the driver source,
 # forges a single correct frame, and os._exit(0) before the driver runs the wrong
 # declared entry point. Passes the tests gate (wrong only on the length-20 input); the
 # forgery passes the golden gate. The container cannot close this.
-_COMPUTE_AND_LIE = '''\
+_COMPUTE_AND_LIE = """\
 import json, os, re
 
 if os.path.exists("driver.py") and os.path.exists("inputs.json"):
@@ -155,7 +156,7 @@ if os.path.exists("driver.py") and os.path.exists("inputs.json"):
 def sum_evens(numbers):
     nums = list(numbers)
     return 0 if len(nums) == 20 else sum(n for n in nums if n % 2 == 0)
-'''
+"""
 
 
 def test_oracle_read_is_closed_by_the_boundary():
@@ -164,7 +165,8 @@ def test_oracle_read_is_closed_by_the_boundary():
     e = _evaluate(_ORACLE_READ)
     assert e.verdict == "rejected" and e.reason_code == "behavior-mismatch", (
         f"oracle-read was {e.verdict} (reason={e.reason_code}); the boundary should "
-        "make the golden file unreachable -> behavior-mismatch.")
+        "make the golden file unreachable -> behavior-mismatch."
+    )
 
 
 def test_literal_import_main_attribute_hijack_is_closed():
@@ -175,34 +177,43 @@ def test_literal_import_main_attribute_hijack_is_closed():
     e = _evaluate(_LITERAL_MAIN_HIJACK)
     assert e.verdict == "rejected" and e.reason_code == "behavior-mismatch", (
         f"literal __main__ attribute hijack was {e.verdict} (reason={e.reason_code}); "
-        "local-capture should reject the literal form.")
+        "local-capture should reject the literal form."
+    )
 
 
-@pytest.mark.xfail(strict=True, reason="KNOWN-OPEN (v2.0): the frame-locals serializer "
-                   "hijack is NOT closed. On Python 3.13 a candidate walks stack frames "
-                   "to the driver frame and overwrites the trusted _dumps LOCAL via the "
-                   "PEP 667 write-through f_locals proxy with a HARDCODED answer; a "
-                   "behavior-wrong candidate is SCORED. Local-capture does not stop a "
-                   "frame-walk. Closing it needs a process split (architecture change), "
-                   "not a patch. An XPASS here means it was closed — update this marker.")
+@pytest.mark.xfail(
+    strict=True,
+    reason="KNOWN-OPEN (v2.0): the frame-locals serializer "
+    "hijack is NOT closed. On Python 3.13 a candidate walks stack frames "
+    "to the driver frame and overwrites the trusted _dumps LOCAL via the "
+    "PEP 667 write-through f_locals proxy with a HARDCODED answer; a "
+    "behavior-wrong candidate is SCORED. Local-capture does not stop a "
+    "frame-walk. Closing it needs a process split (architecture change), "
+    "not a patch. An XPASS here means it was closed — update this marker.",
+)
 def test_frame_locals_dumps_hijack_is_open():
     """We WANT this rejected; in v2.0 it is NOT (open, demonstrated bypass)."""
     e = _evaluate(_FRAME_LOCALS_HIJACK)
     assert e.verdict == "rejected", (
         f"frame-locals _dumps hijack was {e.verdict} (cost={e.weighted_cost}); the "
         "in-process trusted-code hijack is OPEN — co-resident process, unbounded "
-        "interposition surface. Closing it needs a process split.")
+        "interposition surface. Closing it needs a process split."
+    )
 
 
-@pytest.mark.xfail(strict=True, reason="KNOWN-OPEN (v2.0): compute-and-lie is NOT closed. "
-                   "A candidate that COMPUTES the answers from the inputs in-process and "
-                   "forges the result frame still passes — co-resident process, unbounded "
-                   "interposition surface. (Unlike the hardcoded hijack, this one does add "
-                   "computation, but the container still cannot tell who emitted the frame.) "
-                   "Closing it needs a process split. An XPASS means it was closed — update.")
+@pytest.mark.xfail(
+    strict=True,
+    reason="KNOWN-OPEN (v2.0): compute-and-lie is NOT closed. "
+    "A candidate that COMPUTES the answers from the inputs in-process and "
+    "forges the result frame still passes — co-resident process, unbounded "
+    "interposition surface. (Unlike the hardcoded hijack, this one does add "
+    "computation, but the container still cannot tell who emitted the frame.) "
+    "Closing it needs a process split. An XPASS means it was closed — update.",
+)
 def test_compute_and_lie_residual_is_open():
     """We WANT a computing-and-forging candidate rejected; in v2.0 it is NOT (open)."""
     e = _evaluate(_COMPUTE_AND_LIE)
     assert e.verdict == "rejected", (
         f"compute-and-lie candidate was {e.verdict} (cost={e.weighted_cost}); the "
-        "in-process compute-and-forge residual is OPEN — accepted and documented in v2.0.")
+        "in-process compute-and-forge residual is OPEN — accepted and documented in v2.0."
+    )

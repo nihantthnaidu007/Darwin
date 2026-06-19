@@ -11,6 +11,7 @@ file would be falsely flagged. maintainability_index stays per-file only
 Usage (from tools/): python mcase_metrics.py <case_name>
 Writes ../mcases/<case>/baseline_metrics.json and prints it.
 """
+
 import json
 import sys
 from pathlib import Path
@@ -44,9 +45,17 @@ def unit_metrics(unit_dir):
     return {
         "aggregate": aggregate,
         "per_file": {
-            name: {k: m[k] for k in
-                   ("cyclomatic_total", "cyclomatic_max", "logical_loc",
-                    "source_loc", "max_nesting_depth", "maintainability_index")}
+            name: {
+                k: m[k]
+                for k in (
+                    "cyclomatic_total",
+                    "cyclomatic_max",
+                    "logical_loc",
+                    "source_loc",
+                    "max_nesting_depth",
+                    "maintainability_index",
+                )
+            }
             for name, m in per_file.items()
         },
     }

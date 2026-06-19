@@ -13,6 +13,7 @@ Coverage maps to THE BAR's edge cases:
 - generate() with a fake client materializes a valid candidate and reports real
   token usage / cost, and writes nothing for an invalid one.
 """
+
 import ast
 import json
 from pathlib import Path
@@ -23,11 +24,14 @@ import pytest
 import mgenerator
 
 ROOT = Path(__file__).resolve().parent.parent
-META = json.loads((ROOT / "mcases" / "rate_limiter" / "meta.json").read_text(encoding="utf-8"))
+META = json.loads(
+    (ROOT / "mcases" / "rate_limiter" / "meta.json").read_text(encoding="utf-8")
+)
 ORIGINAL_FILES = mgenerator.read_unit(ROOT / "mcases" / "rate_limiter" / "original")
 
 
 # ------------------------------------------------------------- helpers
+
 
 def emit(files):
     """Render a {path: source} map as the `### FILE:` + fenced-block protocol the
@@ -45,8 +49,9 @@ class _Messages:
         self.outer.calls.append(kwargs)
         return SimpleNamespace(
             content=[SimpleNamespace(type="text", text=self.outer.text)],
-            usage=SimpleNamespace(input_tokens=self.outer.in_tokens,
-                                  output_tokens=self.outer.out_tokens),
+            usage=SimpleNamespace(
+                input_tokens=self.outer.in_tokens, output_tokens=self.outer.out_tokens
+            ),
         )
 
 
@@ -63,7 +68,7 @@ class FakeClient:
 
 
 GOOD_2FILE = {
-    "__init__.py": "from .limiter import Limiter\n\n__all__ = [\"Limiter\"]",
+    "__init__.py": 'from .limiter import Limiter\n\n__all__ = ["Limiter"]',
     "limiter.py": (
         "class Limiter:\n"
         "    def __init__(self, rate, burst):\n"
@@ -89,6 +94,7 @@ GOOD_4FILE = {
 
 # ----------------------------------------------------- well-formed emissions
 
+
 def test_two_file_emission_parses_and_validates():
     files = mgenerator.parse_emission(emit(GOOD_2FILE))
     assert set(files) == {"__init__.py", "limiter.py"}
@@ -104,6 +110,7 @@ def test_four_file_emission_parses_and_validates():
 
 # ----------------------------------------------------------- syntax error
 
+
 def test_syntax_error_names_offending_file():
     bad = dict(GOOD_2FILE)
     bad["limiter.py"] = "class Limiter\n    pass\n"  # missing colon
@@ -116,6 +123,7 @@ def test_syntax_error_names_offending_file():
 
 # --------------------------------------------------------- missing __init__
 
+
 def test_missing_init_is_specific():
     files = mgenerator.parse_emission(emit({"limiter.py": GOOD_2FILE["limiter.py"]}))
     err = mgenerator.validate(files, "Limiter")
@@ -125,11 +133,16 @@ def test_missing_init_is_specific():
 
 # --------------------------------------------------- entry not exposed
 
+
 def test_entry_not_exposed_is_specific():
-    files = mgenerator.parse_emission(emit({
-        "__init__.py": "# this package forgets to expose the entry class\n",
-        "limiter.py": GOOD_2FILE["limiter.py"],
-    }))
+    files = mgenerator.parse_emission(
+        emit(
+            {
+                "__init__.py": "# this package forgets to expose the entry class\n",
+                "limiter.py": GOOD_2FILE["limiter.py"],
+            }
+        )
+    )
     err = mgenerator.validate(files, "Limiter")
     assert err is not None
     assert "Limiter" in err
@@ -137,7 +150,9 @@ def test_entry_not_exposed_is_specific():
 
 
 def test_entry_defined_in_init_is_exposed():
-    files = mgenerator.parse_emission(emit({"__init__.py": "class Limiter:\n    pass\n"}))
+    files = mgenerator.parse_emission(
+        emit({"__init__.py": "class Limiter:\n    pass\n"})
+    )
     assert mgenerator.validate(files, "Limiter") is None
 
 
@@ -147,39 +162,56 @@ def test_entry_reexported_is_exposed():
 
 
 def test_entry_imported_under_other_name_is_not_exposed():
-    files = mgenerator.parse_emission(emit({
-        "__init__.py": "from .limiter import Limiter as Other\n",
-        "limiter.py": GOOD_2FILE["limiter.py"],
-    }))
+    files = mgenerator.parse_emission(
+        emit(
+            {
+                "__init__.py": "from .limiter import Limiter as Other\n",
+                "limiter.py": GOOD_2FILE["limiter.py"],
+            }
+        )
+    )
     err = mgenerator.validate(files, "Limiter")
     assert err is not None and "expose" in err
 
 
 # ----------------------------------------------------------- path safety
 
+
 def test_absolute_path_rejected():
-    files = mgenerator.parse_emission(emit({
-        "__init__.py": GOOD_2FILE["__init__.py"],
-        "/etc/evil.py": "x = 1\n",
-    }))
+    files = mgenerator.parse_emission(
+        emit(
+            {
+                "__init__.py": GOOD_2FILE["__init__.py"],
+                "/etc/evil.py": "x = 1\n",
+            }
+        )
+    )
     err = mgenerator.validate(files, "Limiter")
     assert err is not None and "absolute" in err
 
 
 def test_dotdot_path_rejected():
-    files = mgenerator.parse_emission(emit({
-        "__init__.py": "from .a import Limiter\n",
-        "../escape.py": "class Limiter:\n    pass\n",
-    }))
+    files = mgenerator.parse_emission(
+        emit(
+            {
+                "__init__.py": "from .a import Limiter\n",
+                "../escape.py": "class Limiter:\n    pass\n",
+            }
+        )
+    )
     err = mgenerator.validate(files, "Limiter")
     assert err is not None and ".." in err
 
 
 def test_non_py_path_rejected():
-    files = mgenerator.parse_emission(emit({
-        "__init__.py": GOOD_2FILE["__init__.py"],
-        "notes.txt": "not python\n",
-    }))
+    files = mgenerator.parse_emission(
+        emit(
+            {
+                "__init__.py": GOOD_2FILE["__init__.py"],
+                "notes.txt": "not python\n",
+            }
+        )
+    )
     err = mgenerator.validate(files, "Limiter")
     assert err is not None and "does not end in .py" in err
 
@@ -191,6 +223,7 @@ def test_windows_drive_path_rejected():
 
 # ----------------------------------------------------------- prose only
 
+
 def test_prose_only_is_invalid():
     text = "Sure! Here is a cleaner design. I will describe the approach in prose only."
     files = mgenerator.parse_emission(text)
@@ -201,12 +234,17 @@ def test_prose_only_is_invalid():
 
 # ----------------------------------------------------------- materialize
 
+
 def test_materialize_creates_package(tmp_path):
-    files = mgenerator.parse_emission(emit({
-        "__init__.py": GOOD_2FILE["__init__.py"],
-        "limiter.py": GOOD_2FILE["limiter.py"],
-        "sub/extra.py": "VALUE = 1\n",
-    }))
+    files = mgenerator.parse_emission(
+        emit(
+            {
+                "__init__.py": GOOD_2FILE["__init__.py"],
+                "limiter.py": GOOD_2FILE["limiter.py"],
+                "sub/extra.py": "VALUE = 1\n",
+            }
+        )
+    )
     assert mgenerator.validate(files, "Limiter") is None
     dest = mgenerator.materialize(files, tmp_path / "cand")
     dest = Path(dest)
@@ -226,6 +264,7 @@ def test_materialize_refuses_unsafe_path_and_writes_nothing(tmp_path):
 
 
 # --------------------------------------------------- generate (fake client)
+
 
 def test_generate_valid_materializes_and_reports_usage(tmp_path):
     client = FakeClient(emit(GOOD_4FILE))
@@ -259,8 +298,13 @@ def test_generate_first_gen_omits_previous_attempt():
 def test_generate_later_gen_embeds_feedback_verbatim():
     client = FakeClient(emit(GOOD_2FILE))
     feedback = "REJECTED at the equivalence gate. sentinel-feedback-marker-42"
-    mgenerator.generate(META, ORIGINAL_FILES, prev_files=GOOD_2FILE,
-                        prev_feedback=feedback, client=client)
+    mgenerator.generate(
+        META,
+        ORIGINAL_FILES,
+        prev_files=GOOD_2FILE,
+        prev_feedback=feedback,
+        client=client,
+    )
     user = client.calls[0]["messages"][0]["content"]
     assert "previous attempt" in user
     assert "sentinel-feedback-marker-42" in user  # embedded verbatim
@@ -269,10 +313,14 @@ def test_generate_later_gen_embeds_feedback_verbatim():
 def test_generate_invalid_writes_nothing(tmp_path):
     parent = tmp_path / "out"
     out = parent / "cand"
-    client = FakeClient(emit({
-        "__init__.py": "from .escape import Limiter\n",
-        "../escape.py": "class Limiter:\n    pass\n",
-    }))
+    client = FakeClient(
+        emit(
+            {
+                "__init__.py": "from .escape import Limiter\n",
+                "../escape.py": "class Limiter:\n    pass\n",
+            }
+        )
+    )
     r = mgenerator.generate(META, ORIGINAL_FILES, client=client, out_dir=out)
     assert not r.valid
     assert ".." in r.error
@@ -290,7 +338,9 @@ def test_generate_thinking_params_gated_by_model():
     # A model without the capability gets neither (stays model-configurable).
     client2 = FakeClient(emit(GOOD_2FILE))
     mgenerator.generate(META, ORIGINAL_FILES, model="claude-haiku-4-5", client=client2)
-    assert "thinking" not in client2.calls[0] and "output_config" not in client2.calls[0]
+    assert (
+        "thinking" not in client2.calls[0] and "output_config" not in client2.calls[0]
+    )
 
 
 def test_generate_sends_explicit_temperature_on_both_paths():

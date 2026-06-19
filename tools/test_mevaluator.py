@@ -20,14 +20,14 @@ Covers, per success criterion:
   a candidate earlier, at correctness: the suite pins outcomes to small values, so
   an outcome-bloated unit cannot pass pytest and never reaches the cap.
 """
+
 import json
-from pathlib import Path
 
 import pytest
 
 from mevaluator import NON_EQUIVALENT, evaluate
 from mverify import check_equivalence_containerized
-from validate_mcase import (MCASES, _load_module, _materialize_break)
+from validate_mcase import MCASES, _load_module, _materialize_break
 
 CASES = sorted(p.name for p in MCASES.iterdir() if (p / "meta.json").exists())
 
@@ -54,7 +54,7 @@ def test_reference_passes_both_gates_and_scores_at_floor(case):
     e = evaluate(MCASES / case, MCASES / case / "reference")
     assert e.verdict == "scored", e.feedback
     assert e.reason_code is None and e.gate is None
-    assert e.weighted_cost == 0.0          # the reference IS the floor
+    assert e.weighted_cost == 0.0  # the reference IS the floor
     assert e.metrics is not None and e.metric_costs is not None
     assert "PASSED the correctness and equivalence gates" in e.feedback
 
@@ -65,34 +65,40 @@ def test_original_passes_both_gates_and_scores_worse(case):
     orig = evaluate(MCASES / case, MCASES / case / "original")
     assert orig.verdict == "scored", orig.feedback
     assert orig.weighted_cost > ref.weighted_cost
-    assert orig.weighted_cost == pytest.approx(1.0)   # the original anchors 1.0
+    assert orig.weighted_cost == pytest.approx(1.0)  # the original anchors 1.0
     # Scored-but-above-floor feedback names specific metrics and files.
     assert "Largest weighted gaps from the reference floor" in orig.feedback
 
 
 def test_failing_test_candidate_rejected_at_correctness(tmp_path):
     case = "rate_limiter"
-    brk = next(b for b in _load_module(MCASES / case / "breaks.py").BREAKS
-               if b["name"] == TESTS_BREAK[case])
+    brk = next(
+        b
+        for b in _load_module(MCASES / case / "breaks.py").BREAKS
+        if b["name"] == TESTS_BREAK[case]
+    )
     broken = _materialize_break(MCASES / case / "original", brk, tmp_path)
     e = evaluate(MCASES / case, broken)
     assert e.verdict == "rejected"
     assert e.reason_code == "tests-failed"
     assert e.gate == "tests"
-    assert e.weighted_cost is None and e.metrics is None   # never scored
+    assert e.weighted_cost is None and e.metrics is None  # never scored
     assert "REJECTED at the correctness gate" in e.feedback
 
 
 def test_planted_break_rejected_at_equivalence_with_witness(tmp_path):
     case = "task_scheduler"
-    brk = next(b for b in _load_module(MCASES / case / "breaks.py").BREAKS
-               if b["name"] == EQ_BREAK[case])
+    brk = next(
+        b
+        for b in _load_module(MCASES / case / "breaks.py").BREAKS
+        if b["name"] == EQ_BREAK[case]
+    )
     broken = _materialize_break(MCASES / case / "original", brk, tmp_path)
     e = evaluate(MCASES / case, broken)
     assert e.verdict == "rejected"
     assert e.reason_code == NON_EQUIVALENT
     assert e.gate == "equivalence"
-    assert e.weighted_cost is None and e.metrics is None   # never scored
+    assert e.weighted_cost is None and e.metrics is None  # never scored
     # The feedback names the first diverging sequence and the call.
     assert "First diverging sequence: deep_cancel_heavy" in e.feedback
     assert "('stats', ())" in e.feedback
@@ -100,15 +106,26 @@ def test_planted_break_rejected_at_equivalence_with_witness(tmp_path):
 
 def test_result_shape_mirrors_v1_contract(tmp_path):
     """Scored and rejected results both carry the v1 evaluator's fields."""
-    fields = ("verdict", "reason_code", "gate", "metrics", "weighted_cost",
-              "metric_costs", "flags", "feedback")
+    fields = (
+        "verdict",
+        "reason_code",
+        "gate",
+        "metrics",
+        "weighted_cost",
+        "metric_costs",
+        "flags",
+        "feedback",
+    )
     scored = evaluate(MCASES / "rate_limiter", MCASES / "rate_limiter" / "reference")
     for f in fields:
         assert hasattr(scored, f)
     assert scored.reason_code is None and scored.weighted_cost is not None
 
-    brk = next(b for b in _load_module(MCASES / "rate_limiter" / "breaks.py").BREAKS
-               if b["name"] == TESTS_BREAK["rate_limiter"])
+    brk = next(
+        b
+        for b in _load_module(MCASES / "rate_limiter" / "breaks.py").BREAKS
+        if b["name"] == TESTS_BREAK["rate_limiter"]
+    )
     broken = _materialize_break(MCASES / "rate_limiter" / "original", brk, tmp_path)
     rejected = evaluate(MCASES / "rate_limiter", broken)
     for f in fields:
@@ -137,9 +154,10 @@ def test_outcome_bloated_candidate_fails_closed(tmp_path):
         "    def reset(self, *a, **k):\n        return True\n"
         "    def active_clients(self, *a, **k):\n        return []\n"
         f"    def stats(self, *a, **k):\n        return {big}\n",
-        encoding="utf-8")
+        encoding="utf-8",
+    )
 
     eq, witness, stats = check_equivalence_containerized(MCASES / "rate_limiter", pkg)
-    assert eq is False                 # NOT falsely equivalent
-    assert witness is None             # no per-call witness on a fail-closed run
-    assert "error" in stats            # the failure reason is carried
+    assert eq is False  # NOT falsely equivalent
+    assert witness is None  # no per-call witness on a fail-closed run
+    assert "error" in stats  # the failure reason is carried

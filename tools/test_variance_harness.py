@@ -5,6 +5,7 @@ snapshot instead of calling the model.
 
   cd tools && python -m pytest test_variance_harness.py -q -p no:cacheprovider
 """
+
 import json
 from pathlib import Path
 
@@ -14,58 +15,101 @@ import variance_harness as vh
 
 # ----------------------------------------------------------- fixtures
 
-def _case(case, best_gen, gen1, best_bloat, gain, *, improved=True,
-          kind="synthetic-unit", difficulty="medium"):
+
+def _case(
+    case,
+    best_gen,
+    gen1,
+    best_bloat,
+    gain,
+    *,
+    improved=True,
+    kind="synthetic-unit",
+    difficulty="medium",
+):
     """One cases[] entry in maggregate.json's real schema (the keys
     mbenchmark.aggregate writes). derive reads best_generation,
     first_pass_bloat_removed_pct, bloat_removed_pct, feedback_gain_pp,
     improved_over_baseline; the rest is carried for schema fidelity."""
     return {
-        "case": case, "kind": kind, "difficulty": difficulty,
-        "verdict": ("improved (best candidate returned)" if improved
-                    else "no improvement (baseline original returned)"),
+        "case": case,
+        "kind": kind,
+        "difficulty": difficulty,
+        "verdict": (
+            "improved (best candidate returned)"
+            if improved
+            else "no improvement (baseline original returned)"
+        ),
         "improved_over_baseline": improved,
         "best_weighted_cost": 0.0,
         "bloat_removed_pct": best_bloat,
         "first_pass_bloat_removed_pct": gen1,
         "feedback_gain_pp": gain,
-        "generations_attempted": best_gen, "best_generation": best_gen,
-        "first_scored_generation": 1, "floor_reached": True,
-        "total_cost_usd": 0.05, "total_input_tokens": 1000, "total_output_tokens": 2000,
-        "best_flags": [], "halted": None, "structural_changes_from_first": [],
-        "per_metric": [], "run_dir": f"/runs/{case}",
+        "generations_attempted": best_gen,
+        "best_generation": best_gen,
+        "first_scored_generation": 1,
+        "floor_reached": True,
+        "total_cost_usd": 0.05,
+        "total_input_tokens": 1000,
+        "total_output_tokens": 2000,
+        "best_flags": [],
+        "halted": None,
+        "structural_changes_from_first": [],
+        "per_metric": [],
+        "run_dir": f"/runs/{case}",
     }
 
 
-def _write_snapshot(snapshot_dir, name, cases, *, model="claude-opus-4-8",
-                    config=None):
+def _write_snapshot(snapshot_dir, name, cases, *, model="claude-opus-4-8", config=None):
     """Write one maggregate.json snapshot into snapshot_dir/name/maggregate.json."""
     config = config or {"cap": 5, "plateau_limit": 2}
-    agg = {"model": model, "config": config, "n_cases": len(cases),
-           "improved": sum(c["improved_over_baseline"] for c in cases),
-           "baseline_returned": sum(not c["improved_over_baseline"] for c in cases),
-           "cases": cases}
+    agg = {
+        "model": model,
+        "config": config,
+        "n_cases": len(cases),
+        "improved": sum(c["improved_over_baseline"] for c in cases),
+        "baseline_returned": sum(not c["improved_over_baseline"] for c in cases),
+        "cases": cases,
+    }
     run_dir = Path(snapshot_dir) / name
     run_dir.mkdir(parents=True)
-    (run_dir / "maggregate.json").write_text(json.dumps(agg, indent=2), encoding="utf-8")
+    (run_dir / "maggregate.json").write_text(
+        json.dumps(agg, indent=2), encoding="utf-8"
+    )
     return run_dir / "maggregate.json"
 
 
 def _three_run_dataset(snapshot_dir):
     """Three snapshots over two cases with KNOWN inputs (a subset of the real
     mvariance shape), so the derived arrays/counts are predictable."""
-    _write_snapshot(snapshot_dir, "run_00", [
-        _case("doc_history", 1, 100.6, 100.6, 0.0),
-        _case("rate_limiter", 1, 104.0, 104.0, 0.0)])
-    _write_snapshot(snapshot_dir, "run_01", [
-        _case("doc_history", 2, 94.4, 108.2, 13.77),
-        _case("rate_limiter", 2, 93.0, 105.8, 12.79)])
-    _write_snapshot(snapshot_dir, "run_02", [
-        _case("doc_history", 2, 97.8, 121.8, 24.02),
-        _case("rate_limiter", 3, 95.8, 101.7, 5.96)])
+    _write_snapshot(
+        snapshot_dir,
+        "run_00",
+        [
+            _case("doc_history", 1, 100.6, 100.6, 0.0),
+            _case("rate_limiter", 1, 104.0, 104.0, 0.0),
+        ],
+    )
+    _write_snapshot(
+        snapshot_dir,
+        "run_01",
+        [
+            _case("doc_history", 2, 94.4, 108.2, 13.77),
+            _case("rate_limiter", 2, 93.0, 105.8, 12.79),
+        ],
+    )
+    _write_snapshot(
+        snapshot_dir,
+        "run_02",
+        [
+            _case("doc_history", 2, 97.8, 121.8, 24.02),
+            _case("rate_limiter", 3, 95.8, 101.7, 5.96),
+        ],
+    )
 
 
 # ----------------------------------------------------------- derive: arrays + counts
+
 
 def test_derive_arrays_and_counts(tmp_path):
     _three_run_dataset(tmp_path)
@@ -90,8 +134,13 @@ def test_derive_arrays_and_counts(tmp_path):
 
     # The per-case field order matches the committed mvariance structure.
     assert list(doc.keys()) == [
-        "best_generation", "gen1_bloat_removed_pct", "feedback_gain_pp",
-        "best_bloat_removed_pct", "one_shot_runs", "needed_feedback_runs"]
+        "best_generation",
+        "gen1_bloat_removed_pct",
+        "feedback_gain_pp",
+        "best_bloat_removed_pct",
+        "one_shot_runs",
+        "needed_feedback_runs",
+    ]
 
 
 def test_derive_computable_findings(tmp_path):
@@ -99,7 +148,9 @@ def test_derive_computable_findings(tmp_path):
     ds = vh.derive(tmp_path)
 
     # Every case-run improved over baseline: 6 case-runs, 0 regressions.
-    assert "6 improved over baseline and 0 returned baseline" in ds["stable_findings"][0]
+    assert (
+        "6 improved over baseline and 0 returned baseline" in ds["stable_findings"][0]
+    )
     # gen1 range across all cases/runs: min 93.0, max 104.0.
     assert "93 to 104 percent" in ds["stable_findings"][1]
     # Only run_00 had BOTH cases one-shot.
@@ -121,13 +172,15 @@ def test_derive_reads_real_mbenchmark_snapshot(tmp_path):
     """derive reads a snapshot produced by the REAL mbenchmark.aggregate +
     write_aggregate (proving the field mapping matches the actual maggregate schema
     P5.3b will emit), with no model call."""
-    rows = [_summary_row("doc_history", 2, 94.4, 108.2, 13.77),
-            _summary_row("rate_limiter", 1, 104.0, 104.0, 0.0),
-            _summary_row("task_scheduler", 2, 93.5, 103.7, 10.21)]
+    rows = [
+        _summary_row("doc_history", 2, 94.4, 108.2, 13.77),
+        _summary_row("rate_limiter", 1, 104.0, 104.0, 0.0),
+        _summary_row("task_scheduler", 2, 93.5, 103.7, 10.21),
+    ]
     agg = mbenchmark.aggregate(rows, "claude-opus-4-8", 5, 2)
     snap = tmp_path / "run_00"
     snap.mkdir()
-    mbenchmark.write_aggregate(agg, snap)          # writes run_00/maggregate.json
+    mbenchmark.write_aggregate(agg, snap)  # writes run_00/maggregate.json
 
     ds = vh.derive(tmp_path)
     assert ds["n_runs"] == 1
@@ -140,15 +193,27 @@ def test_derive_reads_real_mbenchmark_snapshot(tmp_path):
 def _summary_row(case, best_gen, first_pass, bloat, gain):
     """A summarize_mrun-shaped row mbenchmark.aggregate consumes (real schema)."""
     return {
-        "case": case, "kind": "synthetic-unit", "difficulty": "medium",
-        "verdict": "improved (best candidate returned)", "improved_over_baseline": True,
-        "best_weighted_cost": 0.0, "bloat_removed_pct": bloat,
-        "first_pass_bloat_removed_pct": first_pass, "feedback_gain_pp": gain,
-        "generations_attempted": best_gen, "best_generation": best_gen,
-        "first_scored_generation": 1, "floor_reached": True,
-        "total_cost_usd": 0.05, "total_input_tokens": 1000, "total_output_tokens": 2000,
-        "best_flags": [], "halted": None, "structural_changes_from_first": [],
-        "per_metric": [], "run_dir": f"/runs/{case}",
+        "case": case,
+        "kind": "synthetic-unit",
+        "difficulty": "medium",
+        "verdict": "improved (best candidate returned)",
+        "improved_over_baseline": True,
+        "best_weighted_cost": 0.0,
+        "bloat_removed_pct": bloat,
+        "first_pass_bloat_removed_pct": first_pass,
+        "feedback_gain_pp": gain,
+        "generations_attempted": best_gen,
+        "best_generation": best_gen,
+        "first_scored_generation": 1,
+        "floor_reached": True,
+        "total_cost_usd": 0.05,
+        "total_input_tokens": 1000,
+        "total_output_tokens": 2000,
+        "best_flags": [],
+        "halted": None,
+        "structural_changes_from_first": [],
+        "per_metric": [],
+        "run_dir": f"/runs/{case}",
     }
 
 
@@ -162,6 +227,7 @@ def test_format_mresults_rows(tmp_path):
 
 # ----------------------------------------------------- run orchestration (stubbed)
 
+
 def test_run_orchestration_with_stub_no_api(tmp_path):
     """run() loops N times, writes N distinct snapshots, and derives -- all through a
     STUBBED runner that writes a fixture instead of calling the model, so there is no
@@ -171,19 +237,23 @@ def test_run_orchestration_with_stub_no_api(tmp_path):
     def stub_runner(out_dir, *, cap, plateau, model):
         calls.append(Path(out_dir))
         return _write_snapshot(
-            out_dir.parent, out_dir.name,
-            [_case("doc_history", 1, 100.0, 100.0, 0.0),
-             _case("rate_limiter", 2, 90.0, 105.0, 15.0),
-             _case("task_scheduler", 1, 98.0, 98.0, 0.0)],
-            config={"cap": cap, "plateau_limit": plateau})
+            out_dir.parent,
+            out_dir.name,
+            [
+                _case("doc_history", 1, 100.0, 100.0, 0.0),
+                _case("rate_limiter", 2, 90.0, 105.0, 15.0),
+                _case("task_scheduler", 1, 98.0, 98.0, 0.0),
+            ],
+            config={"cap": cap, "plateau_limit": plateau},
+        )
 
     dataset, written = vh.run(3, tmp_path, cap=5, plateau=2, runner=stub_runner)
 
-    assert len(calls) == 3                                  # invoked N times
+    assert len(calls) == 3  # invoked N times
     assert calls == [tmp_path / "run_00", tmp_path / "run_01", tmp_path / "run_02"]
-    assert len({str(p) for p in written}) == 3             # N DISTINCT snapshot paths
+    assert len({str(p) for p in written}) == 3  # N DISTINCT snapshot paths
     assert all(p.exists() and p.name == "maggregate.json" for p in written)
-    assert dataset["n_runs"] == 3                          # derived from the N snapshots
+    assert dataset["n_runs"] == 3  # derived from the N snapshots
     assert dataset["cases"]["doc_history"]["best_generation"] == [1, 1, 1]
     assert dataset["cases"]["rate_limiter"]["needed_feedback_runs"] == 3
 
@@ -192,4 +262,7 @@ def test_default_runner_is_the_real_mbenchmark_seam():
     """The default runner is the real mbenchmark invocation (the seam tests replace);
     it is built but never called in P5.3a."""
     import inspect
-    assert inspect.signature(vh.run).parameters["runner"].default is vh._mbenchmark_runner
+
+    assert (
+        inspect.signature(vh.run).parameters["runner"].default is vh._mbenchmark_runner
+    )

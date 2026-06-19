@@ -22,6 +22,7 @@ can run it. It FAILS on the pre-fix code (staging dir 0o700) and PASSES after.
 Run from tools/:
     python -m pytest test_sandbox_container.py -q -p no:cacheprovider
 """
+
 import os
 import shutil
 import stat
@@ -84,8 +85,12 @@ def test_owner_access_preserved(staged):
 
 def test_stage_writes_content_and_structure(staged):
     # The chmod walk must not damage staging: content and nested layout intact.
-    assert (staged / "driver.py").read_text(encoding="utf-8").startswith("import pkg.mod")
-    assert (staged / "pkg" / "mod.py").read_text(encoding="utf-8") == FILES["pkg/mod.py"]
+    assert (
+        (staged / "driver.py").read_text(encoding="utf-8").startswith("import pkg.mod")
+    )
+    assert (staged / "pkg" / "mod.py").read_text(encoding="utf-8") == FILES[
+        "pkg/mod.py"
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -119,8 +124,8 @@ def test_require_image_present_by_tag_makes_no_extra_call(monkeypatch):
         raise AssertionError(f"no extra docker call expected on success: {args}")
 
     calls = _stub_docker(monkeypatch, handler)
-    sandbox_container._require_image(IMG)                 # must not raise
-    assert calls == [["image", "inspect", IMG]]          # exactly the one inspect call
+    sandbox_container._require_image(IMG)  # must not raise
+    assert calls == [["image", "inspect", IMG]]  # exactly the one inspect call
 
 
 def test_require_image_false_negative_proceeds_via_listing(monkeypatch):
@@ -128,15 +133,17 @@ def test_require_image_false_negative_proceeds_via_listing(monkeypatch):
     # image. The secondary listing resolves it, so the run proceeds, not aborts.
     def handler(args):
         if args[:2] == ["image", "inspect"]:
-            return (1, "", f"Error: No such image: {IMG}")   # false negative
+            return (1, "", f"Error: No such image: {IMG}")  # false negative
         if args[:2] == ["image", "ls"]:
             return (0, f"python:3.13\n{IMG}\nbusybox:latest", "")
         return (1, "", "")
 
     calls = _stub_docker(monkeypatch, handler)
-    sandbox_container._require_image(IMG)                 # must NOT raise
-    assert calls[0][:2] == ["image", "inspect"]          # primary tried first
-    assert any(c[:2] == ["image", "ls"] for c in calls)  # secondary, different path, ran
+    sandbox_container._require_image(IMG)  # must NOT raise
+    assert calls[0][:2] == ["image", "inspect"]  # primary tried first
+    assert any(
+        c[:2] == ["image", "ls"] for c in calls
+    )  # secondary, different path, ran
     # The secondary call is NOT a second inspect-by-tag (it is a genuinely
     # different resolution mechanism).
     assert not any(c[:3] == ["image", "inspect", IMG] for c in calls[1:])
@@ -148,7 +155,7 @@ def test_require_image_genuinely_absent_raises_build_hint(monkeypatch):
         if args[:2] == ["image", "inspect"]:
             return (1, "", "No such image")
         if args[:2] == ["image", "ls"]:
-            return (0, "python:3.13\nbusybox:latest", "")    # tag absent from listing
+            return (0, "python:3.13\nbusybox:latest", "")  # tag absent from listing
         return (1, "", "")
 
     _stub_docker(monkeypatch, handler)
@@ -168,7 +175,7 @@ def test_require_image_secondary_check_is_timeout_bounded(monkeypatch):
         if args[:2] == ["image", "inspect"]:
             return (1, "", "")
         if args[:2] == ["image", "ls"]:
-            return (124, "", "docker timed out")             # _docker timeout sentinel
+            return (124, "", "docker timed out")  # _docker timeout sentinel
         return (1, "", "")
 
     _stub_docker(monkeypatch, handler)
