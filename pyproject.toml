@@ -117,8 +117,9 @@ Repository = "https://github.com/nihanthnaidu007/Darwin"
 # Quality tooling config (P0.2). Blocking as of P7.4: CI fails on any finding
 # (.github/workflows/quality.yml). The gates ran advisory from P0.2 (decision 0016)
 # until P7.3 drove all findings to zero, then P7.4 flipped them to blocking. ruff and
-# mypy target the production code in tools/; cases/ (bloated benchmark fixtures)
-# and spikes/ (experiments) are excluded so they generate no meaningless findings.
+# mypy target the package source in src/darwin and the tests/ suite; cases/ (bloated
+# benchmark fixtures) and spikes/ (experiments) are excluded so they generate no
+# meaningless findings.
 
 [tool.ruff]
 # Default rule selection (E/F), no custom select. target-version matches
@@ -128,17 +129,17 @@ extend-exclude = ["cases", "spikes"]
 
 [tool.mypy]
 # Lenient baseline: tolerate unresolved third-party imports, no strict mode.
-# The tools/ scripts are untyped; this records a baseline, it does not enforce.
+# The src/darwin and tests/ code is largely untyped; this records a baseline, it
+# does not enforce.
 ignore_missing_imports = true
 exclude = ['^cases/', '^spikes/']
 
 [tool.coverage.run]
-# Coverage is reported, not gated. Omit the test files themselves (the suite
-# runs from tools/, so paths are relative to that directory).
-omit = [
-    "test_*.py",
-    "*/test_*.py",
-]
+# Package-scoped coverage: measure the darwin package only (the CI invocation passes
+# --cov=darwin; source pins it here too so the floor always means production
+# coverage). The tests live in tests/, OUTSIDE the package, so they fall out of the
+# measurement naturally -- the test-file omit the flat tools/ layout needed is gone.
+source = ["darwin"]
 
 [tool.pytest.ini_options]
 # The package lives under src/darwin and the tests under tests/, both imported via

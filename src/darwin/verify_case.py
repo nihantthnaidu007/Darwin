@@ -68,7 +68,7 @@ Two entry points:
 The two container runs live here only; nothing downstream re-runs them.
 
 PREREQUISITE (Phase I1): Docker must be running and the sandbox image built once
-(docker build -f tools/Dockerfile.sandbox -t darwin-sandbox:py313 tools/); the
+(docker build -f docker/Dockerfile.sandbox -t darwin-sandbox:py313 docker/); the
 container run() raises RuntimeError with that hint if the image is missing.
 """
 

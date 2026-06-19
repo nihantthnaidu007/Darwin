@@ -157,7 +157,7 @@ def test_example_seccomp_profile_smoke(monkeypatch):
     through the opt-in path lets a NORMAL python+pytest candidate still run (the
     profile does not break the normal workload). It does NOT prove the profile blocks
     any attack. Reuses the probe's good-candidate definition rather than inventing one."""
-    profile = REPO / "tools" / "seccomp" / "example-sandbox-seccomp.json"
+    profile = REPO / "docker" / "seccomp" / "example-sandbox-seccomp.json"
     assert profile.is_file()
     monkeypatch.setattr(scon, "EXTRA_SECURITY_OPTS", (f"seccomp={profile}",))
     res = scon.run({"candidate.py": GOOD, "test_suite.py": TEST}, PYTEST_CMD)

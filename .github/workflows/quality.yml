@@ -10,9 +10,9 @@ name: Quality (blocking)
 # infrastructure steps (checkout, setup-python, install) carry no tolerance
 # either, so a real break still fails the job.
 #
-# ruff and mypy target the production code in tools/ only; cases/ and spikes/
-# are excluded in pyproject.toml. The tool pins live in requirements-dev.txt and
-# the current baseline finding counts are recorded in docs/quality-baseline.md.
+# ruff and mypy target the package source in src/darwin and the tests/ suite;
+# cases/ and spikes/ are excluded in pyproject.toml. The tool pins live in
+# requirements-dev.txt and the baseline finding counts are in docs/quality-baseline.md.
 on:
   push:
   pull_request:
@@ -31,9 +31,9 @@ jobs:
       - name: Install dev dependencies
         run: pip install --require-hashes -r requirements-dev.txt
       - name: Ruff lint (blocking)
-        run: ruff check tools/
+        run: ruff check src tests
       - name: Ruff format check (blocking)
-        run: ruff format --check tools/
+        run: ruff format --check src tests
 
   mypy:
     runs-on: ubuntu-latest
@@ -47,7 +47,7 @@ jobs:
       - name: Install dev dependencies
         run: pip install --require-hashes -r requirements-dev.txt
       - name: Mypy (lenient, blocking)
-        run: mypy tools/
+        run: mypy src tests
 
   secret-scan:
     runs-on: ubuntu-latest
@@ -64,7 +64,7 @@ jobs:
   # Dependency vulnerability scan (P6.2.2), BLOCKING as of P7.4. pip-audit
   # (pip-ecosystem, matching pip-tools; pinned in the hashed dev lock) checks the
   # runtime closure (requirements.txt) and the sandbox closure
-  # (tools/requirements-sandbox.txt) against the PyPI advisory database. pip-audit
+  # (docker/requirements-sandbox.txt) against the PyPI advisory database. pip-audit
   # exits non-zero on a finding, which now fails the job: the P7.1 pytest bump
   # cleared the one finding (CVE-2025-71176), so the scan flips to blocking with
   # the other gates. See decision 0029.
@@ -82,4 +82,4 @@ jobs:
       # Confirmed from `pip-audit --help`: -r is repeatable and reads the hashed
       # lock files directly (no extra flag needed).
       - name: pip-audit dependency vulnerability scan (blocking)
-        run: pip-audit -r requirements.txt -r tools/requirements-sandbox.txt
+        run: pip-audit -r requirements.txt -r docker/requirements-sandbox.txt

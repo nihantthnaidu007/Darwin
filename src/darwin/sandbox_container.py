@@ -38,7 +38,7 @@ THE LOCKDOWN (each item independently verifiable; see verify_container_sandbox.p
 
 PREREQUISITE: Docker must be installed and running on the host, and the sandbox
 image must be built once:
-    docker build -f tools/Dockerfile.sandbox -t darwin-sandbox:py313 tools/
+    docker build -f docker/Dockerfile.sandbox -t darwin-sandbox:py313 docker/
 run() raises RuntimeError with this hint if the image is missing.
 
 SCOPE: this is the primitive only. Wiring the evaluator across the boundary is I1.
@@ -62,7 +62,7 @@ FAILED = "failed"  # completed with a non-zero exit code
 CRASHED = "crashed"  # terminated abnormally (signal, or killed by the memory cap)
 TIMED_OUT = "timed_out"  # killed by the sandbox's wall-clock timeout
 
-IMAGE = "darwin-sandbox:py313"  # built from tools/Dockerfile.sandbox
+IMAGE = "darwin-sandbox:py313"  # built from docker/Dockerfile.sandbox
 
 # Default container caps. Generous enough for a pytest run on the tiny cases,
 # tight enough to contain a hostile candidate.
@@ -88,7 +88,8 @@ _MAX_OUTPUT = 1_000_000  # bytes per stream
 # single-user-trusted, so the default lockdown is the floor and this adds nothing
 # unless an operator turns it on. DARWIN_SANDBOX_EXTRA_SECURITY_OPTS is a comma-
 # separated list of docker --security-opt values (for example
-# "seccomp=/abs/path/example-sandbox-seccomp.json", optionally also "apparmor=...");
+# "seccomp=/abs/path/to/docker/seccomp/example-sandbox-seccomp.json", optionally
+# also "apparmor=...");
 # each becomes an ADDITIONAL --security-opt on top of the lockdown -- it never removes
 # or alters a lockdown flag (opt-in only ADDS restriction). Read ONCE here at module
 # load, mirroring the operator-side DARWIN_LOG_* convention in logsetup: this is
@@ -390,5 +391,5 @@ def _require_image(image):
         return  # inspect false-negatived; image is present
     raise RuntimeError(
         f"sandbox image {image!r} not found. Build it once with:\n"
-        f"    docker build -f tools/Dockerfile.sandbox -t {image} tools/"
+        f"    docker build -f docker/Dockerfile.sandbox -t {image} docker/"
     )

@@ -1,7 +1,7 @@
 name: Isolation (container lockdown probe)
 
 # P6.3: exercise the end-to-end container lockdown probe
-# (tools/verify_container_sandbox.py) in CI, on a matrix of Ubuntu runner images,
+# (src/darwin/verify_container_sandbox.py) in CI, on a matrix of Ubuntu runner images,
 # recording the actual cgroup version, kernel, and Docker version each runner
 # reports. The probe is a standalone exit-0-or-1 script (NOT collected by the
 # pytest suite that ci.yml runs), so without this workflow the network/OOM/PID/
@@ -53,7 +53,7 @@ jobs:
       # The probe runs candidates via docker run, so the image must exist first.
       # Exact command from the README and ci.yml, built from the pinned Dockerfile.
       - name: Build the sandbox image
-        run: docker build -f tools/Dockerfile.sandbox -t darwin-sandbox:py313 tools/
+        run: docker build -f docker/Dockerfile.sandbox -t darwin-sandbox:py313 docker/
 
       # Record the runner's real isolation environment so the SECURITY.md scope is
       # backed by the matrix output, not an assumption. cgroup version is the
@@ -70,8 +70,9 @@ jobs:
       # held (clean pass, failing candidate, crash, network blocked, host FS
       # blocked, hard timeout with clean teardown, memory flood OOM-killed by the
       # cap, fork bomb contained by the PID cap, zero leaks). Exit 1 = a guarantee
-      # broke, which fails CI. Run from tools/ so imports resolve as every other
-      # invocation does.
+      # broke, which fails CI. Run from the repo root with src/ on PYTHONPATH so the
+      # darwin package imports; the probe runs as a module.
       - name: Run the container lockdown probe (exit code gates this leg)
-        working-directory: tools
-        run: python verify_container_sandbox.py
+        env:
+          PYTHONPATH: src
+        run: python -m darwin.verify_container_sandbox

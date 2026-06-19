@@ -164,7 +164,7 @@ def test_require_image_genuinely_absent_raises_build_hint(monkeypatch):
         sandbox_container._require_image(IMG)
     msg = str(ei.value)
     assert "not found" in msg
-    assert f"docker build -f tools/Dockerfile.sandbox -t {IMG} tools/" in msg
+    assert f"docker build -f docker/Dockerfile.sandbox -t {IMG} docker/" in msg
     assert IMG in msg
 
 
