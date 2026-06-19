@@ -20,9 +20,9 @@ Three concerns, all read-only with respect to the engine:
      hijack, process manipulation, driver/oracle tampering). If the optimizer never
      approaches them, the deferred process-split is empirically justified.
 
-Usage (run from tools/, like the other modules):
-  python isolation_audit.py loop <case> [--cap N --plateau N --model ID]
-  python isolation_audit.py benchmark [--cap N --plateau N --model ID --cases ...]
+Usage (installed: darwin-isolation-audit; from a checkout: python -m darwin.isolation_audit):
+  python -m darwin.isolation_audit loop <case> [--cap N --plateau N --model ID]
+  python -m darwin.isolation_audit benchmark [--cap N --plateau N --model ID --cases ...]
 """
 
 import argparse

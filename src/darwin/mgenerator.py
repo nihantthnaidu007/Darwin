@@ -26,11 +26,11 @@ Malformed output is NOT fatal: prose-only output, a syntax error in any file, a
 missing __init__.py, an unexposed entry class, or an unsafe path each yields an
 invalid result carrying a specific, actionable error string (the loop feeds it
 back next generation). Only an API failure raises. The pricing table, the model-
-capability gating, and the .env key loader are reused from tools/generator.py by
+capability gating, and the .env key loader are reused from darwin.generator by
 import (not duplicated); the API key is read from the environment and never
 hardcoded or printed.
 
-Usage: python mgenerator.py <case_dir> <out_dir> [model]
+Usage: python -m darwin.mgenerator <case_dir> <out_dir> [model]
 """
 
 import ast
@@ -370,7 +370,7 @@ def main():
     import sys
 
     if len(sys.argv) not in (3, 4):
-        sys.exit("usage: python mgenerator.py <case_dir> <out_dir> [model]")
+        sys.exit("usage: python -m darwin.mgenerator <case_dir> <out_dir> [model]")
     logsetup.configure()  # entry point: wire logging once (never at import)
     case_dir = Path(sys.argv[1])
     out_dir = sys.argv[2]

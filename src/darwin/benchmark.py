@@ -18,11 +18,11 @@ recorded and runs only the rest, assembling the same final aggregate. The API ke
 is loaded from the environment by generator._load_dotenv(); it is never read or
 printed here.
 
-Usage:
-  python benchmark.py                       # fresh run of the whole corpus (clears prior state)
-  python benchmark.py --resume              # resume an interrupted run; skip completed cases
-  python benchmark.py --cap 5 --plateau 2   # explicit loop config (loop's own defaults)
-  python benchmark.py --cases sum_evens income_tax   # a subset (cheap re-runs)
+Usage (installed: darwin-benchmark; from a checkout: python -m darwin.benchmark):
+  python -m darwin.benchmark                       # fresh run of the whole corpus (clears prior state)
+  python -m darwin.benchmark --resume              # resume an interrupted run; skip completed cases
+  python -m darwin.benchmark --cap 5 --plateau 2   # explicit loop config (loop's own defaults)
+  python -m darwin.benchmark --cases sum_evens income_tax   # a subset (cheap re-runs)
 """
 
 import argparse
@@ -42,8 +42,9 @@ from darwin.feedback_materiality import FEEDBACK_MATERIALITY_EPSILON_PP
 from darwin.run_summary import summarize_run
 
 # Data directories resolve LAZILY, never at import: the installed console script must
-# run --help and honor --cases-dir / --out / DARWIN_DATA_ROOT without a checkout on
-# disk (the P8.3 audit found import-time resolution broke that). CASES stays a
+# run --help and resolve their data root from DARWIN_DATA_ROOT at runtime, without a
+# checkout on disk (the P8.3 audit found import-time resolution broke that); the
+# --cases-dir / --out flags override only their own lookup. CASES stays a
 # settable, monkeypatchable module attribute and is also written cross-module
 # (benchmark sets loop.CASES below); an assigned global wins over module __getattr__.
 _THIS = sys.modules[__name__]
@@ -356,13 +357,15 @@ def main():
         "--out",
         default=None,
         help="output directory for report files (default: the resolved reports/ "
-        "under the data root; pass this, or set DARWIN_DATA_ROOT, when installed)",
+        "under the data root). A full run also resolves cases/ and runs/ under the data "
+        "root, so installed use needs DARWIN_DATA_ROOT, not this flag alone.",
     )
     ap.add_argument(
         "--cases-dir",
         default=None,
-        help="directory holding the cases (overrides the resolved data root; pass "
-        "this, or set DARWIN_DATA_ROOT, when running installed)",
+        help="directory holding the cases; overrides only the cases lookup (a "
+        "checkout-side convenience). To run installed, set DARWIN_DATA_ROOT to the data "
+        "root; a run also resolves runs/ under it, which this flag does not provide.",
     )
     ap.add_argument(
         "--report-only",

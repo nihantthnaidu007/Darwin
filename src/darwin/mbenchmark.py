@@ -20,10 +20,10 @@ aggregate and the printed table. The API key is loaded from the environment by
 generator._load_dotenv() on import of mloop's chain; it is never read or printed
 here.
 
-Usage:
-  python mbenchmark.py                          # run every mcase, default loop config
-  python mbenchmark.py --cap 5 --plateau 2      # explicit loop config (loop's own defaults)
-  python mbenchmark.py --cases rate_limiter     # a subset (cheap re-runs)
+Usage (installed: darwin-mbenchmark; from a checkout: python -m darwin.mbenchmark):
+  python -m darwin.mbenchmark                          # run every mcase, default loop config
+  python -m darwin.mbenchmark --cap 5 --plateau 2      # explicit loop config (loop's own defaults)
+  python -m darwin.mbenchmark --cases rate_limiter     # a subset (cheap re-runs)
 """
 
 import argparse
@@ -41,8 +41,9 @@ from darwin.feedback_materiality import FEEDBACK_MATERIALITY_EPSILON_PP
 from darwin.mrun_summary import summarize_mrun
 
 # Data directories resolve LAZILY, never at import: the installed console script must
-# run --help and honor --mcases-dir / --out / DARWIN_DATA_ROOT without a checkout on
-# disk (the P8.3 audit found import-time resolution broke that). MCASES stays a
+# run --help and resolve their data root from DARWIN_DATA_ROOT at runtime, without a
+# checkout on disk (the P8.3 audit found import-time resolution broke that); the
+# --mcases-dir / --out flags override only their own lookup. MCASES stays a
 # settable, monkeypatchable module attribute and is also written cross-module
 # (mbenchmark sets mloop.MCASES below); an assigned global wins over module __getattr__.
 _THIS = sys.modules[__name__]
@@ -378,13 +379,15 @@ def main():
         "--out",
         default=None,
         help="output directory for the aggregate (default: the resolved reports/ "
-        "under the data root; pass this, or set DARWIN_DATA_ROOT, when installed)",
+        "under the data root). A full run also resolves mcases/ and runs/ under the data "
+        "root, so installed use needs DARWIN_DATA_ROOT, not this flag alone.",
     )
     ap.add_argument(
         "--mcases-dir",
         default=None,
-        help="directory holding the mcases (overrides the resolved data root; pass "
-        "this, or set DARWIN_DATA_ROOT, when running installed)",
+        help="directory holding the mcases; overrides only the mcases lookup (a "
+        "checkout-side convenience). To run installed, set DARWIN_DATA_ROOT to the data "
+        "root; a run also resolves runs/ under it, which this flag does not provide.",
     )
     ap.add_argument(
         "--resume",

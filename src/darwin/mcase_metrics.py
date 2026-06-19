@@ -8,7 +8,7 @@ must scavenge the whole unit in one pass, or helpers used from a sibling
 file would be falsely flagged. maintainability_index stays per-file only
 (weight-0 in v1; no meaningful multi-file aggregate).
 
-Usage (from tools/): python mcase_metrics.py <case_name>
+Usage: python -m darwin.mcase_metrics <case_name>
 Writes ../mcases/<case>/baseline_metrics.json and prints it.
 """
 
@@ -63,7 +63,7 @@ def unit_metrics(unit_dir):
 
 def main():
     if len(sys.argv) != 2:
-        sys.exit("usage: python mcase_metrics.py <case_name>")
+        sys.exit("usage: python -m darwin.mcase_metrics <case_name>")
     case_dir = Path("..") / "mcases" / sys.argv[1]
     if not (case_dir / "original").is_dir():
         sys.exit(f"no such case: {case_dir}")

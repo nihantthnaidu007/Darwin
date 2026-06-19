@@ -230,8 +230,10 @@ It resolves `[project].dependencies` as **version ranges from PyPI, not the hash
 closure**, so it is the quick path for trying Darwin, **not** the reproducible or
 security-reviewed one. For that, use the hash-locked install above. The wheel ships
 **only** the `darwin` package (no `cases/`, `mcases/`, or `docker/`), so an installed
-CLI has no data on disk: supply the data root with `DARWIN_DATA_ROOT` or the per-command
-directory flags (see [Usage](#usage)).
+CLI has no data on disk: set `DARWIN_DATA_ROOT` to the data root (the checkout root) to
+run it. The per-command directory flags (`--cases-dir` / `--mcases-dir` / `--out`) override
+only their own lookup and do not on their own satisfy an installed run, which also resolves
+`runs/` (and `reports/`) under the data root (see [Usage](#usage)).
 
 **Docker is a prerequisite.** Candidate code executes inside a container, so anything
 that runs a candidate through the gates needs Docker installed and running, and the
@@ -275,8 +277,10 @@ Two invocation styles, same engine:
 - **Installed** (`pip install .`): the six harnesses are on `PATH` as `darwin-loop`,
   `darwin-mloop`, `darwin-benchmark`, `darwin-mbenchmark`, `darwin-variance`, and
   `darwin-isolation-audit`. An installed CLI has no data on disk, so point it at a data
-  root with `DARWIN_DATA_ROOT=/path/to/checkout` or the per-command directory flag
-  (`--cases-dir`, `--mcases-dir`, `--out`). The authoring/diagnostic tools without a
+  root with `DARWIN_DATA_ROOT=/path/to/checkout`. The per-command directory flags
+  (`--cases-dir`, `--mcases-dir`, `--out`) override only their own lookup (a checkout-side
+  convenience) and do not on their own satisfy an installed run, which also resolves
+  `runs/` (and `reports/`) under the data root. The authoring/diagnostic tools without a
   console script run as `python -m darwin.<name>`.
 - **From a source checkout**: run the modules directly, e.g. `python -m darwin.loop`.
   The `paths.py` walk-up resolver finds `cases/`, `mcases/`, `runs/`, and `reports/` at

@@ -9,7 +9,7 @@ including the adversarial ones, and checks each guarantee with raw output:
   e host filesystem blocked
 
 Exit 0 = every guarantee held; exit 1 = a guarantee broke.
-Usage (Docker must be running, image built):  python verify_container_sandbox.py
+Usage (Docker must be running, image built):  python -m darwin.verify_container_sandbox
 """
 
 import glob

@@ -134,7 +134,7 @@ Repository = "https://github.com/nihanthnaidu007/Darwin"
 # Console entry points (P8.3). Each maps a darwin-<name> command to the existing
 # zero-arg main() of its module, so an installed wheel puts the six argparse-driven
 # harnesses on PATH. The four non-argparse harnesses (bakeoff, smoke_test,
-# verify_boundary, verify_container_sandbox) get NO console script by design; they
+# build_case, validate_mcase) get NO console script by design; they
 # stay `python -m darwin.<name>` dev tools.
 [project.scripts]
 darwin-loop = "darwin.loop:main"

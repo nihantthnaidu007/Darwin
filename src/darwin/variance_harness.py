@@ -32,8 +32,9 @@ from pathlib import Path
 from darwin import paths
 
 # Data directories resolve LAZILY, never at import: the installed console script must
-# run --help and honor --snapshots / --out / DARWIN_DATA_ROOT without a checkout on
-# disk (the P8.3 audit found import-time resolution broke that).
+# run --help and resolve their data root from DARWIN_DATA_ROOT at runtime, without a
+# checkout on disk (the P8.3 audit found import-time resolution broke that); the
+# --snapshots / --out flags override only their own lookup.
 _THIS = sys.modules[__name__]
 
 SNAPSHOT_NAME = "maggregate.json"  # mbenchmark.write_aggregate's fixed filename

@@ -11,7 +11,7 @@ fragmentation trap is real, and that A and B both avoid it.
 
 Every candidate is run through the REAL evaluator (real Layers 1+2 gates via the
 sandbox, real Layer-3 metrics), so the rankings are over candidates that genuinely
-pass correctness and behavior. Run: python bakeoff.py
+pass correctness and behavior. Run: python -m darwin.bakeoff
 """
 
 import sys

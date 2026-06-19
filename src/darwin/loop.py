@@ -25,8 +25,9 @@ got R") — format_feedback() strips that: it names the diverging INPUT (Fork 1'
 
 Usage (installed):        darwin-loop <case_name> [--cap N] [--plateau N] [--model ID]
 Usage (source checkout):  python -m darwin.loop <case_name> [--cap N] [--plateau N] [--model ID]
-Installed, supply the data root via --cases-dir or DARWIN_DATA_ROOT; from a checkout
-the walk-up resolver finds cases/ on its own.
+Installed, set DARWIN_DATA_ROOT to the data root (the checkout root): a run also writes
+runs/ under it, so --cases-dir alone (a per-lookup override) does not satisfy an installed
+run. From a checkout the walk-up resolver finds cases/ and runs/ on its own.
 """
 
 import argparse
@@ -46,8 +47,9 @@ from darwin.evaluator import evaluate
 from darwin.verify_case import BEHAVIOR_MISMATCH, TESTS_FAILED
 
 # Data directories resolve LAZILY, never at import: the installed console scripts must
-# run --help and honor --cases-dir / DARWIN_DATA_ROOT without a checkout on disk (the
-# P8.3 audit found import-time resolution broke that). CASES and RUNS stay settable,
+# run --help and resolve their data root from DARWIN_DATA_ROOT at runtime, without a
+# checkout on disk (the P8.3 audit found import-time resolution broke that); the
+# --cases-dir flag overrides only the cases lookup. CASES and RUNS stay settable,
 # monkeypatchable module attributes -- an explicit `loop.CASES = ...` (set by
 # benchmark.py, or a test) shadows the lazy default below, because an assigned module
 # global wins over module __getattr__ (PEP 562).
@@ -354,8 +356,9 @@ def main():
     ap.add_argument(
         "--cases-dir",
         default=None,
-        help="directory holding the cases (overrides the resolved data root; pass "
-        "this, or set DARWIN_DATA_ROOT, when running installed)",
+        help="directory holding the cases; overrides only the cases lookup (a "
+        "checkout-side convenience). To run installed, set DARWIN_DATA_ROOT to the data "
+        "root; a run also resolves runs/ under it, which this flag does not provide.",
     )
     args = ap.parse_args()
     logsetup.configure()  # entry point: wire logging once (never at import)

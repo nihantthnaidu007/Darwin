@@ -3,7 +3,7 @@
 Calls <entry_point> on each argument set and freezes the results so later
 candidates can be checked for behavioral identity.
 
-Usage: python record_golden.py <reference.py> <entry_point> <arg_sets.json> [-o out.json]
+Usage: python -m darwin.record_golden <reference.py> <entry_point> <arg_sets.json> [-o out.json]
 
 arg_sets.json holds a JSON list. Each element is either a list (positional
 args) or an object {"args": [...], "kwargs": {...}}.
@@ -55,7 +55,7 @@ def record(reference_path, entry_point, arg_sets):
 def main():
     if len(sys.argv) not in (4, 6):
         sys.exit(
-            "usage: python record_golden.py <reference.py> <entry_point> "
+            "usage: python -m darwin.record_golden <reference.py> <entry_point> "
             "<arg_sets.json> [-o out.json]"
         )
     ref, entry, arg_file = sys.argv[1:4]

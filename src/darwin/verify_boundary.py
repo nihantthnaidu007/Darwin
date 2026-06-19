@@ -44,7 +44,7 @@ HOST. It checks, with raw output, on the sum_evens case:
 
 Exit 0 = every reason code fired AND the access-cut vectors (A, B) are closed AND the
 in-process vectors (C, D) are (correctly) still open. Exit 1 = a check behaved otherwise.
-Usage (Docker running, image built):  python verify_boundary.py
+Usage (Docker running, image built):  python -m darwin.verify_boundary
 """
 
 import sys

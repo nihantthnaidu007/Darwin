@@ -15,7 +15,7 @@ Method A (the weighted cost / per-metric normalization) is NOT re-implemented he
 evaluator.WEIGHTS and evaluator.metric_costs are imported so the score lives in
 exactly one place. Importing this module does not touch the API.
 
-Usage: python run_summary.py <run_dir>     # pretty-print one run's summary
+Usage: python -m darwin.run_summary <run_dir>     # pretty-print one run's summary
 """
 
 import sys
@@ -242,7 +242,7 @@ def print_summary(s):
 
 def main():
     if len(sys.argv) != 2:
-        sys.exit("usage: python run_summary.py <run_dir>")
+        sys.exit("usage: python -m darwin.run_summary <run_dir>")
     print_summary(summarize_run(sys.argv[1]))
 
 

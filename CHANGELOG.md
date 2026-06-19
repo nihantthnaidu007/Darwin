@@ -24,8 +24,10 @@ optimization, scoring, equivalence, or default-lockdown behavior.
   `paths.py` data-root resolver. The resolver finds the `cases/`, `mcases/`, `runs/`,
   and `reports/` data directories by walking UP from a starting file to the first
   ancestor holding a marker (`pyproject.toml` or `cases/`), so resolution is correct
-  regardless of how deeply a module is nested; an explicit `--cases-dir` / `--mcases-dir`
-  flag or `DARWIN_DATA_ROOT` overrides the walk-up.
+  regardless of how deeply a module is nested. To run an installed CLI, set
+  `DARWIN_DATA_ROOT` to the data root; the `--cases-dir` / `--mcases-dir` / `--out` flags
+  override only their own lookup (a checkout-side convenience) and do not on their own
+  satisfy an installed run, which also resolves `runs/` (and `reports/`) under the data root.
 - **Build-system and six console scripts.** A `[build-system]` table (hatchling,
   configured for the src layout) makes `pip install .` build a wheel that ships only the
   `darwin` package (no `cases/`, `mcases/`, or `docker/`). The install puts six

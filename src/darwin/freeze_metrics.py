@@ -1,6 +1,6 @@
 """Compute complexity metrics for a .py file. Pure analysis, zero LLM.
 
-Usage: python freeze_metrics.py <path.py>
+Usage: python -m darwin.freeze_metrics <path.py>
 Prints a JSON object with the frozen metrics to stdout.
 """
 
@@ -92,7 +92,7 @@ def freeze(path):
 
 def main():
     if len(sys.argv) != 2:
-        sys.exit("usage: python freeze_metrics.py <path.py>")
+        sys.exit("usage: python -m darwin.freeze_metrics <path.py>")
     print(json.dumps(freeze(sys.argv[1]), indent=2))
 
 

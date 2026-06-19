@@ -9,7 +9,7 @@ and confirms the stack performs the task: both pass the gates, and the clean
 reference scores BETTER (lower weighted cost) than the bloated original.
 
 Exit 0 = the stack works on honest input; exit 1 = a real integration bug.
-Usage: python smoke_test.py
+Usage: python -m darwin.smoke_test
 """
 
 import sys

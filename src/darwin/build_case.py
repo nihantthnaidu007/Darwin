@@ -9,7 +9,7 @@
 A seed dir holds: reference.py, test_suite.py, and spec.json
   { case_id?, category, difficulty, entry_point, description, arg_sets: [...] }
 
-Usage: python build_case.py <seed_dir> [--force]
+Usage: python -m darwin.build_case <seed_dir> [--force]
 """
 
 import json
@@ -126,7 +126,7 @@ def main():
     force = "--force" in sys.argv[1:]
     args = [a for a in sys.argv[1:] if a != "--force"]
     if len(args) != 1:
-        sys.exit("usage: python build_case.py <seed_dir> [--force]")
+        sys.exit("usage: python -m darwin.build_case <seed_dir> [--force]")
     status, case_id, reason = build(args[0], force)
     if status == "finalized":
         print(f"FINALIZED {case_id}: {reason}")

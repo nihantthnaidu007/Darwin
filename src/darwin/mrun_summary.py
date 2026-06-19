@@ -31,7 +31,7 @@ are imported so the score lives in exactly one place. The weighted cost itself i
 read straight from the loop's own log, never recomputed. Importing this module does
 not touch the API or Docker.
 
-Usage: python mrun_summary.py <run_dir>     # pretty-print one mloop run's summary
+Usage: python -m darwin.mrun_summary <run_dir>     # pretty-print one mloop run's summary
 """
 
 import sys
@@ -270,7 +270,7 @@ def print_summary(s):
 
 def main():
     if len(sys.argv) != 2:
-        sys.exit("usage: python mrun_summary.py <run_dir>")
+        sys.exit("usage: python -m darwin.mrun_summary <run_dir>")
     print_summary(summarize_mrun(sys.argv[1]))
 
 

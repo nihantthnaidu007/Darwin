@@ -15,7 +15,7 @@ Layer 3 here implements Method A (weighted sum), the per-candidate absolute scor
 Method B (Pareto) is set-relative and lives in the bake-off harness. See bakeoff.py
 for the comparison and the recommendation.
 
-Usage: python evaluator.py <candidate.py> <case_dir>
+Usage: python -m darwin.evaluator <candidate.py> <case_dir>
 """
 
 import json
@@ -261,7 +261,7 @@ def _score_feedback(metrics, baseline, cost, costs, flags):
 
 def main():
     if len(sys.argv) != 3:
-        sys.exit("usage: python evaluator.py <candidate.py> <case_dir>")
+        sys.exit("usage: python -m darwin.evaluator <candidate.py> <case_dir>")
     logsetup.configure()  # entry point: wire logging once (never at import)
     e = evaluate(sys.argv[1], sys.argv[2])
     result = {

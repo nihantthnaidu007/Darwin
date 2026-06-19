@@ -67,7 +67,7 @@ Closing the residual requires the architecture change already on the roadmap
 deliberately NOT attempted here, and no in-process anti-forgery scheme is
 added beyond the I1 driver pattern this module reuses.
 
-Usage: python mverify.py <case_dir> <candidate_unit_dir>
+Usage: python -m darwin.mverify <case_dir> <candidate_unit_dir>
 Prints EQUIVALENT or NOT EQUIVALENT (+ first divergence) and exits 0 / 1.
 """
 
@@ -294,7 +294,7 @@ def check_equivalence_containerized(case_dir, candidate_dir, timeout=30.0):
 
 def main():
     if len(sys.argv) != 3:
-        sys.exit("usage: python mverify.py <case_dir> <candidate_unit_dir>")
+        sys.exit("usage: python -m darwin.mverify <case_dir> <candidate_unit_dir>")
     logsetup.configure()  # entry point: wire logging once (never at import)
     eq, witness, stats = check_equivalence_containerized(sys.argv[1], sys.argv[2])
     log.info(

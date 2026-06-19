@@ -13,7 +13,7 @@ Per case, in order:
 A break is a patch dict: {name, gap_class, file, old, new, note,
 expect_caught} applied to the original with an exactly-once assertion.
 
-Usage (from tools/): python validate_mcase.py <case_name>|--all
+Usage: python -m darwin.validate_mcase <case_name>|--all
 Exit 0 only if every step holds for every requested case.
 """
 
@@ -189,7 +189,7 @@ def _require_pytest(find_spec=importlib.util.find_spec):
 def main():
     _require_pytest()
     if len(sys.argv) != 2:
-        sys.exit("usage: python validate_mcase.py <case_name>|--all")
+        sys.exit("usage: python -m darwin.validate_mcase <case_name>|--all")
     names = (
         sorted(p.name for p in _THIS.MCASES.iterdir() if (p / "meta.json").exists())
         if sys.argv[1] == "--all"

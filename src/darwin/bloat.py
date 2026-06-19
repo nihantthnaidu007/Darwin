@@ -4,7 +4,7 @@ a clean reference .py. This is the ONLY tool that uses an LLM.
 The API key is read from the ANTHROPIC_API_KEY environment variable by the SDK.
 It is never hardcoded, logged, or printed.
 
-Usage: python bloat.py <reference.py> [-o original.py]
+Usage: python -m darwin.bloat <reference.py> [-o original.py]
 """
 
 import sys
@@ -68,7 +68,7 @@ def bloat(reference_path):
 
 def main():
     if len(sys.argv) not in (2, 4):
-        sys.exit("usage: python bloat.py <reference.py> [-o original.py]")
+        sys.exit("usage: python -m darwin.bloat <reference.py> [-o original.py]")
     bloated = bloat(sys.argv[1])
     if len(sys.argv) == 4 and sys.argv[2] == "-o":
         with open(sys.argv[3], "w", encoding="utf-8") as fh:

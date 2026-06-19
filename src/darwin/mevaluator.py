@@ -34,7 +34,7 @@ runs SEQUENTIALLY, one candidate per call; parallel candidate evaluation is not
 activated here and remains a later phase. This phase makes the state safe to
 parallelize, it does not parallelize it.
 
-Usage: python mevaluator.py <case_dir> <candidate_unit_dir>
+Usage: python -m darwin.mevaluator <case_dir> <candidate_unit_dir>
 """
 
 import json
@@ -342,7 +342,7 @@ def _top_files(metrics, metric):
 
 def main():
     if len(sys.argv) != 3:
-        sys.exit("usage: python mevaluator.py <case_dir> <candidate_unit_dir>")
+        sys.exit("usage: python -m darwin.mevaluator <case_dir> <candidate_unit_dir>")
     logsetup.configure()  # entry point: wire logging once (never at import)
     e = evaluate(sys.argv[1], sys.argv[2])
     # One serialization, used in one place (decision 0032): the SAME to_dict() that

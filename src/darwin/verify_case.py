@@ -55,7 +55,7 @@ OPEN in-process — NOT closable at this layer, do NOT claim closed:
   At most, that argument applies to genuine compute-and-lie (which does add computation);
   it does NOT cover a hardcoded trusted-helper hijack.
 
-Usage: python verify_case.py <candidate.py> <test_suite.py> <golden_io.json>
+Usage: python -m darwin.verify_case <candidate.py> <test_suite.py> <golden_io.json>
 Prints "PASS" or "FAIL: <reason>" and exits 0 (pass) / 1 (fail).
 
 Two entry points:
@@ -288,7 +288,7 @@ def verify(candidate_path, test_suite_path, golden_path, timeout=10.0):
 def main():
     if len(sys.argv) != 4:
         sys.exit(
-            "usage: python verify_case.py <candidate.py> <test_suite.py> "
+            "usage: python -m darwin.verify_case <candidate.py> <test_suite.py> "
             "<golden_io.json>"
         )
     ok, reason = verify(*sys.argv[1:4])
