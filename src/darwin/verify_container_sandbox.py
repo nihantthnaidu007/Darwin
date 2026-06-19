@@ -15,6 +15,7 @@ Usage (Docker must be running, image built):  python verify_container_sandbox.py
 import glob
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -22,8 +23,16 @@ from darwin import paths
 from darwin import sandbox_container as scon
 
 
-REPO = paths.data_root()
-HOST_ENV = REPO / ".env"  # a real host secret; the container must NOT reach it
+# HOST_ENV resolves LAZILY, never at import (the P8.3 audit found import-time data
+# resolution broke installed use); it resolves at first access inside a function.
+_THIS = sys.modules[__name__]
+
+
+def __getattr__(name):
+    if name == "HOST_ENV":  # a real host secret; the container must NOT reach it
+        return paths.env_file()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 PASS, FAIL = "PASS", "FAIL"
 _results: list[tuple[str, bool]] = []
@@ -119,18 +128,23 @@ NETWORK = (
     "    r['dns'] = 'blocked -> ' + e.__class__.__name__\n"
     "print(json.dumps(r))\n"
 )
-HOSTFS = (
-    "import os, json\n"
-    f"host_env = {str(HOST_ENV)!r}\n"
-    "r = {}\n"
-    "try:\n"
-    "    data = open(host_env).read(); r['host_env'] = 'READABLE (BAD): ' + data[:20]\n"
-    "except OSError as e:\n"
-    "    r['host_env'] = 'unreachable -> ' + e.__class__.__name__\n"
-    "r['sandbox_listing'] = sorted(os.listdir('/sandbox'))\n"
-    "r['root_listing'] = sorted(os.listdir('/'))\n"
-    "print(json.dumps(r))\n"
-)
+
+
+def _hostfs_src():
+    # Built lazily so the embedded real host .env path resolves at call time, not at
+    # import (the P8.3 audit found import-time data resolution broke installed use).
+    return (
+        "import os, json\n"
+        f"host_env = {str(_THIS.HOST_ENV)!r}\n"
+        "r = {}\n"
+        "try:\n"
+        "    data = open(host_env).read(); r['host_env'] = 'READABLE (BAD): ' + data[:20]\n"
+        "except OSError as e:\n"
+        "    r['host_env'] = 'unreachable -> ' + e.__class__.__name__\n"
+        "r['sandbox_listing'] = sorted(os.listdir('/sandbox'))\n"
+        "r['root_listing'] = sorted(os.listdir('/'))\n"
+        "print(json.dumps(r))\n"
+    )
 
 
 def main():
@@ -179,7 +193,7 @@ def main():
     )
 
     # e. host filesystem blocked
-    r = scon.run({"candidate.py": HOSTFS}, ["python", "candidate.py"])
+    r = scon.run({"candidate.py": _hostfs_src()}, ["python", "candidate.py"])
     e_ok = (
         "unreachable" in r.stdout
         and "READABLE" not in r.stdout

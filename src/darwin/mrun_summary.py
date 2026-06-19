@@ -42,8 +42,17 @@ from darwin import runinput
 from darwin.evaluator import WEIGHTS
 from darwin.mevaluator import _metric_costs
 
-ROOT = paths.data_root()
-MCASES = ROOT / "mcases"
+# MCASES resolves LAZILY, never at import: this module is imported by the mbenchmark
+# console script, which must run --help without a checkout on disk (the P8.3 audit
+# found import-time resolution broke that). Resolves at first access inside a function.
+_THIS = sys.modules[__name__]
+
+
+def __getattr__(name):
+    if name == "MCASES":
+        return paths.mcases_dir()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 # Structural metrics that actually drive Method A (weight > 0), in display order.
 # maintainability_index is weight 0 (cosmetic-gameable; see evaluator.py) AND lives
@@ -83,7 +92,7 @@ def summarize_mrun(run_dir):
     derivations the loop already implies)."""
     run_dir = Path(run_dir)
     run = runinput.load_json(run_dir / "run.json")
-    baseline = runinput.load_json(MCASES / run["case"] / "baseline_metrics.json")
+    baseline = runinput.load_json(_THIS.MCASES / run["case"] / "baseline_metrics.json")
     # Multi-file baseline shape: the aggregate of the basket, key "reference" (not
     # "reference_floor"), since the basket is aggregated across the unit's files.
     original = baseline["original"]["aggregate"]

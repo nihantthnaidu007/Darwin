@@ -59,9 +59,26 @@ from darwin.generator import (
 from darwin.oracle_markers import CANDIDATE_OUTCOME_PREFIX, ORIGINAL_OUTCOME_PREFIX
 from darwin.verify_case import TESTS_FAILED
 
-ROOT = paths.data_root()
-MCASES = ROOT / "mcases"
-RUNS = ROOT / "runs"
+# Data directories resolve LAZILY, never at import: the installed console scripts must
+# run --help and honor --mcases-dir / DARWIN_DATA_ROOT without a checkout on disk (the
+# P8.3 audit found import-time resolution broke that). MCASES and RUNS stay settable,
+# monkeypatchable module attributes -- an explicit `mloop.MCASES = ...` (set by
+# mbenchmark.py, or a test) shadows the lazy default below, because an assigned module
+# global wins over module __getattr__ (PEP 562).
+_THIS = sys.modules[__name__]
+
+
+def __getattr__(name):
+    # Reached only when `name` is not an explicitly set module attribute, so this is
+    # the lazy default. Resolves at first access (inside run_loop or main), not at
+    # import; raises RuntimeError via paths.data_root() when no data root is locatable.
+    if name == "MCASES":
+        return paths.mcases_dir()
+    if name == "RUNS":
+        return paths.runs_dir()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 FLOOR_REACHED = (
     0.0  # weighted_cost <= 0.0 means the basket reached/beat the reference floor
 )
@@ -177,12 +194,12 @@ def run_loop(
     this body. `evaluate` configures the default emitter's in-process delegate (it is
     the pre-existing no-Docker test seam) and is ignored when `emitter` is passed."""
     emitter = emitter or verdict_emitter.InProcessEmitter(evaluate)
-    case_dir = MCASES / case_name
+    case_dir = _THIS.MCASES / case_name
     meta = runinput.load_mcase_meta(case_dir)
     original_files = mgenerator.read_unit(case_dir / "original")
 
     run_dir = (
-        Path(run_root or RUNS)
+        Path(run_root or _THIS.RUNS)
         / f"{case_name}_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}"
     )
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -425,8 +442,16 @@ def main():
     logsetup.configure()  # entry point: wire logging once (never at import)
     if args.mcases_dir:  # explicit override; feeds the mcase lookup below and run_loop
         globals()["MCASES"] = Path(args.mcases_dir).resolve()
-    if not (MCASES / args.case).is_dir():
-        sys.exit(f"no such mcase: {args.case} (looked in {MCASES})")
+    try:
+        # Resolve the data dirs now (after argparse, honoring any override above): a
+        # clean, actionable exit when installed without a locatable data root, never an
+        # import-time crash or a mid-run traceback.
+        globals()["MCASES"] = _THIS.MCASES
+        globals()["RUNS"] = _THIS.RUNS
+    except RuntimeError as e:
+        raise SystemExit(str(e))
+    if not (_THIS.MCASES / args.case).is_dir():
+        sys.exit(f"no such mcase: {args.case} (looked in {_THIS.MCASES})")
     summary, run_dir = run_loop(args.case, args.cap, args.plateau, args.model)
     _log_summary(summary, run_dir)
 

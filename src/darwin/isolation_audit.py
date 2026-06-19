@@ -31,6 +31,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import time
 from contextlib import contextmanager
@@ -43,8 +44,21 @@ from darwin import paths
 from darwin import sandbox_container
 
 
-ROOT = paths.data_root()
-REPORTS = ROOT / "reports"
+# Data directories resolve LAZILY, never at import: the installed console script must
+# run --help without a checkout on disk (the P8.3 audit found import-time resolution
+# broke that). The data-needing subcommands resolve at call time, inside their bodies.
+_THIS = sys.modules[__name__]
+
+
+def __getattr__(name):
+    # Reached only when `name` is not an explicitly set module attribute, so this is
+    # the lazy default. Resolves at first access (inside a _cmd_* body), not at import;
+    # raises RuntimeError via paths.data_root() when no data root is locatable.
+    if name == "ROOT":
+        return paths.data_root()
+    if name == "REPORTS":
+        return paths.reports_dir()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 # --- 1. Overhead measurement ------------------------------------------------
@@ -246,8 +260,10 @@ def write_isolation_md(overhead, leak, audit, meta):
             for h in r["forgery_hits"]:
                 lines.append(f"- HIT {r['run_dir']} :: {h['file']} -> {h['vector']}")
         lines.append("")
-    (REPORTS / "ISOLATION.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return REPORTS / "ISOLATION.md"
+    (_THIS.REPORTS / "ISOLATION.md").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8"
+    )
+    return _THIS.REPORTS / "ISOLATION.md"
 
 
 def print_overhead(overhead, leak, audit):
@@ -299,7 +315,7 @@ def _cmd_benchmark(args):
 
     cases = args.cases or benchmark.discover_cases()
     if not cases:
-        raise SystemExit(f"no complete cases found under {ROOT / 'cases'}")
+        raise SystemExit(f"no complete cases found under {_THIS.ROOT / 'cases'}")
     print(f"corpus: {len(cases)} case(s) -> {', '.join(cases)}\n")
     fixed = calibrate()
     t0 = time.perf_counter()
@@ -309,14 +325,15 @@ def _cmd_benchmark(args):
     agg = benchmark.aggregate(rows, args.model, args.cap, args.plateau)
     benchmark.print_table(agg)
 
-    REPORTS.mkdir(parents=True, exist_ok=True)
+    reports = _THIS.REPORTS
+    reports.mkdir(parents=True, exist_ok=True)
     generated_at = f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}"
-    (REPORTS / "aggregate.json").write_text(json.dumps(agg, indent=2), encoding="utf-8")
-    (REPORTS / "RESULTS.md").write_text(
+    (reports / "aggregate.json").write_text(json.dumps(agg, indent=2), encoding="utf-8")
+    (reports / "RESULTS.md").write_text(
         report.build_markdown(agg, generated_at), encoding="utf-8"
     )
-    print(f"wrote {REPORTS / 'aggregate.json'}")
-    print(f"wrote {REPORTS / 'RESULTS.md'}")
+    print(f"wrote {reports / 'aggregate.json'}")
+    print(f"wrote {reports / 'RESULTS.md'}")
 
     overhead = overhead_block(meter, fixed, wall)
     leak = leak_check()

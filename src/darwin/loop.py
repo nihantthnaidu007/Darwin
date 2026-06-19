@@ -42,9 +42,26 @@ from darwin import runinput
 from darwin.evaluator import evaluate
 from darwin.verify_case import BEHAVIOR_MISMATCH, TESTS_FAILED
 
-ROOT = paths.data_root()
-CASES = ROOT / "cases"
-RUNS = ROOT / "runs"
+# Data directories resolve LAZILY, never at import: the installed console scripts must
+# run --help and honor --cases-dir / DARWIN_DATA_ROOT without a checkout on disk (the
+# P8.3 audit found import-time resolution broke that). CASES and RUNS stay settable,
+# monkeypatchable module attributes -- an explicit `loop.CASES = ...` (set by
+# benchmark.py, or a test) shadows the lazy default below, because an assigned module
+# global wins over module __getattr__ (PEP 562).
+_THIS = sys.modules[__name__]
+
+
+def __getattr__(name):
+    # Reached only when `name` is not an explicitly set module attribute, so this is
+    # the lazy default. Resolves at first access (inside run_loop or main), not at
+    # import; raises RuntimeError via paths.data_root() when no data root is locatable.
+    if name == "CASES":
+        return paths.cases_dir()
+    if name == "RUNS":
+        return paths.runs_dir()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 FLOOR_REACHED = (
     0.0  # weighted_cost <= 0.0 means the basket reached/beat the reference floor
 )
@@ -119,11 +136,11 @@ def _record(gen, verdict, ev, g, feedback, improved, plateau):
 
 
 def run_loop(case_name, cap=5, plateau_limit=2, model=generator.DEFAULT_MODEL):
-    case_dir = CASES / case_name
+    case_dir = _THIS.CASES / case_name
     meta = runinput.load_case_meta(case_dir)
     original_code = (case_dir / "original.py").read_text(encoding="utf-8")
 
-    run_dir = RUNS / f"{case_name}_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}"
+    run_dir = _THIS.RUNS / f"{case_name}_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}"
     run_dir.mkdir(parents=True, exist_ok=True)
 
     def checkpoint(rec):  # persist each generation immediately (crash-inspectable)
@@ -341,8 +358,17 @@ def main():
     logsetup.configure()  # entry point: wire logging once (never at import)
     if args.cases_dir:  # explicit override; feeds the case lookup below and run_loop
         globals()["CASES"] = Path(args.cases_dir).resolve()
-    if not (CASES / args.case).is_dir():
-        sys.exit(f"no such case: {args.case} (looked in {CASES})")
+    try:
+        # Resolve the data dirs now (after argparse, honoring any override above): a
+        # clean, actionable exit when installed without a locatable data root, never an
+        # import-time crash or a mid-run traceback. Concrete-ize them so run_loop reuses
+        # the resolved values.
+        globals()["CASES"] = _THIS.CASES
+        globals()["RUNS"] = _THIS.RUNS
+    except RuntimeError as e:
+        raise SystemExit(str(e))
+    if not (_THIS.CASES / args.case).is_dir():
+        sys.exit(f"no such case: {args.case} (looked in {_THIS.CASES})")
     summary, run_dir = run_loop(args.case, args.cap, args.plateau, args.model)
     _log_summary(summary, run_dir)
 

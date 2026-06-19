@@ -27,6 +27,7 @@ Usage:
 
 import argparse
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -40,24 +41,42 @@ from darwin import runstate
 from darwin.feedback_materiality import FEEDBACK_MATERIALITY_EPSILON_PP
 from darwin.run_summary import summarize_run
 
-ROOT = paths.data_root()
-CASES = ROOT / "cases"
-REPORTS = ROOT / "reports"
-RUNS = ROOT / "runs"
+# Data directories resolve LAZILY, never at import: the installed console script must
+# run --help and honor --cases-dir / --out / DARWIN_DATA_ROOT without a checkout on
+# disk (the P8.3 audit found import-time resolution broke that). CASES stays a
+# settable, monkeypatchable module attribute and is also written cross-module
+# (benchmark sets loop.CASES below); an assigned global wins over module __getattr__.
+_THIS = sys.modules[__name__]
+
+
+def __getattr__(name):
+    # Reached only when `name` is not an explicitly set module attribute, so this is
+    # the lazy default. Resolves at first access (inside a function or main), not at
+    # import; raises RuntimeError via paths.data_root() when no data root is locatable.
+    # RUN_STATE is the per-case checkpoint of completed cases under the gitignored
+    # runs/ (a fresh run clears and rewrites it; --resume reads it to skip completed
+    # cases) and follows RUNS so an explicit RUNS override flows through.
+    if name == "CASES":
+        return paths.cases_dir()
+    if name == "REPORTS":
+        return paths.reports_dir()
+    if name == "RUNS":
+        return paths.runs_dir()
+    if name == "RUN_STATE":
+        return _THIS.RUNS / "benchmark_runstate.jsonl"
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 log = logsetup.get_logger(
     "benchmark"
 )  # operational log -> stderr (configured at the entry point)
-# Per-case checkpoint of completed cases (under the gitignored runs/). A fresh run
-# clears this and rewrites it; --resume reads it to skip already-completed cases.
-RUN_STATE = RUNS / "benchmark_runstate.jsonl"
 
 
 def discover_cases():
     """Every directory under cases/ that is a complete case (the loop needs all of
     these). Sorted for deterministic ordering."""
     found = []
-    for d in sorted(CASES.iterdir()):
+    for d in sorted(_THIS.CASES.iterdir()):
         if all(
             (d / f).exists()
             for f in (
@@ -73,7 +92,7 @@ def discover_cases():
 
 
 def _case_meta(case):
-    m = runinput.load_case_meta(CASES / case)
+    m = runinput.load_case_meta(_THIS.CASES / case)
     return m.get("category", "?"), m.get("difficulty", "?")
 
 
@@ -334,7 +353,10 @@ def main():
         help="subset of case names (default: every case in cases/)",
     )
     ap.add_argument(
-        "--out", default=str(REPORTS), help="output directory for report files"
+        "--out",
+        default=None,
+        help="output directory for report files (default: the resolved reports/ "
+        "under the data root; pass this, or set DARWIN_DATA_ROOT, when installed)",
     )
     ap.add_argument(
         "--cases-dir",
@@ -361,7 +383,14 @@ def main():
         globals()["CASES"] = cases_dir
         loop.CASES = cases_dir
 
-    out = Path(args.out)
+    try:
+        # Resolve the output dir now (after argparse, --out wins): a clean, actionable
+        # exit when installed without a locatable data root and no --out, never an
+        # import-time crash. --report-only then needs no data root at all when --out
+        # is given.
+        out = Path(args.out) if args.out is not None else _THIS.REPORTS
+    except RuntimeError as e:
+        raise SystemExit(str(e))
     if args.report_only:  # re-render the report from the last aggregate; runs NO loop
         agg = runinput.load_json(out / "aggregate.json", "aggregate.json")
         generated_at = f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}"
@@ -376,9 +405,15 @@ def main():
         )
         return
 
-    cases = args.cases or discover_cases()
-    if not cases:
-        raise SystemExit(f"no complete cases found under {CASES}")
+    try:
+        # The full-run path needs the data root (cases/ and runs/). Resolve it now so a
+        # missing root is a clean, actionable exit, not a traceback from inside the run.
+        cases = args.cases or discover_cases()
+        if not cases:
+            raise SystemExit(f"no complete cases found under {_THIS.CASES}")
+        run_state = _THIS.RUN_STATE
+    except RuntimeError as e:
+        raise SystemExit(str(e))
     log.info(
         "corpus: %s case(s) -> %s%s",
         len(cases),
@@ -386,7 +421,7 @@ def main():
         "  [resume]" if args.resume else "",
     )
 
-    state = runstate.RunState(RUN_STATE)
+    state = runstate.RunState(run_state)
     try:
         rows = run_benchmark(
             cases, args.cap, args.plateau, args.model, state=state, resume=args.resume

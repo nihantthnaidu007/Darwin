@@ -62,11 +62,18 @@
 # version, description, pinned runtime dependencies. It is a GitHub-tagged release;
 # it is NOT published to PyPI.
 #
-# It intentionally omits a [build-system] table: Darwin is a set of flat scripts
-# under tools/ that are run with `cwd = tools/`, NOT yet structured as an importable
-# / pip-installable package. Adding a build backend now would advertise a
-# `pip install .` path that does not actually work. A pip-installable distribution
-# is deferred to a later release.
+# It now declares a [build-system] table (P8.3): the package was converted from the
+# flat tools/ scripts to an importable darwin package under src/ in P8.2, so a build
+# backend can finally advertise a `pip install .` path that actually works. The
+# backend is hatchling, configured for the src layout (it discovers the darwin
+# package under src/). [project].version stays 0.7.0 here: the wheel built in P8.3 is
+# a throwaway verification artifact (it proves the install path end to end), NOT a
+# release; the 0.8.0 bump, CHANGELOG, and release packaging are the P8.4 close-out.
+# It is still NOT published to PyPI.
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "darwin"
@@ -113,6 +120,27 @@ dependencies = [
 
 [project.urls]
 Repository = "https://github.com/nihanthnaidu007/Darwin"
+
+# Console entry points (P8.3). Each maps a darwin-<name> command to the existing
+# zero-arg main() of its module, so an installed wheel puts the six argparse-driven
+# harnesses on PATH. The four non-argparse harnesses (bakeoff, smoke_test,
+# verify_boundary, verify_container_sandbox) get NO console script by design; they
+# stay `python -m darwin.<name>` dev tools.
+[project.scripts]
+darwin-loop = "darwin.loop:main"
+darwin-mloop = "darwin.mloop:main"
+darwin-benchmark = "darwin.benchmark:main"
+darwin-mbenchmark = "darwin.mbenchmark:main"
+darwin-variance = "darwin.variance_harness:main"
+darwin-isolation-audit = "darwin.isolation_audit:main"
+
+# Hatchling src-layout config: the importable package is darwin, living at src/darwin.
+# Pointing the wheel target at that path makes hatchling ship the darwin package (and
+# nothing above it) so docker/ build infra, including the seccomp example, stays OUT
+# of the wheel. mdiffer.py and every other .py under the package ship automatically;
+# the package carries no non-.py runtime data, so no package-data declaration is needed.
+[tool.hatch.build.targets.wheel]
+packages = ["src/darwin"]
 
 # Quality tooling config (P0.2). Blocking as of P7.4: CI fails on any finding
 # (.github/workflows/quality.yml). The gates ran advisory from P0.2 (decision 0016)

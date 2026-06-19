@@ -68,9 +68,10 @@ def data_root(start=None) -> Path:
         return found
     raise RuntimeError(
         "darwin: cannot locate the data root (no pyproject.toml or cases/ found "
-        f"walking up from {base.resolve()}). Pass an explicit data directory "
-        "(--cases-dir / --mcases-dir / --out, as applicable) or set the "
-        f"{ENV_VAR} environment variable to the checkout root."
+        f"walking up from {base.resolve()}). Set the {ENV_VAR} environment variable "
+        "to the data root (the checkout root); every data directory (cases/, mcases/, "
+        "runs/, reports/) resolves under it. A per-command directory flag "
+        "(--cases-dir / --mcases-dir / --out) overrides only its own lookup."
     )
 
 

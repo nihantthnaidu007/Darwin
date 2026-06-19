@@ -28,6 +28,7 @@ Usage:
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from darwin import paths
@@ -39,17 +40,35 @@ from darwin import runstate
 from darwin.feedback_materiality import FEEDBACK_MATERIALITY_EPSILON_PP
 from darwin.mrun_summary import summarize_mrun
 
-ROOT = paths.data_root()
-MCASES = ROOT / "mcases"
-REPORTS = ROOT / "reports"
-RUNS = ROOT / "runs"
+# Data directories resolve LAZILY, never at import: the installed console script must
+# run --help and honor --mcases-dir / --out / DARWIN_DATA_ROOT without a checkout on
+# disk (the P8.3 audit found import-time resolution broke that). MCASES stays a
+# settable, monkeypatchable module attribute and is also written cross-module
+# (mbenchmark sets mloop.MCASES below); an assigned global wins over module __getattr__.
+_THIS = sys.modules[__name__]
+
+
+def __getattr__(name):
+    # Reached only when `name` is not an explicitly set module attribute, so this is
+    # the lazy default. Resolves at first access (inside a function or main), not at
+    # import; raises RuntimeError via paths.data_root() when no data root is locatable.
+    # RUN_STATE is the per-case checkpoint of completed mcases under the gitignored
+    # runs/ (a fresh run clears and rewrites it; --resume reads it to skip completed
+    # mcases) and follows RUNS so an explicit RUNS override flows through.
+    if name == "MCASES":
+        return paths.mcases_dir()
+    if name == "REPORTS":
+        return paths.reports_dir()
+    if name == "RUNS":
+        return paths.runs_dir()
+    if name == "RUN_STATE":
+        return _THIS.RUNS / "mbenchmark_runstate.jsonl"
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 log = logsetup.get_logger(
     "mbenchmark"
 )  # operational log -> stderr (configured at the entry point)
-# Per-case checkpoint of completed mcases (under the gitignored runs/). A fresh run
-# clears this and rewrites it; --resume reads it to skip already-completed mcases.
-RUN_STATE = RUNS / "mbenchmark_runstate.jsonl"
 
 # A complete mcase carries all of these (the loop needs them). original/ and
 # reference/ are directories (the multi-file units); the rest are files.
@@ -61,7 +80,7 @@ def discover_mcases():
     """Every directory under mcases/ that is a complete mcase. Sorted for
     deterministic ordering."""
     found = []
-    for d in sorted(MCASES.iterdir()):
+    for d in sorted(_THIS.MCASES.iterdir()):
         if not d.is_dir():
             continue
         if all((d / f).is_file() for f in _REQUIRED_FILES) and all(
@@ -74,7 +93,7 @@ def discover_mcases():
 def _case_meta(case):
     """The mcase's grouping axes. mcase meta uses 'kind' (the domain descriptor,
     the multi-file analogue of single-function 'category') and 'difficulty'."""
-    m = runinput.load_mcase_meta(MCASES / case)
+    m = runinput.load_mcase_meta(_THIS.MCASES / case)
     return m.get("kind", "?"), m.get("difficulty", "?")
 
 
@@ -356,7 +375,10 @@ def main():
         help="subset of mcase names (default: every mcase in mcases/)",
     )
     ap.add_argument(
-        "--out", default=str(REPORTS), help="output directory for the aggregate"
+        "--out",
+        default=None,
+        help="output directory for the aggregate (default: the resolved reports/ "
+        "under the data root; pass this, or set DARWIN_DATA_ROOT, when installed)",
     )
     ap.add_argument(
         "--mcases-dir",
@@ -380,9 +402,16 @@ def main():
         globals()["MCASES"] = mcases_dir
         mloop.MCASES = mcases_dir
 
-    cases = args.cases or discover_mcases()
-    if not cases:
-        raise SystemExit(f"no complete mcases found under {MCASES}")
+    try:
+        # Resolve the data root now (after argparse, --out / --mcases-dir win): a
+        # missing root is a clean, actionable exit, not a traceback from inside the run.
+        out = Path(args.out) if args.out is not None else _THIS.REPORTS
+        cases = args.cases or discover_mcases()
+        if not cases:
+            raise SystemExit(f"no complete mcases found under {_THIS.MCASES}")
+        run_state = _THIS.RUN_STATE
+    except RuntimeError as e:
+        raise SystemExit(str(e))
     log.info(
         "corpus: %s mcase(s) -> %s%s",
         len(cases),
@@ -390,7 +419,7 @@ def main():
         "  [resume]" if args.resume else "",
     )
 
-    state = runstate.RunState(RUN_STATE)
+    state = runstate.RunState(run_state)
     try:
         rows = run_benchmark(
             cases, args.cap, args.plateau, args.model, state=state, resume=args.resume
@@ -400,7 +429,7 @@ def main():
     agg = aggregate(rows, args.model, args.cap, args.plateau)
     print_table(agg)
 
-    path = write_aggregate(agg, args.out)
+    path = write_aggregate(agg, out)
     log.info("wrote %s", path)
 
 

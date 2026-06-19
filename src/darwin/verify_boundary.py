@@ -47,16 +47,25 @@ in-process vectors (C, D) are (correctly) still open. Exit 1 = a check behaved o
 Usage (Docker running, image built):  python verify_boundary.py
 """
 
+import sys
 from pathlib import Path
 
 from darwin import paths
 from darwin.evaluator import evaluate
 
-REPO = paths.data_root()
-CASE = REPO / "cases" / "sum_evens"
-GOLDEN = (
-    CASE / "golden_io.json"
-)  # the REAL host path; readable in v1, unreachable in-container
+# CASE / GOLDEN resolve LAZILY, never at import (the P8.3 audit found import-time data
+# resolution broke installed use); they resolve at first access inside a function.
+# GOLDEN is the REAL host path: readable in v1, unreachable in-container.
+_THIS = sys.modules[__name__]
+
+
+def __getattr__(name):
+    if name == "CASE":
+        return paths.cases_dir() / "sum_evens"
+    if name == "GOLDEN":
+        return paths.cases_dir() / "sum_evens" / "golden_io.json"
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 PASS, FAIL = "PASS", "FAIL"
 _results: list[tuple[str, bool]] = []
@@ -79,7 +88,7 @@ def run(src):
     with tempfile.TemporaryDirectory() as tmp:
         p = Path(tmp) / "candidate.py"
         p.write_text(src, encoding="utf-8")
-        return evaluate(str(p), CASE)
+        return evaluate(str(p), _THIS.CASE)
 
 
 def show(e):
@@ -112,6 +121,7 @@ GOLDEN_VIOLATOR = (
     "    return sum(n for n in nums if n % 2 == 0)\n"
 )
 
+
 # --- forgery vectors --------------------------------------------------------
 # A. oracle-read: at import the candidate tries to READ the golden answer key off disk
 # (the real host path that EXISTS on the host, plus in-container locations). In v1
@@ -119,12 +129,15 @@ GOLDEN_VIOLATOR = (
 # real logic is broken ONLY on the long input the tests do not cover, so in v1 the
 # stolen key patches it (scored), and in-container the key is unreachable so the break
 # is exposed exactly where the gate is designed to catch it -> behavior-mismatch.
-ORACLE_READ = f"""\
+def _oracle_read_src():
+    # Built lazily so the embedded real host golden path resolves at call time, not at
+    # import (the P8.3 audit found import-time data resolution broke installed use).
+    return f"""\
 import json
 
 
 def _steal_key():
-    for p in ({str(GOLDEN)!r}, "golden_io.json", "../golden_io.json",
+    for p in ({str(_THIS.GOLDEN)!r}, "golden_io.json", "../golden_io.json",
               "/sandbox/golden_io.json"):
         try:
             g = json.load(open(p, encoding="utf-8"))
@@ -145,6 +158,7 @@ def sum_evens(numbers):
         return 0                             # ...wrong on the length-20 golden (110)
     return sum(n for n in nums if n % 2 == 0)  # correct on the test inputs
 """
+
 
 # B. the LITERAL import-__main__ serializer hijack: behavior-WRONG (returns 0 for the
 # length-20 list; golden=110), reassigns __main__._dumps to a forged-correct lambda.
@@ -215,8 +229,10 @@ def sum_evens(numbers):                      # wrong on the length-20 golden the
 
 
 def main():
-    print(f"case: {CASE}")
-    print(f"real golden path (readable in v1, unreachable in-container): {GOLDEN}\n")
+    print(f"case: {_THIS.CASE}")
+    print(
+        f"real golden path (readable in v1, unreachable in-container): {_THIS.GOLDEN}\n"
+    )
 
     # No regression: each reason code still fires, same gate, same taxonomy.
     e = run(WRONG)
@@ -254,7 +270,7 @@ def main():
     )
 
     # Access-cut vectors are CLOSED by the boundary -> behavior-mismatch.
-    e = run(ORACLE_READ)
+    e = run(_oracle_read_src())
     check(
         "A. ORACLE-READ closed by the boundary (golden not in the container -> "
         "read finds nothing -> behavior-mismatch)",

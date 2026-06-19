@@ -25,8 +25,17 @@ from darwin import paths
 from darwin import runinput
 from darwin.evaluator import WEIGHTS, metric_costs
 
-ROOT = paths.data_root()
-CASES = ROOT / "cases"
+# CASES resolves LAZILY, never at import: this module is imported by the benchmark
+# console script, which must run --help without a checkout on disk (the P8.3 audit
+# found import-time resolution broke that). Resolves at first access inside a function.
+_THIS = sys.modules[__name__]
+
+
+def __getattr__(name):
+    if name == "CASES":
+        return paths.cases_dir()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 # Structural metrics that actually drive Method A (weight > 0), in display order.
 # maintainability_index is shown separately as informational (weight 0 — it is
@@ -55,7 +64,7 @@ def summarize_run(run_dir):
     summary dict (no new measurement — only re-presentation + a few derivations)."""
     run_dir = Path(run_dir)
     run = runinput.load_json(run_dir / "run.json")
-    baseline = runinput.load_json(CASES / run["case"] / "baseline_metrics.json")
+    baseline = runinput.load_json(_THIS.CASES / run["case"] / "baseline_metrics.json")
     original, floor = baseline["original"], baseline["reference_floor"]
 
     trace = run["trace"]

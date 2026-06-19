@@ -18,8 +18,8 @@ Two modes:
 Standard library only; mbenchmark.py is not modified (run mode shells out to it).
 
 Usage:
-  python variance_harness.py derive [--snapshots DIR] [--out FILE] [--mresults]
-  python variance_harness.py run --n N [--snapshots DIR] [--cap C] [--plateau P] [--model ID]
+  python -m darwin.variance_harness derive [--snapshots DIR] [--out FILE] [--mresults]
+  python -m darwin.variance_harness run --n N [--snapshots DIR] [--cap C] [--plateau P] [--model ID]
 """
 
 import argparse
@@ -31,13 +31,28 @@ from pathlib import Path
 
 from darwin import paths
 
-ROOT = paths.data_root()
-REPORTS = ROOT / "reports"
-SNAPSHOT_DIR = REPORTS / "variance_runs"
+# Data directories resolve LAZILY, never at import: the installed console script must
+# run --help and honor --snapshots / --out / DARWIN_DATA_ROOT without a checkout on
+# disk (the P8.3 audit found import-time resolution broke that).
+_THIS = sys.modules[__name__]
+
 SNAPSHOT_NAME = "maggregate.json"  # mbenchmark.write_aggregate's fixed filename
-MVARIANCE = REPORTS / "mvariance.json"
 # Matches mbenchmark's --out default model; run mode passes --model through explicitly.
 DEFAULT_MODEL = "claude-opus-4-8"
+
+
+def __getattr__(name):
+    # Reached only when `name` is not an explicitly set module attribute, so this is
+    # the lazy default. Resolves at first access (inside a function or main), not at
+    # import; raises RuntimeError via paths.data_root() when no data root is locatable.
+    if name == "REPORTS":
+        return paths.reports_dir()
+    if name == "SNAPSHOT_DIR":
+        return paths.reports_dir() / "variance_runs"
+    if name == "MVARIANCE":
+        return paths.reports_dir() / "mvariance.json"
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 # Per-case field rename. Each snapshot is a maggregate.json (mbenchmark.aggregate
 # output); for every case in its cases[] we read these four fields and rename two to
@@ -119,23 +134,26 @@ def _derived_note(n_runs, model, config):
     plateau = config.get("plateau_limit")
     return (
         f"Artifact-backed multi-file run-to-run variance, derived by "
-        f"tools/variance_harness.py from {n_runs} committed maggregate.json "
+        f"darwin.variance_harness from {n_runs} committed maggregate.json "
         f"snapshot(s) under reports/variance_runs/ (one per run, each the "
-        f"unmodified output of tools/mbenchmark.py over the 3-case multi-file "
+        f"unmodified output of darwin.mbenchmark over the 3-case multi-file "
         f"corpus). Model {model}, config cap {cap} / plateau {plateau}, N {n_runs}, "
         f"read from the snapshots. A single live run is one stochastic sample, not "
         f"the result: these {n_runs} runs exist to characterize the run-to-run "
         f"variance rather than report one draw as the finding. Reproducible: re-run "
-        f"`python variance_harness.py derive` on the same snapshots for a "
+        f"`python -m darwin.variance_harness derive` on the same snapshots for a "
         f"byte-identical dataset."
     )
 
 
-def derive(snapshot_dir=SNAPSHOT_DIR):
+def derive(snapshot_dir=None):
     """Compute the mvariance dataset from the snapshots under snapshot_dir, in the
     same structure reports/mvariance.json uses. Pure and deterministic: snapshots are
     read in a stable order and case keys are sorted, so a rerun on the same snapshots
-    is byte-identical."""
+    is byte-identical. snapshot_dir defaults to the lazily-resolved SNAPSHOT_DIR (a
+    None sentinel keeps resolution out of import time)."""
+    if snapshot_dir is None:
+        snapshot_dir = _THIS.SNAPSHOT_DIR
     snapshots = _load_snapshots(snapshot_dir)
     if not snapshots:
         raise SystemExit(f"no {SNAPSHOT_NAME} snapshots under {snapshot_dir}")
@@ -234,7 +252,7 @@ def _mbenchmark_runner(out_dir, *, cap, plateau, model):
 
 def run(
     n_runs,
-    snapshot_dir=SNAPSHOT_DIR,
+    snapshot_dir=None,
     *,
     cap=5,
     plateau=2,
@@ -245,7 +263,10 @@ def run(
     paths (run_00, run_01, ...) under snapshot_dir, then derive. `runner` is an
     injectable seam (default the real mbenchmark invocation) so the orchestration is
     unit-tested with a stub that writes a fixture instead of calling the model.
-    Returns (dataset, written_paths)."""
+    snapshot_dir defaults to the lazily-resolved SNAPSHOT_DIR (a None sentinel keeps
+    resolution out of import time). Returns (dataset, written_paths)."""
+    if snapshot_dir is None:
+        snapshot_dir = _THIS.SNAPSHOT_DIR
     snapshot_dir = Path(snapshot_dir)
     written = []
     for i in range(n_runs):
@@ -266,8 +287,8 @@ def main():
     sub = ap.add_subparsers(dest="mode", required=True)
 
     d = sub.add_parser("derive", help="derive mvariance.json from committed snapshots")
-    d.add_argument("--snapshots", default=str(SNAPSHOT_DIR))
-    d.add_argument("--out", default=str(MVARIANCE))
+    d.add_argument("--snapshots", default=None)
+    d.add_argument("--out", default=None)
     d.add_argument(
         "--mresults",
         action="store_true",
@@ -278,25 +299,34 @@ def main():
         "run", help="AUTHORIZED SPEND (P5.3b): run N benchmarks, then derive"
     )
     r.add_argument("--n", type=int, required=True, help="number of runs to orchestrate")
-    r.add_argument("--snapshots", default=str(SNAPSHOT_DIR))
-    r.add_argument("--out", default=str(MVARIANCE))
+    r.add_argument("--snapshots", default=None)
+    r.add_argument("--out", default=None)
     r.add_argument("--cap", type=int, default=5)
     r.add_argument("--plateau", type=int, default=2)
     r.add_argument("--model", default=DEFAULT_MODEL)
 
     args = ap.parse_args()
+    try:
+        # Resolve the snapshot/output defaults now (after argparse; flags win): a
+        # missing data root is a clean, actionable exit, not an import-time crash.
+        snapshots = (
+            args.snapshots if args.snapshots is not None else str(_THIS.SNAPSHOT_DIR)
+        )
+        out = args.out if args.out is not None else str(_THIS.MVARIANCE)
+    except RuntimeError as e:
+        raise SystemExit(str(e))
     if args.mode == "derive":
-        dataset = derive(args.snapshots)
+        dataset = derive(snapshots)
     else:
         dataset, written = run(
-            args.n, args.snapshots, cap=args.cap, plateau=args.plateau, model=args.model
+            args.n, snapshots, cap=args.cap, plateau=args.plateau, model=args.model
         )
         print(
             f"orchestrated {len(written)} run(s); wrote "
-            f"{len(written)} snapshot(s) under {args.snapshots}"
+            f"{len(written)} snapshot(s) under {snapshots}"
         )
-    _write_dataset(dataset, args.out)
-    print(f"wrote {args.out}")
+    _write_dataset(dataset, out)
+    print(f"wrote {out}")
     if getattr(args, "mresults", False):
         print("\n".join(format_mresults_rows(dataset)))
 
