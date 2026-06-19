@@ -1,0 +1,19 @@
+# 0038 Python 3.12/3.13/3.14 host CI matrix on a single hashed lock
+
+Decision: The CI test job runs the full suite on a host-Python matrix of 3.12, 3.13, and 3.14, with `fail-fast: false` so one failing leg does not cancel the others, and every version quoted as a string. Each leg installs the single hashed dev lock under `--require-hashes` and builds the sandbox image at Python 3.13. No per-version lock files are introduced; `requirements-dev.txt` is unchanged. Only `.github/workflows/ci.yml` changed (the test job's `strategy` block and the setup-python version reference); `quality.yml` stays single 3.13.
+
+Context: The README and CONTEXT claim a verified host-Python range of 3.12 to 3.14, but CI ran the suite on a single Python 3.13. This record backs that claim with an actual matrix: the suite now runs on all three host interpreters. The matrix exercises the host orchestration code (the loop, the verifiers, the host-side replay and comparison), not the in-container runner; the sandbox container stays pinned to Python 3.13 on every leg, because the candidate executes inside the image regardless of which host Python drives the loop.
+
+A single hashed lock serves all three interpreters by the `--generate-hashes` mechanism of decision 0028: the flag records the sha256 of every distribution file for each pinned version (every wheel across platforms and Python versions, and the sdist), so one 3.13-compiled lock installs and verifies on any interpreter in range -- pip consumes a matching wheel where one exists, or builds from the hash-verified sdist where it does not. This was confirmed empirically across the three legs: the single lock installs under `--require-hashes` on 3.12 Linux, on 3.13 Linux in CI, and on 3.14 macOS (the dev host). No per-version lock was needed, so none was added.
+
+quality.yml is deliberately left single 3.13: ruff, mypy, gitleaks, and pip-audit analyze the code and the dependency closure, not per-interpreter runtime behavior, so a matrix there would multiply identical work for no signal.
+
+Python 3.14 resolution: at the time of this record, Python 3.14 is a final release, so `actions/setup-python` resolves the quoted `'3.14'` on the hosted runner with no `allow-prereleases`. The standing instruction is that an unresolvable version is a real finding to surface (it may need a patch pin or `allow-prereleases`), not a version to silently drop to make the matrix go green.
+
+Alternatives rejected:
+- Per-version lock files (one lock per interpreter): rejected. The single lock is proven to install and verify across 3.12 through 3.14 by `--generate-hashes` (decision 0028) and the three install evidences above; splitting it would add three artifacts to maintain and recompile for no reproducibility gain.
+- Matrix the quality workflow too: rejected. Those tools are interpreter-independent (they read the source and the lock, they do not exercise per-version runtime behavior); a matrix would triple the runtime for identical results.
+- Varying the sandbox image Python per host leg: rejected and out of scope. The container is the execution boundary and is pinned to 3.13 (decision 0027, `tools/Dockerfile.sandbox`); the matrix varies the host that drives the loop, not the in-container runner.
+- Dropping 3.14 if the runner cannot resolve it: rejected as a policy. A version the matrix claims to support but cannot install is a finding to surface, not to hide by removing the leg.
+
+Consequences: CI runs the suite on three host Pythons, backing the documented 3.12-to-3.14 host range with continuous evidence. A regression on any single interpreter is caught on its own leg without masking the others (`fail-fast: false`). The single hashed dev lock is unchanged and is exercised under `--require-hashes` on every leg. The sandbox image is `darwin-sandbox:py313` on all three legs. No engine, dependency, test, or `pyproject` change; this is a CI configuration change only.

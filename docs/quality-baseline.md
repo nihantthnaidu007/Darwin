@@ -1,10 +1,12 @@
 # Quality baseline
 
-Status of the advisory quality gates introduced in P0.2, for the production code
-in tools/ (cases/ and spikes/ are excluded; see pyproject.toml). The gates were
-advisory on purpose: halting work on a several-thousand-line untyped, never-linted
-codebase on day one would have been wrong (decision 0016). P7.3 drove all three to
-zero; P7.4 flips them from advisory to blocking.
+Status of the quality gates introduced in P0.2 (advisory then, blocking as of P7.4),
+for the production code in tools/ (cases/ and spikes/ are excluded; see
+pyproject.toml). The gates were advisory on purpose: halting work on a
+several-thousand-line untyped, never-linted codebase on day one would have been wrong
+(decision 0016). P7.3 drove all three to zero; P7.4 flipped them from advisory to
+blocking, so they are blocking now -- a finding fails its job and blocks the merge
+(decision 0037).
 
 - Tooling (pinned in requirements-dev.txt): ruff 0.15.17, mypy 2.1.0, pytest-cov 7.1.0
 - Config: [tool.ruff], [tool.mypy], [tool.coverage.run] in pyproject.toml
@@ -63,9 +65,20 @@ The starting baseline recorded on 2026-06-14, before any cleanup:
 Both mypy errors were the `_results` list assigned with no element type at module
 scope in verify_container_sandbox.py and verify_boundary.py.
 
-## Coverage (reported, not gated here)
+Reconciliation of the file counts: the 2026-06-14 snapshot above is "36 files would
+be reformatted / 36 source files checked," taken when tools/ held 36 files. By v0.7
+the tree had grown to 59 source files, because files were added in v0.5 and v0.6; the
+P7.3a format pass accordingly reformatted 55 of those 59 (the other 4 were already
+compliant) and mypy now checks 59 (see Current numbers above). The growth is real new
+code, not a measurement change, and all three findings are at zero on the larger count.
 
-Coverage is reported by the test job (`--cov`, term-missing) but not gated: there
-is no `--cov-fail-under`, so the test gate still fails only on a test failure or an
-unexpected pass. Setting a coverage threshold is P7.4, the same phase that flips the
-lint, format, and type gates to blocking.
+## Coverage (gated as of P7.4)
+
+Coverage is reported by the test job (`--cov`, term-missing) and gated as of P7.4 at
+`--cov-fail-under=56`. The floor is set from production coverage measured at 58
+percent, less a 2-point cross-version and CI margin, so the test job now fails on a
+coverage drop below 56 as well as on a test failure or an unexpected pass. The floor
+is honest only because the `--cov-config` omit excludes the near-fully-executed test
+files: it measures production coverage, not the suite running itself; counting the
+test files would inflate the number and make the gate trivial. The 56 value is fixed
+here and not re-tuned in this close-out. See decision 0037.

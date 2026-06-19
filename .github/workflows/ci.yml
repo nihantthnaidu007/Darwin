@@ -61,7 +61,10 @@ jobs:
       # --cov-fail-under=56: production coverage measured 58 percent via this exact
       # invocation (the --cov-config omit excludes test files), floored to 58 and
       # cut by a 2-point cross-version/CI margin. The omit lives in pyproject.toml;
-      # see docs/quality-baseline.md.
+      # see docs/quality-baseline.md. That omit is load-bearing for the floor's
+      # honesty: the test files are near-fully executed, so dropping --cov-config
+      # would inflate the percentage and make the 56 gate trivial; the floor measures
+      # production code only (decision 0037).
       - name: Run the suite (coverage gated at 56 percent)
         working-directory: tools
         run: python -m pytest -q -p no:cacheprovider --cov=. --cov-report=term-missing --cov-config=../pyproject.toml --cov-fail-under=56
