@@ -1,0 +1,17 @@
+{
+  "case_id": "merge_inventory",
+  "category": "duplication",
+  "difficulty": "medium",
+  "entry_point": "merge_inventory",
+  "description": "Merge two name-to-quantity inventories into one: for every name present in either input, sum its quantities (a missing side counts as 0), and keep the name in the result only when its summed total is strictly greater than 0. Pure and deterministic; the result dict's key order is not observable (the comparator uses value equality), so the set-union iteration order is irrelevant. The golden arg_sets cover the value-returning domain: a shared key sums, a key in only one input carries over, a positive-plus-negative that cancels to 0 is dropped, a negative quantity present in only one input is dropped (pinning that the >0 rule is applied to the SUM, not per-input), two empties yield an empty dict, and a mixed multi-key case exercises all three outcomes (sum, carry-over, drop) at once.",
+  "arg_sets": [
+    [{"apple": 3}, {"apple": 2}],
+    [{"apple": 3}, {"banana": 5}],
+    [{"x": 2}, {"x": -2}],
+    [{"x": -3}, {"y": 1}],
+    [{}, {}],
+    [{"a": 5, "b": 3, "c": -1}, {"b": 2, "c": 1, "d": 4}],
+    [{"x": -1, "y": -2}, {}],
+    [{"x": -1}, {"x": -1}]
+  ]
+}

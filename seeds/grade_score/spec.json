@@ -1,0 +1,24 @@
+{
+  "case_id": "grade_score",
+  "category": "excessive_nesting",
+  "difficulty": "easy",
+  "entry_point": "grade_score",
+  "description": "Map a 0-to-100 score to a letter grade with a flat descending ladder of guards: a score outside [0, 100] raises ValueError (with the score echoed in the message), then 90+ is A, 80+ is B, 70+ is C, 60+ is D, and anything below 60 is F. Pure and deterministic. The golden arg_sets cover the value-returning domain, pinning every band-edge pair (90 vs 89, 80 vs 79, 70 vs 69, 60 vs 59) plus an interior point of each band and both in-range extremes (0 and 100), so the golden discriminates an implementation that shifts any threshold by one. The out-of-range inputs (-1 and 101, plus -100 and 200) live in the pytest suite as pytest.raises cases, since the recorder cannot capture exceptions.",
+  "arg_sets": [
+    [100],
+    [95],
+    [90],
+    [89],
+    [85],
+    [80],
+    [79],
+    [75],
+    [70],
+    [69],
+    [65],
+    [60],
+    [59],
+    [30],
+    [0]
+  ]
+}

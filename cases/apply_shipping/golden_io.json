@@ -1,0 +1,86 @@
+{
+  "entry_point": "apply_shipping",
+  "cases": [
+    {
+      "args": [
+        1,
+        1,
+        true
+      ],
+      "kwargs": {},
+      "output": 5.0
+    },
+    {
+      "args": [
+        6,
+        28,
+        false
+      ],
+      "kwargs": {},
+      "output": 5.8
+    },
+    {
+      "args": [
+        6,
+        28,
+        true
+      ],
+      "kwargs": {},
+      "output": 8.7
+    },
+    {
+      "args": [
+        0,
+        0,
+        false
+      ],
+      "kwargs": {},
+      "output": 5.0
+    },
+    {
+      "args": [
+        0,
+        0,
+        true
+      ],
+      "kwargs": {},
+      "output": 5.0
+    },
+    {
+      "args": [
+        9,
+        0,
+        false
+      ],
+      "kwargs": {},
+      "output": 5.0
+    },
+    {
+      "args": [
+        10,
+        0,
+        false
+      ],
+      "kwargs": {},
+      "output": 5.0
+    },
+    {
+      "args": [
+        10,
+        1,
+        false
+      ],
+      "kwargs": {},
+      "output": 5.1
+    },
+    {
+      "args": [
+        20,
+        30,
+        true
+      ],
+      "kwargs": {},
+      "output": 19.5
+    }
+  ]
+}

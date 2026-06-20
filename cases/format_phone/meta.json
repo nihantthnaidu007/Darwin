@@ -1,0 +1,8 @@
+{
+  "case_id": "format_phone",
+  "category": "verbose_patterns",
+  "difficulty": "easy",
+  "entry_point": "format_phone",
+  "description": "Format exactly ten digit characters into a US phone string \"(ddd) ddd-dddd\": the guard rejects any input that is not exactly length 10 or that contains a non-digit (raising ValueError with the offending input echoed in the message), and the body slices the validated digits into the three groups. Pure and deterministic. The golden arg_sets cover the value-returning domain only (the recorder cannot capture exceptions), pinning the slice boundaries and group placement on representative ten-digit inputs including the all-zero string; the rejecting inputs (too short, too long, and a ten-character string with a non-digit) live in the pytest suite as pytest.raises cases.",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}
