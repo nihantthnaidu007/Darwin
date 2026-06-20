@@ -5,9 +5,7 @@ def parse_time(s):
     for part in parts:
         if not part.isdigit():
             raise ValueError("Time part is not a non-negative integer: " + part)
-    hours = int(parts[0])
-    minutes = int(parts[1])
-    seconds = int(parts[2])
-    if hours > 23 or minutes > 59 or seconds > 59:
+    h, m, sec = int(parts[0]), int(parts[1]), int(parts[2])
+    if h > 23 or m > 59 or sec > 59:
         raise ValueError("Time field out of range: " + s)
-    return hours * 3600 + minutes * 60 + seconds
+    return h * 3600 + m * 60 + sec

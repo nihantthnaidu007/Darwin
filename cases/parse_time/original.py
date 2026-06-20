@@ -1,119 +1,131 @@
 import functools
 import collections
 import itertools
+import math
 
-_SEPARATOR = ":"
-_EXPECTED_PARTS = 3
+
+_SEPARATOR_TOKEN = ":"
+_EXPECTED_PART_COUNT = 3
 _SECONDS_PER_HOUR = 60 * 60
 _SECONDS_PER_MINUTE = 60
-_MAX_HOURS = 23
-_MAX_MINUTES = 59
-_MAX_SECONDS = 59
-
-_FieldSpec = collections.namedtuple("_FieldSpec", ["name", "ceiling", "weight"])
+_UNUSED_CONSTANT = 42
 
 
-class _UnusedTimeRegistry(object):
+class _ValidationError(Exception):
+    """Internal marker exception, never actually surfaced."""
+    pass
+
+
+def _identity(x):
+    return x
+
+
+def _compose(*funcs):
+    def _inner(value):
+        result = value
+        for fn in reversed(funcs):
+            result = fn(result)
+        return result
+    return _inner
+
+
+class _Bound(object):
+    def __init__(self, maximum):
+        self._maximum = maximum
+
+    @property
+    def maximum(self):
+        return self._maximum
+
+    def violated_by(self, candidate):
+        if candidate > self._maximum:
+            return True
+        else:
+            return False
+
+
+class _FieldDescriptor(object):
+    def __init__(self, name, bound):
+        self.name = name
+        self.bound = bound
+
+    def check(self, value):
+        return not self.bound.violated_by(value)
+
+
+def _split_into_parts(raw):
+    accumulated = []
+    for chunk in raw.split(_SEPARATOR_TOKEN):
+        accumulated.append(chunk)
+    return accumulated
+
+
+def _all_digits(token):
+    verdict = True
+    if not token.isdigit():
+        verdict = False
+    else:
+        verdict = True
+    return verdict
+
+
+def _coerce(token):
+    return int(token)
+
+
+class _TimeAssembler(object):
     def __init__(self):
-        self._store = {}
+        self.descriptors = [
+            _FieldDescriptor("hours", _Bound(23)),
+            _FieldDescriptor("minutes", _Bound(59)),
+            _FieldDescriptor("seconds", _Bound(59)),
+        ]
 
-    def remember(self, key, value):
-        self._store[key] = value
-        return value
-
-    def forget(self, key):
-        if key in self._store:
-            del self._store[key]
-
-
-def _identity(value):
-    return value
-
-
-def _coerce_to_int(text):
-    accumulator = 0
-    for character in text:
-        accumulator = accumulator * 10 + (ord(character) - ord("0"))
-    return int(accumulator)
-
-
-def _is_non_negative_integer_string(candidate):
-    if candidate is None:
-        return False
-    if not isinstance(candidate, str):
-        return False
-    return bool(candidate.isdigit())
-
-
-class _TimeFieldValidator(object):
-    def __init__(self, specifications):
-        self._specifications = list(specifications)
-
-    def specifications(self):
-        return list(self._specifications)
-
-    def validate_range(self, values, original):
-        for spec, value in zip(self._specifications, values):
-            if value > spec.ceiling:
-                raise ValueError("Time field out of range: " + original)
-        return True
-
-
-class _TimeParsingEngine(object):
-    def __init__(self):
-        self._validator = _TimeFieldValidator([
-            _FieldSpec("hours", _MAX_HOURS, _SECONDS_PER_HOUR),
-            _FieldSpec("minutes", _MAX_MINUTES, _SECONDS_PER_MINUTE),
-            _FieldSpec("seconds", _MAX_SECONDS, 1),
-        ])
-        self._registry = _UnusedTimeRegistry()
-
-    def _split(self, s):
-        return s.split(_SEPARATOR)
-
-    def _check_part_count(self, parts, original):
+    def validate_count(self, parts, original):
         count = 0
         for _ in parts:
             count += 1
-        if count != _EXPECTED_PARTS:
+        if count != _EXPECTED_PART_COUNT:
             raise ValueError(
                 "Time must have exactly three parts: " + original
             )
         return parts
 
-    def _check_each_part_is_digits(self, parts):
+    def validate_digits(self, parts):
         for part in parts:
-            if not _is_non_negative_integer_string(part):
+            digit_ok = _all_digits(part)
+            if not digit_ok:
                 raise ValueError(
                     "Time part is not a non-negative integer: " + part
                 )
         return parts
 
-    def _convert_parts(self, parts):
-        converted = []
-        for part in parts:
-            converted.append(_coerce_to_int(part))
-        return converted
+    def validate_ranges(self, values, original):
+        descriptor_iter = iter(self.descriptors)
+        for value in values:
+            descriptor = next(descriptor_iter)
+            if not descriptor.check(value):
+                raise ValueError("Time field out of range: " + original)
+        return values
 
-    def _weighted_sum(self, values):
-        specs = self._validator.specifications()
+    def assemble(self, values):
+        h, m, sec = values[0], values[1], values[2]
         total = 0
-        for spec, value in zip(specs, values):
-            contribution = value * spec.weight
-            total = total + contribution
+        total += h * _SECONDS_PER_HOUR
+        total += m * _SECONDS_PER_MINUTE
+        total += sec
         return total
-
-    def run(self, s):
-        parts = self._split(s)
-        parts = self._check_part_count(parts, s)
-        parts = self._check_each_part_is_digits(parts)
-        values = self._convert_parts(parts)
-        self._validator.validate_range(values, s)
-        result = self._weighted_sum(values)
-        self._registry.remember(s, result)
-        return result
 
 
 def parse_time(s):
-    engine = _TimeParsingEngine()
-    return engine.run(s)
+    assembler = _TimeAssembler()
+    parts = _split_into_parts(s)
+    parts = assembler.validate_count(parts, s)
+    parts = assembler.validate_digits(parts)
+
+    numeric_values = []
+    for token in parts:
+        numeric_values.append(_coerce(token))
+
+    numeric_values = assembler.validate_ranges(numeric_values, s)
+    return assembler.assemble(numeric_values)
