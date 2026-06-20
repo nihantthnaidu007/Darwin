@@ -1,0 +1,7 @@
+{
+  "category": "defensive_overengineering",
+  "difficulty": "easy",
+  "entry_point": "first_or_default",
+  "description": "Return the first element of a sequence, or a default when it is empty, trusting Python's own truthiness rather than adding redundant type and length guards.",
+  "arg_sets": [[[1, 2, 3], 0], [[], 99], [["a"], "z"], [[], "z"], [[5, 6], -1]]
+}
