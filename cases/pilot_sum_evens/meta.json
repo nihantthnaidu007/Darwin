@@ -1,8 +1,0 @@
-{
-  "case_id": "pilot_sum_evens",
-  "category": "verbose_patterns",
-  "difficulty": "easy",
-  "entry_point": "sum_evens",
-  "description": "Sum of the even numbers in a list. Pure, deterministic.",
-  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
-}
