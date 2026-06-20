@@ -1,8 +1,0 @@
-{
-  "case_id": "running_max",
-  "category": "unnecessary_dependency",
-  "difficulty": "medium",
-  "entry_point": "running_max",
-  "description": "Return the running (prefix) maximum of a list of numbers: output[i] is the maximum of inputs[0..i]. A single left-to-right pass with a None sentinel for the running maximum, taking the first element verbatim and replacing it only when a strictly greater value appears. Pure and deterministic, no imports. The golden arg_sets cover the value-returning domain (the function never raises): the empty list, a singleton, a mixed sequence, a strictly descending sequence (the opening value repeats), an all-negative sequence and a single-negative sequence (both prove the running maximum is seeded by the None sentinel and not by 0 or any non-negative seed), a strictly ascending sequence, an all-equal sequence (the non-strict carry on ties), and a zero-crossing sequence. There are no raising inputs, so the pytest gate adds structural properties (length preserved, result non-decreasing) on top of the value cases.",
-  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
-}
