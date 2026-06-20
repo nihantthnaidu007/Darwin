@@ -209,3 +209,25 @@ This document is accepted and committed when:
   built.
 
 Only after this contract is committed does the pilot (P9.3) begin.
+
+---
+
+## Amendment 1 (2026-06-20): seventh category, defensive_overengineering
+
+The original contract (Section 3) fixed the category taxonomy at six categories before
+building. During corpus authoring, a seventh distinct anti-pattern surfaced that none of the
+six captures cleanly: defensive_overengineering, the wrapping of simple correct logic in
+excess validation (per-element isinstance checks, try/except around arithmetic that cannot
+raise, None guards on values that cannot be None, redundant re-validation after computation).
+This is structurally distinct from dead_code (the guards are reachable, not dead) and from
+over_abstraction (the excess is defensive, not structural).
+
+This amendment adds defensive_overengineering as a seventh category, on the record and before
+the cases carrying it are built. The category composition target (Section 3) is updated: the
+corpus now spans seven categories rather than six. The integrity guarantee is preserved
+because this amendment is committed before the defensive_overengineering cases enter the
+corpus; the contract on disk describes the corpus at every commit. This addition is disclosed
+here rather than applied silently, consistent with the milestone's standard that a changed
+methodology is recorded, not hidden.
+
+The three initial defensive_overengineering cases are compute_stats, apply_discount, and clamp.
