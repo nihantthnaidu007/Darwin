@@ -1,0 +1,8 @@
+{
+  "case_id": "categorize_number",
+  "category": "excessive_nesting",
+  "difficulty": "easy",
+  "entry_point": "categorize_number",
+  "description": "Classify a number with a short flat sequence of guards: negative numbers return \"negative\", zero returns \"zero\", and any positive number returns a two-word label combining size (\"small\" when n <= 100, else \"large\") and parity (\"even\" when n is divisible by 2, else \"odd\"). Pure and deterministic, no exceptions on the integer domain. The golden arg_sets cover the value-returning domain only, including the decisive boundaries (0, the negative branch, the small/large cutoff at 100 vs 101, and even/odd at each size) so the golden discriminates an implementation that drops or swaps either half of the label.",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}

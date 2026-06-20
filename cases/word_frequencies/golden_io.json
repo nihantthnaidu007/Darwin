@@ -1,0 +1,75 @@
+{
+  "entry_point": "word_frequencies",
+  "cases": [
+    {
+      "args": [
+        ""
+      ],
+      "kwargs": {},
+      "output": {}
+    },
+    {
+      "args": [
+        "   \t  \n "
+      ],
+      "kwargs": {},
+      "output": {}
+    },
+    {
+      "args": [
+        "!!! ..."
+      ],
+      "kwargs": {},
+      "output": {}
+    },
+    {
+      "args": [
+        "The the THE"
+      ],
+      "kwargs": {},
+      "output": {
+        "the": 3
+      }
+    },
+    {
+      "args": [
+        "the cat, sat. The CAT!"
+      ],
+      "kwargs": {},
+      "output": {
+        "the": 2,
+        "cat": 2,
+        "sat": 1
+      }
+    },
+    {
+      "args": [
+        "a a a b"
+      ],
+      "kwargs": {},
+      "output": {
+        "a": 3,
+        "b": 1
+      }
+    },
+    {
+      "args": [
+        "yes; yes"
+      ],
+      "kwargs": {},
+      "output": {
+        "yes;": 1,
+        "yes": 1
+      }
+    },
+    {
+      "args": [
+        "a.b a.b"
+      ],
+      "kwargs": {},
+      "output": {
+        "a.b": 2
+      }
+    }
+  ]
+}

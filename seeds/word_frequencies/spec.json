@@ -1,0 +1,16 @@
+{
+  "category": "unnecessary_dependency",
+  "difficulty": "medium",
+  "entry_point": "word_frequencies",
+  "description": "Count word frequencies in a text using only the standard string toolkit: split on whitespace, strip the four marks .,!? from each token's ends, lowercase it, skip tokens that become empty, and tally the rest into a dict. Pure and deterministic; no external dependency is required to do this. The golden arg_sets cover the value-returning domain including the decisive edges (the empty string and a whitespace-only string both yield {}, a punctuation-only string yields {}, mixed case folds to one key, and only leading/trailing .,!? are stripped while interior and other punctuation stay part of the word).",
+  "arg_sets": [
+    [""],
+    ["   \t  \n "],
+    ["!!! ..."],
+    ["The the THE"],
+    ["the cat, sat. The CAT!"],
+    ["a a a b"],
+    ["yes; yes"],
+    ["a.b a.b"]
+  ]
+}

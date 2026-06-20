@@ -1,0 +1,16 @@
+{
+  "category": "duplication",
+  "difficulty": "medium",
+  "entry_point": "total_price",
+  "description": "Sum an order of (name, price, quantity) lines into a final price. Each line is price times quantity; a line whose quantity exceeds 10 takes a 10 percent per-line discount. After summing the lines, an order whose running total exceeds 1000 takes a further 5 percent discount, and the result is rounded to two decimals. Pure and deterministic. Integer-only orders return an int and discounted orders return a float; the golden captures the reference's actual mixed int/float outputs verbatim. The golden arg_sets cover the value-returning domain including the empty order and both discount boundaries (quantity 10 vs 11, total exactly 1000 vs just over).",
+  "arg_sets": [
+    [[]],
+    [[["apple", 2.5, 4]]],
+    [[["a", 10, 2], ["b", 5, 3]]],
+    [[["a", 100, 10]]],
+    [[["a", 100, 11]]],
+    [[["a", 100, 10], ["b", 1, 1]]],
+    [[["a", 500, 20], ["b", 100, 11]]],
+    [[["a", 0.1, 3]]]
+  ]
+}
