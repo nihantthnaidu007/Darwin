@@ -79,6 +79,26 @@ MIN_LOGICAL_LOC = 20
 # file, license, commit or version. Every key must be present and non-empty.
 PROVENANCE_KEYS = ("source_repo", "file", "license", "commit_or_version")
 
+# The SPDX permissive-license allowlist (methodology Section 2). Path 1 admits ONLY
+# permissively-licensed real sources, so the recorded license must be one of these
+# exact SPDX identifiers. Matching is case-insensitive and whitespace-trimmed; the tool
+# does NOT normalize free-form strings (the human records the correct SPDX id when
+# sampling -- see "BSD License" is not an id). A copyleft (GPL/AGPL/LGPL) or otherwise
+# unrecognized license is rejected before any assembly, so copyleft code can never
+# enter the cases/ tree. A future case author reads this constant to know what is admitted.
+PERMISSIVE_LICENSES = (
+    "MIT",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "Apache-2.0",
+    "ISC",
+    "0BSD",
+    "Unlicense",
+    "Python-2.0",
+    "PSF-2.0",
+)
+_PERMISSIVE_LICENSES_LOWER = frozenset(name.lower() for name in PERMISSIVE_LICENSES)
+
 
 def _meets_threshold(metrics):
     return (
@@ -98,6 +118,18 @@ def _validate_provenance(spec):
     if missing:
         keys = ", ".join(repr(k) for k in missing)
         return False, f"provenance block is missing or empty key(s): {keys}"
+    # LICENSE ALLOWLIST GATE. The cheapest, most categorical check, so it runs first --
+    # before the threshold, sanity, and integrity gates and before any assembly. A
+    # non-permissive (copyleft or unrecognized) license can never enter cases/, so it is
+    # rejected here, naming the recorded license and the allowlist. Matching is exact on
+    # the SPDX id, case-insensitive and whitespace-trimmed; no free-form normalization.
+    license_id = str(prov["license"]).strip()
+    if license_id.lower() not in _PERMISSIVE_LICENSES_LOWER:
+        allow = ", ".join(PERMISSIVE_LICENSES)
+        return False, (
+            f"license {license_id!r} is not on the permissive allowlist; Path 1 admits "
+            f"only permissively-licensed sources (allowed: {allow})"
+        )
     return True, None
 
 

@@ -407,6 +407,141 @@ def test_provenance_incomplete_rejected(tmp_path, data_root, no_docker):
     assert "license" in reason
 
 
+# --- the license allowlist gate -------------------------------------------------------
+
+
+def _prov_spec(license_value):
+    """A minimal spec carrying a complete provenance block with the given license, for
+    exercising _validate_provenance in isolation (no seed dir, no assembly)."""
+    return {
+        "provenance": {
+            "source_repo": "https://github.com/example/widgets",
+            "file": "widgets/grading.py",
+            "license": license_value,
+            "commit_or_version": "v1.4.2",
+        }
+    }
+
+
+def test_allowlist_constant_has_the_nine_spdx_ids():
+    """The allowlist is a stated module constant a future case author can read: exactly
+    the nine permissive SPDX ids the methodology admits."""
+    assert build_real_case.PERMISSIVE_LICENSES == (
+        "MIT",
+        "BSD-2-Clause",
+        "BSD-3-Clause",
+        "Apache-2.0",
+        "ISC",
+        "0BSD",
+        "Unlicense",
+        "Python-2.0",
+        "PSF-2.0",
+    )
+
+
+@pytest.mark.parametrize(
+    "license_value",
+    [
+        "MIT",
+        "BSD-2-Clause",
+        "BSD-3-Clause",
+        "Apache-2.0",
+        "ISC",
+        "0BSD",
+        "Unlicense",
+        "Python-2.0",
+        "PSF-2.0",
+        "mit",  # case-insensitive
+        "apache-2.0",
+        "  MIT  ",  # whitespace-trimmed
+    ],
+)
+def test_license_gate_accepts_permissive_ids(license_value):
+    """Every permissive SPDX id passes the license gate, case-insensitively and with
+    surrounding whitespace trimmed."""
+    ok, reason = build_real_case._validate_provenance(_prov_spec(license_value))
+    assert ok, reason
+    assert reason is None
+
+
+@pytest.mark.parametrize(
+    "license_value",
+    [
+        "GPL-3.0",
+        "AGPL-3.0",
+        "LGPL-3.0",
+        "GPL-2.0",
+        "MPL-2.0",
+        "BSD License",
+        "Proprietary",
+    ],
+)
+def test_license_gate_rejects_non_permissive(license_value):
+    """A copyleft license, or an unrecognized / free-form string that is not an exact
+    permissive SPDX id, is rejected by the license gate. The reason names the recorded
+    license and states the allowlist."""
+    ok, reason = build_real_case._validate_provenance(_prov_spec(license_value))
+    assert not ok
+    assert repr(license_value) in reason  # names the recorded license verbatim
+    assert "allowlist" in reason
+    assert "MIT" in reason  # states the allowlist
+
+
+def test_license_gate_rejects_gpl_before_any_assembly(tmp_path, data_root):
+    """A GPL-3.0 seed is REJECTED before any assembly: no case directory is written, and
+    the message names GPL-3.0. NOTE no `no_docker` fixture -- the license gate runs ahead
+    of the sanity/integrity gates (which would need the container), so this rejects
+    without ever touching Docker, proving the gate is the first, cheapest check."""
+    seed = _seed(
+        tmp_path,
+        original=ORIGINAL,
+        reference=REFERENCE_GOOD,
+        suite=TEST_SUITE,
+        spec_extra={"provenance": {**PROVENANCE, "license": "GPL-3.0"}},
+    )
+
+    status, case_id, reason = build_real_case.build(str(seed))
+
+    assert status == "rejected"
+    assert case_id == "grade_case"
+    assert "'GPL-3.0'" in reason  # names the recorded license
+    assert "allowlist" in reason and "MIT" in reason  # states the allowlist
+    assert not (data_root / "cases" / "grade_case").exists()  # no case dir written
+
+
+def test_license_gate_rejects_unrecognized_string_before_any_assembly(
+    tmp_path, data_root
+):
+    """An unrecognized (free-form, non-SPDX) license string is rejected before assembly;
+    the tool does not normalize it. No case directory is written."""
+    seed = _seed(
+        tmp_path,
+        original=ORIGINAL,
+        reference=REFERENCE_GOOD,
+        suite=TEST_SUITE,
+        spec_extra={"provenance": {**PROVENANCE, "license": "BSD License"}},
+    )
+
+    status, _, reason = build_real_case.build(str(seed))
+
+    assert status == "rejected"
+    assert "'BSD License'" in reason
+    assert not (data_root / "cases" / "grade_case").exists()
+
+
+def test_license_gate_accepts_mit_case_assembles(tmp_path, data_root, no_docker):
+    """The positive integration: an MIT-licensed seed passes the license gate and the
+    case assembles end to end (the default PROVENANCE records license MIT)."""
+    seed = _seed(
+        tmp_path, original=ORIGINAL, reference=REFERENCE_GOOD, suite=TEST_SUITE
+    )
+
+    status, _, reason = build_real_case.build(str(seed))
+
+    assert status == "finalized", reason
+    assert (data_root / "cases" / "grade_case" / "meta.json").exists()
+
+
 # --- the sanity gate (the original must pass its own suite) ---------------------------
 
 
