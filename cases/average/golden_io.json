@@ -1,0 +1,63 @@
+{
+  "entry_point": "average",
+  "cases": [
+    {
+      "args": [
+        []
+      ],
+      "kwargs": {},
+      "output": 0.0
+    },
+    {
+      "args": [
+        [
+          5
+        ]
+      ],
+      "kwargs": {},
+      "output": 5.0
+    },
+    {
+      "args": [
+        [
+          2,
+          4
+        ]
+      ],
+      "kwargs": {},
+      "output": 3.0
+    },
+    {
+      "args": [
+        [
+          1,
+          2,
+          3,
+          4
+        ]
+      ],
+      "kwargs": {},
+      "output": 2.5
+    },
+    {
+      "args": [
+        [
+          -2,
+          2
+        ]
+      ],
+      "kwargs": {},
+      "output": 0.0
+    },
+    {
+      "args": [
+        [
+          1.5,
+          2.5
+        ]
+      ],
+      "kwargs": {},
+      "output": 2.0
+    }
+  ]
+}

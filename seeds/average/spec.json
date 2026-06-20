@@ -1,0 +1,7 @@
+{
+  "category": "unnecessary_dependency",
+  "difficulty": "easy",
+  "entry_point": "average",
+  "description": "Arithmetic mean of a list with an empty-input guard, using only builtins.",
+  "arg_sets": [[[]], [[5]], [[2, 4]], [[1, 2, 3, 4]], [[-2, 2]], [[1.5, 2.5]]]
+}

@@ -1,0 +1,8 @@
+{
+  "case_id": "average",
+  "category": "unnecessary_dependency",
+  "difficulty": "easy",
+  "entry_point": "average",
+  "description": "Arithmetic mean of a list with an empty-input guard, using only builtins.",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}
