@@ -1,0 +1,61 @@
+{
+  "entry_point": "parse_time",
+  "cases": [
+    {
+      "args": [
+        "00:00:00"
+      ],
+      "kwargs": {},
+      "output": 0
+    },
+    {
+      "args": [
+        "23:59:59"
+      ],
+      "kwargs": {},
+      "output": 86399
+    },
+    {
+      "args": [
+        "14:30:45"
+      ],
+      "kwargs": {},
+      "output": 52245
+    },
+    {
+      "args": [
+        "01:00:00"
+      ],
+      "kwargs": {},
+      "output": 3600
+    },
+    {
+      "args": [
+        "00:01:00"
+      ],
+      "kwargs": {},
+      "output": 60
+    },
+    {
+      "args": [
+        "00:00:01"
+      ],
+      "kwargs": {},
+      "output": 1
+    },
+    {
+      "args": [
+        "12:00:00"
+      ],
+      "kwargs": {},
+      "output": 43200
+    },
+    {
+      "args": [
+        "09:08:07"
+      ],
+      "kwargs": {},
+      "output": 32887
+    }
+  ]
+}

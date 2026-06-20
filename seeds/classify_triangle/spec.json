@@ -1,0 +1,17 @@
+{
+  "case_id": "classify_triangle",
+  "category": "dead_code",
+  "difficulty": "medium",
+  "entry_point": "classify_triangle",
+  "description": "Classify a triangle from its three side lengths as equilateral, isosceles, or scalene. Reject non-positive sides and reject side triples that violate the triangle inequality (the two shorter sides must strictly exceed the longest), then return equilateral when all three sides are equal, isosceles when exactly one pair is equal (checked across all three unordered pairs, so side order does not matter), and scalene otherwise. Pure and deterministic. The golden arg_sets cover the value-returning domain: equilateral (small and large), scalene (including a right triangle, which is still scalene), and isosceles in three orderings, the sorted-adjacent pair plus two unsorted placements that exercise the b==c and a==c branches. The raising inputs (a degenerate triple, the exact-equality degenerate 1+2==3, a degenerate triple given unsorted, a zero side in two positions, and a negative side) are exercised by the pytest gate in test_suite.py, since the golden recorder captures return values, not exceptions.",
+  "arg_sets": [
+    [3, 3, 3],
+    [5, 5, 8],
+    [4, 5, 6],
+    [8, 5, 5],
+    [5, 8, 5],
+    [6, 8, 10],
+    [10, 10, 10],
+    [2, 2, 3]
+  ]
+}
