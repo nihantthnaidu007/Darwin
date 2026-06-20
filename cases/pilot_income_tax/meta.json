@@ -1,0 +1,8 @@
+{
+  "case_id": "pilot_income_tax",
+  "category": "duplication",
+  "difficulty": "hard",
+  "entry_point": "income_tax",
+  "description": "Compute progressive income tax in integer cents. Input is annual income in cents (non-negative int). Marginal brackets, each as [lower_bound_cents, rate_permille] where rate is parts-per-1000: [0, 0], [1000000, 100], [4000000, 220], [8500000, 320], [16000000, 370] (i.e. 0% up to $10k, 10% to $40k, 22% to $85k, 32% to $160k, 37% above). For each bracket the portion of income within it = min(income, next_lower_bound) - lower_bound (the top bracket extends to income); that portion's tax = portion * rate_permille // 1000 (integer floor division); the total is the sum over brackets. Negative income raises ValueError; non-int input (including bool) raises TypeError. Pure and deterministic.",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}

@@ -1,0 +1,8 @@
+{
+  "case_id": "pilot_merge_intervals",
+  "category": "over_abstraction",
+  "difficulty": "medium",
+  "entry_point": "merge_intervals",
+  "description": "Merge overlapping (and touching) intervals; returns sorted, merged [start, end] lists. Pure, deterministic.",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}
