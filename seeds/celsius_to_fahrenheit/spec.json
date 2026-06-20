@@ -1,0 +1,14 @@
+{
+  "case_id": "celsius_to_fahrenheit",
+  "category": "over_abstraction",
+  "difficulty": "easy",
+  "entry_point": "celsius_to_fahrenheit",
+  "description": "Convert a Celsius temperature to Fahrenheit with the single direct formula c * 9 / 5 + 32. Pure and deterministic; the floor is one arithmetic expression with no helper, no class, and no indirection (over-abstraction would wrap this one line in pointless structure). The golden arg_sets cover the value-returning domain: the freezing point (0 -> 32), the boiling point (100 -> 212), the fixed point where the scales coincide (-40 -> -40), body temperature (37 -> 98.6), and absolute zero (-273.15 -> -459.67). This is expected to be the smallest injected span in the batch, since the reference is a single expression.",
+  "arg_sets": [
+    [0],
+    [100],
+    [-40],
+    [37],
+    [-273.15]
+  ]
+}

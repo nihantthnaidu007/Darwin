@@ -1,0 +1,8 @@
+{
+  "case_id": "transpose",
+  "category": "unnecessary_dependency",
+  "difficulty": "hard",
+  "entry_point": "transpose",
+  "description": "Transpose a rectangular matrix so that columns become rows, by zipping the rows together and rebuilding each zipped column as a list. Pure and deterministic, with no library dependency (the dependency-free floor; a numpy-based rewrite would add an import the floor does not need). The golden arg_sets cover the value-returning domain on RECTANGULAR inputs only: the empty matrix, a square 2x2, a non-square 2x3 (which becomes 3x2), a 3x1 column vector, and a 1x3 row vector. Ragged matrices are deliberately excluded: zip truncates to the shortest row silently, so locking that behavior into the golden would freeze an accidental truncation rather than a defined contract.",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}

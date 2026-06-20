@@ -1,0 +1,8 @@
+{
+  "case_id": "rps_result",
+  "category": "excessive_nesting",
+  "difficulty": "medium",
+  "entry_point": "rps_result",
+  "description": "Decide a rock-paper-scissors round from player a's perspective: return draw on a tie, win when a's move beats b's per the beats table, and lose otherwise; reject any move outside rock, paper, scissors. Pure and deterministic; the floor uses flat guard clauses and a single beats lookup (an excessively-nested rewrite would replace the flat checks with deep if/elif ladders per move). The golden arg_sets cover the value-returning domain: all three winning matchups, all three losing matchups, and all three draws. The invalid-move ValueError (bad first move and bad second move) is exercised by the pytest gate in test_suite.py, since the golden recorder captures return values, not exceptions.",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}

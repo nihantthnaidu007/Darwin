@@ -1,0 +1,40 @@
+{
+  "entry_point": "celsius_to_fahrenheit",
+  "cases": [
+    {
+      "args": [
+        0
+      ],
+      "kwargs": {},
+      "output": 32.0
+    },
+    {
+      "args": [
+        100
+      ],
+      "kwargs": {},
+      "output": 212.0
+    },
+    {
+      "args": [
+        -40
+      ],
+      "kwargs": {},
+      "output": -40.0
+    },
+    {
+      "args": [
+        37
+      ],
+      "kwargs": {},
+      "output": 98.6
+    },
+    {
+      "args": [
+        -273.15
+      ],
+      "kwargs": {},
+      "output": -459.66999999999996
+    }
+  ]
+}
