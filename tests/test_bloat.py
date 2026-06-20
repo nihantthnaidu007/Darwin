@@ -68,6 +68,7 @@ def test_injected_client_returns_stripped_result(tmp_path, monkeypatch):
 
 def test_injected_client_does_not_load_env(tmp_path, monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
     # Make _load_dotenv loud: if it were ever called, the test would fail.
     def _boom():
         raise AssertionError("bloat() loaded .env despite an injected client")
