@@ -1,0 +1,13 @@
+{
+  "category": "over_abstraction",
+  "difficulty": "medium",
+  "entry_point": "parse_version",
+  "description": "Parse a dotted version string into a tuple of three integers. Split on dots, require exactly three parts, require each part to be a run of digits, and return the parts as ints. Pure and deterministic. The golden arg_sets cover value-returning inputs only (all zeros, multi-digit parts, leading-zero normalization, large parts); the raising inputs (too few parts, too many parts, a non-digit part, a negative part, an empty part) are exercised by the pytest gate in test_suite.py, since the golden recorder captures return values, not exceptions. The returned tuple normalizes to a JSON list in the golden, which the behavior gate compares verbatim.",
+  "arg_sets": [
+    ["0.0.0"],
+    ["10.20.30"],
+    ["1.2.3"],
+    ["01.02.03"],
+    ["255.255.255"]
+  ]
+}

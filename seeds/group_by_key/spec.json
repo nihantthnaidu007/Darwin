@@ -1,0 +1,14 @@
+{
+  "case_id": "group_by_key",
+  "category": "unnecessary_dependency",
+  "difficulty": "medium",
+  "entry_point": "group_by_key",
+  "description": "Group a sequence of (key, value) pairs into a dict mapping each key to the list of its values in arrival order, using dict.setdefault to seed each key's list on first sight. Pure and deterministic, with no library dependency (the dependency-free floor; a collections.defaultdict- or itertools.groupby-based rewrite would add an import the floor does not need, and groupby would also require pre-sorting). The golden arg_sets cover the value-returning domain: the empty input, a single pair, one key repeated (values accumulate in order), interleaved keys, and three keys with values split across gaps.",
+  "arg_sets": [
+    [[]],
+    [[["x", 10]]],
+    [[["a", 1], ["a", 2]]],
+    [[["a", 1], ["b", 2], ["a", 3]]],
+    [[["r", 1], ["g", 2], ["b", 3], ["g", 4], ["r", 5]]]
+  ]
+}

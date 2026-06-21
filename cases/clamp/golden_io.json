@@ -1,0 +1,59 @@
+{
+  "entry_point": "clamp",
+  "cases": [
+    {
+      "args": [
+        5,
+        0,
+        10
+      ],
+      "kwargs": {},
+      "output": 5
+    },
+    {
+      "args": [
+        -3,
+        0,
+        10
+      ],
+      "kwargs": {},
+      "output": 0
+    },
+    {
+      "args": [
+        15,
+        0,
+        10
+      ],
+      "kwargs": {},
+      "output": 10
+    },
+    {
+      "args": [
+        0,
+        0,
+        10
+      ],
+      "kwargs": {},
+      "output": 0
+    },
+    {
+      "args": [
+        10,
+        0,
+        10
+      ],
+      "kwargs": {},
+      "output": 10
+    },
+    {
+      "args": [
+        7,
+        7,
+        7
+      ],
+      "kwargs": {},
+      "output": 7
+    }
+  ]
+}

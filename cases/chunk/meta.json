@@ -1,0 +1,8 @@
+{
+  "case_id": "chunk",
+  "category": "unnecessary_dependency",
+  "difficulty": "easy",
+  "entry_point": "chunk",
+  "description": "Split a sequence into consecutive sublists of a given size by stepping a range over the indices and slicing. The final chunk is short when the length is not a multiple of size; it is never padded. Pure and deterministic, built from a plain loop and slicing with no library dependency (the dependency-free floor; an itertools- or more_itertools-based rewrite would add an import the floor does not need). The golden arg_sets cover the value-returning domain: the empty input, an exact multiple, a partial last chunk, size 1, size larger than the input, and a non-integer element type.",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}

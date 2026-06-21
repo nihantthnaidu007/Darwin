@@ -1,0 +1,8 @@
+{
+  "case_id": "clamp",
+  "category": "defensive_overengineering",
+  "difficulty": "easy",
+  "entry_point": "clamp",
+  "description": "Constrain a value to the inclusive range [low, high]: return low when below, high when above, and the value itself when in range (boundaries inclusive). Pure and deterministic; the floor is two guard clauses and a return, with no input validation (an over-defensive rewrite would add type checks, a low<=high assertion, and None guards the contract does not require). The golden arg_sets cover the value-returning domain: in range, below (clamps to low), above (clamps to high), exactly at the low boundary, exactly at the high boundary, and a degenerate range where low equals high.",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}

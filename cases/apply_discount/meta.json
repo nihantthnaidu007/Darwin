@@ -1,0 +1,8 @@
+{
+  "case_id": "apply_discount",
+  "category": "defensive_overengineering",
+  "difficulty": "medium",
+  "entry_point": "apply_discount",
+  "description": "Apply a percentage discount to a price and round to two decimals, with two necessary guards: reject a negative price and reject a percent outside 0..100. Pure and deterministic; the floor keeps only the two domain guards the contract requires (an over-defensive rewrite would add type checks, None guards, and try/except around arithmetic that cannot raise). The golden arg_sets cover the value-returning domain: a quarter off, zero percent (full price), the valid percent-100 boundary (price to zero), a zero price (valid, not negative), and a case exercising two-place rounding. The three out-of-domain inputs (negative price, negative percent, percent above 100) are exercised by the pytest gate in test_suite.py, since the golden recorder captures return values, not exceptions.",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}

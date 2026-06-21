@@ -1,0 +1,8 @@
+{
+  "case_id": "compute_stats",
+  "category": "defensive_overengineering",
+  "difficulty": "hard",
+  "entry_point": "compute_stats",
+  "description": "Return the min, max, and mean (rounded to four decimals) of a list of numbers as a dict, with a single necessary guard that rejects the empty list. Pure and deterministic; the floor keeps only the one guard the contract requires (an over-defensive rewrite would add per-element isinstance checks, None guards, try/except around arithmetic that cannot raise, and redundant re-validation). The golden arg_sets cover the value-returning domain: a multi-element list, a single element, a symmetric set whose mean is zero, an integer mean, and a repeating-decimal mean that exercises the four-place rounding. The empty-list ValueError is exercised by the pytest gate in test_suite.py, since the golden recorder captures return values, not exceptions.",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}

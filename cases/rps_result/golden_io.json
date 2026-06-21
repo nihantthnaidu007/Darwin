@@ -1,0 +1,77 @@
+{
+  "entry_point": "rps_result",
+  "cases": [
+    {
+      "args": [
+        "rock",
+        "scissors"
+      ],
+      "kwargs": {},
+      "output": "win"
+    },
+    {
+      "args": [
+        "paper",
+        "rock"
+      ],
+      "kwargs": {},
+      "output": "win"
+    },
+    {
+      "args": [
+        "scissors",
+        "paper"
+      ],
+      "kwargs": {},
+      "output": "win"
+    },
+    {
+      "args": [
+        "rock",
+        "paper"
+      ],
+      "kwargs": {},
+      "output": "lose"
+    },
+    {
+      "args": [
+        "paper",
+        "scissors"
+      ],
+      "kwargs": {},
+      "output": "lose"
+    },
+    {
+      "args": [
+        "scissors",
+        "rock"
+      ],
+      "kwargs": {},
+      "output": "lose"
+    },
+    {
+      "args": [
+        "rock",
+        "rock"
+      ],
+      "kwargs": {},
+      "output": "draw"
+    },
+    {
+      "args": [
+        "paper",
+        "paper"
+      ],
+      "kwargs": {},
+      "output": "draw"
+    },
+    {
+      "args": [
+        "scissors",
+        "scissors"
+      ],
+      "kwargs": {},
+      "output": "draw"
+    }
+  ]
+}

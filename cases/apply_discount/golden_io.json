@@ -1,0 +1,45 @@
+{
+  "entry_point": "apply_discount",
+  "cases": [
+    {
+      "args": [
+        100,
+        25
+      ],
+      "kwargs": {},
+      "output": 75.0
+    },
+    {
+      "args": [
+        50,
+        0
+      ],
+      "kwargs": {},
+      "output": 50.0
+    },
+    {
+      "args": [
+        100,
+        100
+      ],
+      "kwargs": {},
+      "output": 0.0
+    },
+    {
+      "args": [
+        0,
+        50
+      ],
+      "kwargs": {},
+      "output": 0.0
+    },
+    {
+      "args": [
+        19.99,
+        10
+      ],
+      "kwargs": {},
+      "output": 17.99
+    }
+  ]
+}

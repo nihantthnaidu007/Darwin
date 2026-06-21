@@ -1,0 +1,77 @@
+{
+  "entry_point": "classify_triangle",
+  "cases": [
+    {
+      "args": [
+        3,
+        3,
+        3
+      ],
+      "kwargs": {},
+      "output": "equilateral"
+    },
+    {
+      "args": [
+        5,
+        5,
+        8
+      ],
+      "kwargs": {},
+      "output": "isosceles"
+    },
+    {
+      "args": [
+        4,
+        5,
+        6
+      ],
+      "kwargs": {},
+      "output": "scalene"
+    },
+    {
+      "args": [
+        8,
+        5,
+        5
+      ],
+      "kwargs": {},
+      "output": "isosceles"
+    },
+    {
+      "args": [
+        5,
+        8,
+        5
+      ],
+      "kwargs": {},
+      "output": "isosceles"
+    },
+    {
+      "args": [
+        6,
+        8,
+        10
+      ],
+      "kwargs": {},
+      "output": "scalene"
+    },
+    {
+      "args": [
+        10,
+        10,
+        10
+      ],
+      "kwargs": {},
+      "output": "equilateral"
+    },
+    {
+      "args": [
+        2,
+        2,
+        3
+      ],
+      "kwargs": {},
+      "output": "isosceles"
+    }
+  ]
+}

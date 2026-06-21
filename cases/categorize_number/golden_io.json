@@ -1,0 +1,117 @@
+{
+  "entry_point": "categorize_number",
+  "cases": [
+    {
+      "args": [
+        -4
+      ],
+      "kwargs": {},
+      "output": "negative"
+    },
+    {
+      "args": [
+        -1
+      ],
+      "kwargs": {},
+      "output": "negative"
+    },
+    {
+      "args": [
+        0
+      ],
+      "kwargs": {},
+      "output": "zero"
+    },
+    {
+      "args": [
+        1
+      ],
+      "kwargs": {},
+      "output": "small odd"
+    },
+    {
+      "args": [
+        2
+      ],
+      "kwargs": {},
+      "output": "small even"
+    },
+    {
+      "args": [
+        4
+      ],
+      "kwargs": {},
+      "output": "small even"
+    },
+    {
+      "args": [
+        50
+      ],
+      "kwargs": {},
+      "output": "small even"
+    },
+    {
+      "args": [
+        51
+      ],
+      "kwargs": {},
+      "output": "small odd"
+    },
+    {
+      "args": [
+        99
+      ],
+      "kwargs": {},
+      "output": "small odd"
+    },
+    {
+      "args": [
+        100
+      ],
+      "kwargs": {},
+      "output": "small even"
+    },
+    {
+      "args": [
+        101
+      ],
+      "kwargs": {},
+      "output": "large odd"
+    },
+    {
+      "args": [
+        102
+      ],
+      "kwargs": {},
+      "output": "large even"
+    },
+    {
+      "args": [
+        200
+      ],
+      "kwargs": {},
+      "output": "large even"
+    },
+    {
+      "args": [
+        201
+      ],
+      "kwargs": {},
+      "output": "large odd"
+    },
+    {
+      "args": [
+        1000
+      ],
+      "kwargs": {},
+      "output": "large even"
+    },
+    {
+      "args": [
+        1001
+      ],
+      "kwargs": {},
+      "output": "large odd"
+    }
+  ]
+}

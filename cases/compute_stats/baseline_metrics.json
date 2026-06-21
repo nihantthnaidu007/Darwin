@@ -1,0 +1,29 @@
+{
+  "original": {
+    "cyclomatic_total": 38,
+    "cyclomatic_max": 4,
+    "maintainability_index": 39.85,
+    "logical_loc": 88,
+    "source_loc": 86,
+    "dependency_count": 4,
+    "dependencies": [
+      "collections",
+      "functools",
+      "itertools",
+      "math"
+    ],
+    "dead_code_count": 10,
+    "max_nesting_depth": 5
+  },
+  "reference_floor": {
+    "cyclomatic_total": 2,
+    "cyclomatic_max": 2,
+    "maintainability_index": 76.15,
+    "logical_loc": 5,
+    "source_loc": 8,
+    "dependency_count": 0,
+    "dependencies": [],
+    "dead_code_count": 1,
+    "max_nesting_depth": 2
+  }
+}

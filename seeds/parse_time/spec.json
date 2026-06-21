@@ -1,0 +1,17 @@
+{
+  "case_id": "parse_time",
+  "category": "over_abstraction",
+  "difficulty": "medium",
+  "entry_point": "parse_time",
+  "description": "Parse a HH:MM:SS time-of-day string into a total count of seconds since midnight. Split on colons, require exactly three parts, require each part to be a run of digits, range-check the fields (hours <= 23, minutes <= 59, seconds <= 59), and return hours*3600 + minutes*60 + seconds. Pure and deterministic. A deliberate structural cousin of parse_version (split, three-part check, per-part digit check, integer assembly). The golden arg_sets cover value-returning inputs only: midnight (0), the valid upper boundary 23:59:59 (86399, which gives the range gate teeth), a mid-afternoon time, the three single-field unit contributions (3600 / 60 / 1), noon, and a leading-zero-per-field case. The raising inputs (too few parts, too many parts, hours out of range, minutes out of range, seconds out of range, a non-digit field, an empty string, an empty field, a negative field) are exercised by the pytest gate in test_suite.py, since the golden recorder captures return values, not exceptions.",
+  "arg_sets": [
+    ["00:00:00"],
+    ["23:59:59"],
+    ["14:30:45"],
+    ["01:00:00"],
+    ["00:01:00"],
+    ["00:00:01"],
+    ["12:00:00"],
+    ["09:08:07"]
+  ]
+}

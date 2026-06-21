@@ -1,0 +1,8 @@
+{
+  "case_id": "evaluate_postfix",
+  "category": "over_abstraction",
+  "difficulty": "hard",
+  "entry_point": "evaluate_postfix",
+  "description": "Evaluate a postfix (reverse Polish) expression of string tokens over the operators +, - and * using a single operand stack: push integers, and on an operator pop the top two operands (the deeper pop is the left operand, the top pop the right) and push the result. Pure and deterministic. The operator table here is a small dispatch dict of lambdas; an over-abstracted rewrite would inflate this into operator classes or a visitor hierarchy. The golden arg_sets cover the value-returning domain: addition feeding a multiply, a bare subtraction pinning operand order (5 3 - = 2), a single operand, a multiply feeding a subtract, a nested multiply inside an add, and a subtraction whose result goes negative.",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}

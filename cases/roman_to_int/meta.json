@@ -1,0 +1,8 @@
+{
+  "case_id": "roman_to_int",
+  "category": "verbose_patterns",
+  "difficulty": "medium",
+  "entry_point": "roman_to_int",
+  "description": "Convert a Roman numeral string to its integer value by a single right-to-left pass: add each symbol, subtract it instead when it is smaller than the symbol to its right. Pure and deterministic. Raises ValueError on any non-Roman letter; the empty string is 0. The golden arg_sets cover value-returning inputs only (subtraction pairs, additive runs, compound landmarks, and the empty string); the raising inputs are exercised by the pytest gate in test_suite.py, since the golden recorder captures return values, not exceptions.",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}

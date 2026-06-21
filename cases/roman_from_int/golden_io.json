@@ -1,0 +1,89 @@
+{
+  "entry_point": "roman_from_int",
+  "cases": [
+    {
+      "args": [
+        1
+      ],
+      "kwargs": {},
+      "output": "I"
+    },
+    {
+      "args": [
+        4
+      ],
+      "kwargs": {},
+      "output": "IV"
+    },
+    {
+      "args": [
+        9
+      ],
+      "kwargs": {},
+      "output": "IX"
+    },
+    {
+      "args": [
+        3
+      ],
+      "kwargs": {},
+      "output": "III"
+    },
+    {
+      "args": [
+        40
+      ],
+      "kwargs": {},
+      "output": "XL"
+    },
+    {
+      "args": [
+        58
+      ],
+      "kwargs": {},
+      "output": "LVIII"
+    },
+    {
+      "args": [
+        400
+      ],
+      "kwargs": {},
+      "output": "CD"
+    },
+    {
+      "args": [
+        1994
+      ],
+      "kwargs": {},
+      "output": "MCMXCIV"
+    },
+    {
+      "args": [
+        2024
+      ],
+      "kwargs": {},
+      "output": "MMXXIV"
+    },
+    {
+      "args": [
+        2026
+      ],
+      "kwargs": {},
+      "output": "MMXXVI"
+    },
+    {
+      "args": [
+        3888
+      ],
+      "kwargs": {},
+      "output": "MMMDCCCLXXXVIII"
+    },
+    {
+      "args": [
+        3999
+      ],
+      "kwargs": {},
+      "output": "MMMCMXCIX"
+    }
+  ]
+}

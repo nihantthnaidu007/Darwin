@@ -1,0 +1,8 @@
+{
+  "case_id": "dedupe",
+  "category": "unnecessary_dependency",
+  "difficulty": "easy",
+  "entry_point": "dedupe",
+  "description": "Remove duplicate elements from a sequence while preserving first-seen order, using dict.fromkeys as an order-preserving set. Pure and deterministic, with no library dependency (the dependency-free floor; a collections.OrderedDict- or pandas-based rewrite would add an import the floor does not need). The golden arg_sets cover the value-returning domain: the empty input, an all-unique list (nothing removed), an all-duplicate list (collapsed to one), a list whose duplicates are interleaved (pinning first-occurrence order), a string list, and a mix of adjacent and distant duplicates.",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}

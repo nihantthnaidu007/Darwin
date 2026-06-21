@@ -1,0 +1,8 @@
+{
+  "case_id": "first_or_default",
+  "category": "defensive_overengineering",
+  "difficulty": "easy",
+  "entry_point": "first_or_default",
+  "description": "Return the first element of a sequence, or a default when it is empty, trusting Python's own truthiness rather than adding redundant type and length guards.",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}

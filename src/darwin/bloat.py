@@ -1,15 +1,25 @@
 """Ask Claude to produce a needlessly complex but behavior-identical version of
 a clean reference .py. This is the ONLY tool that uses an LLM.
 
-The API key is read from the ANTHROPIC_API_KEY environment variable by the SDK.
-It is never hardcoded, logged, or printed.
+Key resolution and the API call follow the shared convention generate() uses:
+when no client is injected, bloat() loads ANTHROPIC_API_KEY from the environment
+(or the gitignored project .env) via generator._load_dotenv(), constructs the
+hardened client via llm_client.build_client() (explicit timeout + retry budget),
+and issues the call through llm_client.create_message() (which classifies any SDK
+failure into the LLMCallError taxonomy). The key is never hardcoded, logged, or
+printed. bloat keeps its OWN request shape (its SYSTEM/USER prompts, max_tokens,
+and adaptive thinking); it deliberately does not adopt generator's temperature or
+request_kwargs.
 
 Usage: python -m darwin.bloat <reference.py> [-o original.py]
 """
 
 import sys
 
-import anthropic
+# Reuse the shared LLM-call machinery by import (the same way mgenerator does), so
+# bloat does not reimplement key loading, client construction, or the call/taxonomy.
+from darwin.generator import _load_dotenv
+from darwin.llm_client import build_client, create_message
 
 MODEL = "claude-opus-4-8"
 
@@ -51,11 +61,17 @@ def _strip_fences(text):
     return text.strip() + "\n"
 
 
-def bloat(reference_path):
+def bloat(reference_path, client=None):
     with open(reference_path, encoding="utf-8") as fh:
         code = fh.read()
-    client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
-    resp = client.messages.create(
+    if client is None:
+        # The key is needed only now, when constructing the real client (an
+        # injected client needs neither the key nor the .env side effect). The
+        # env load stays explicit at this call site; build_client does not load it.
+        _load_dotenv()
+        client = build_client()
+    resp = create_message(
+        client,
         model=MODEL,
         max_tokens=16000,
         thinking={"type": "adaptive"},
@@ -79,3 +95,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# Note: _load_dotenv() is invoked explicitly inside bloat() at the point the real
+# client is constructed — importing this module must not mutate os.environ.

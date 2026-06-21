@@ -1,0 +1,54 @@
+{
+  "entry_point": "first_or_default",
+  "cases": [
+    {
+      "args": [
+        [
+          1,
+          2,
+          3
+        ],
+        0
+      ],
+      "kwargs": {},
+      "output": 1
+    },
+    {
+      "args": [
+        [],
+        99
+      ],
+      "kwargs": {},
+      "output": 99
+    },
+    {
+      "args": [
+        [
+          "a"
+        ],
+        "z"
+      ],
+      "kwargs": {},
+      "output": "a"
+    },
+    {
+      "args": [
+        [],
+        "z"
+      ],
+      "kwargs": {},
+      "output": "z"
+    },
+    {
+      "args": [
+        [
+          5,
+          6
+        ],
+        -1
+      ],
+      "kwargs": {},
+      "output": 5
+    }
+  ]
+}

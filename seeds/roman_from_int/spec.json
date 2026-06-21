@@ -1,0 +1,21 @@
+{
+  "case_id": "roman_from_int",
+  "category": "over_abstraction",
+  "difficulty": "medium",
+  "entry_point": "roman_from_int",
+  "description": "Convert an integer in the range 1 to 3999 into its Roman numeral string by greedy descending subtraction over a fixed value-to-symbol table that includes the six subtractive pairs (CM, CD, XC, XL, IX, IV). Emit each symbol while the remaining value is at least its weight, then move to the next smaller weight. Pure and deterministic. The golden arg_sets cover the value-returning domain: the single symbol 1, the two smallest subtractive forms (4, 9), the canonical subtractive-heavy landmark 1994, the maximum 3999, 2024 and 2026, an additive run (3), an additive-plus-subtractive mix (58), the subtractive tens and hundreds (40, 400), and the longest form 3888 (the maximal symbol run). The raising inputs (0 and a negative below the floor of 1, and 4000 above the ceiling of 3999) are exercised by the pytest gate in test_suite.py, since the golden recorder captures return values, not exceptions.",
+  "arg_sets": [
+    [1],
+    [4],
+    [9],
+    [3],
+    [40],
+    [58],
+    [400],
+    [1994],
+    [2024],
+    [2026],
+    [3888],
+    [3999]
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "case_id": "binary_search",
+  "category": "dead_code",
+  "difficulty": "hard",
+  "entry_point": "binary_search",
+  "description": "Find the index of a target in a sorted list by binary search, returning the index when found and -1 when absent. The window is halved each step by comparing the midpoint to the target. Pure and deterministic; every branch is live and reachable (the floor carries no dead code, so a bloated rewrite must add unused helpers, variables, or branches to inflate the dead-code count). The golden arg_sets cover the value-returning domain: target present at the first, middle, and last positions; absent below the range, between two elements, and above the range; the empty list (-1); and a single-element list present and absent.",
+  "arg_sets": [
+    [[1, 3, 5, 7, 9], 1],
+    [[1, 3, 5, 7, 9], 5],
+    [[1, 3, 5, 7, 9], 9],
+    [[1, 3, 5, 7, 9], 0],
+    [[1, 3, 5, 7, 9], 4],
+    [[1, 3, 5, 7, 9], 10],
+    [[], 5],
+    [[42], 42],
+    [[42], 7]
+  ]
+}

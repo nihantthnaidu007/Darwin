@@ -1,0 +1,8 @@
+{
+  "case_id": "apply_shipping",
+  "category": "dead_code",
+  "difficulty": "easy",
+  "entry_point": "apply_shipping",
+  "description": "Quote a shipping cost from weight, distance, and an express flag: the base cost is weight*0.5 + distance*0.1, an express order multiplies that base by 1.5, then a minimum charge floors any result below 5.0 up to 5.0, and the final cost is rounded to two decimals. Pure and deterministic, total on its numeric domain (it never raises), so the golden arg_sets cover the whole value-returning domain. They pin the decisive order of operations: the express multiplier is applied BEFORE the 5.0 minimum (an express order whose multiplied cost is still under 5.0 floors to exactly 5.0), the floor uses a strict less-than (a natural cost of exactly 5.0 is NOT re-floored and stays 5.0 while a natural 4.5 floors up to 5.0), and the trailing round-to-two-decimals is load-bearing for float stability (two arg_sets land on unrounded 5.800000000000001 and 8.700000000000001, which the round collapses to 5.8 and 8.7; an implementation that drops the round diverges from the golden on exactly those inputs).",
+  "constraints": "deterministic, pure, no I/O, no randomness, no global state"
+}

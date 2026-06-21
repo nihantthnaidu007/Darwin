@@ -1,0 +1,7 @@
+{
+  "category": "defensive_overengineering",
+  "difficulty": "medium",
+  "entry_point": "normalize_scores",
+  "description": "Min-max normalize a list of numbers to the 0..1 range, keeping only the two necessary guards (empty input and a zero-span all-equal list) and no redundant validation.",
+  "arg_sets": [[[]], [[5]], [[2, 2, 2]], [[0, 5, 10]], [[1, 3]], [[-2, 2]]]
+}
