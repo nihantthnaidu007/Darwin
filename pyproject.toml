@@ -1,7 +1,11 @@
-# Darwin: release metadata for the 0.9.0 GitHub-tagged release.
+# Darwin: release metadata for the 1.0.0 GitHub-tagged release.
 #
-# Version is 0.9.0, staying in the 0.x line on purpose: a 1.0 would signal a
-# stable, production-grade release. Over 0.2.0, the release line adds multi-file
+# Version is 1.0.0, the single-user-trusted reproducible-benchmark freeze (framing
+# (b); decisions 0046, 0008). 1.0.0 marks a stable, reproducible surface, NOT a
+# production-grade release for any user. It deliberately does NOT adopt decision
+# 0005's retired framing that reserved 1.0 to signal production-grade stability; the
+# in-process verdict-forgery boundary stays open by design and is deferred to 2.0.
+# Over 0.2.0, the release line adds multi-file
 # simplification (the multi-file generator, the directed multi-file loop, and the
 # multi-file evaluator plus benchmark harness) on top of the single-function
 # engine and the v2.0 OS-level isolation boundary; it adds the project's first

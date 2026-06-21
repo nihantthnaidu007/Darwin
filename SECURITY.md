@@ -215,9 +215,12 @@ documented **self-hosted / VM follow-up**, not coverage this CI matrix produced.
 
 - **`test_suite.py` is readable by the candidate** inside the Layer-1 `pytest`
   container (pytest needs the file present), and test assertions contain expected
-  values inline. A memorizing candidate could hardcode them. This is mitigated only
-  by **corpus design** — the golden I/O inputs are not a subset of the test inputs,
-  so Layer 2 catches a memorizer — not by any OS-enforced guarantee.
+  values inline. A memorizing candidate could hardcode them. The mitigation is
+  **corpus design**, not any OS-enforced guarantee: a case **may** include golden I/O
+  inputs that are not present in the test suite, so Layer 2 catches a candidate that
+  memorized only the visible test inputs. This is a **recommended** authoring practice
+  (see [docs/authoring-a-case.md](docs/authoring-a-case.md)), not a property guaranteed
+  of every case.
 - **On-disk audit logs keep the unstripped reason.** Golden expected outputs are
   stripped from rejection feedback *before it reaches the generator*, but the raw
   "expected R, got R" reason is still written into the per-generation records under

@@ -110,9 +110,12 @@ during the build and the exception aborts the build. Exercise raising behavior i
 `"A"` and `"XIZ"` (which raise `ValueError`) appear only in the test suite.
 
 Choose `arg_sets` to pin the contract: cover the representative and the boundary
-value-returning cases so a behavior-wrong candidate cannot slip through. Note that the
-golden inputs are deliberately **not** a subset of the test inputs, so a candidate that
-memorizes the test assertions is still caught by the golden replay.
+value-returning cases so a behavior-wrong candidate cannot slip through. As
+defense-in-depth, your `arg_sets` **may** include value-returning inputs that are
+**not** present in the test suite, so a candidate that memorizes the visible test
+assertions is still caught by the golden replay. This is a **recommended** authoring
+practice, not a guaranteed property of every case (the shipped `roman_to_int` seed, for
+one, draws all its golden inputs from inputs the suite also exercises).
 
 ### `case_id` (optional)
 
