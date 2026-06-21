@@ -238,34 +238,6 @@ The multi-file loop (`mloop.py`) mirrors the same contract across the same conta
 
 ---
 
-## The release line (all done and merged)
-
-| Version | What landed |
-|---|---|
-| **0.1.0** v1 | The directed generate/evaluate/feedback loop on one function, with the never-worse guarantee and the objective evaluator. |
-| **0.2.0** v2 | OS isolation: every candidate runs in a locked-down Docker container (the access-isolation boundary). |
-| **v3** | Multi-file generator, directed multi-file loop, multi-file evaluator and benchmark harness. |
-| **v4** | First test-running CI; bind-mount staging fix for native-Linux Docker hosts. |
-| **0.5.0** | Correctness, determinism, reproducibility: feedback-materiality threshold, pinned temperature + run provenance, variance harness with committed snapshots. |
-| **0.6.0** | Supply-chain and isolation hardening: digest-pinned base image, hash-locked lockfiles, SBOM + pip-audit, native-Linux CI matrix, seccomp plumbing, the VerdictEmitter seam. |
-| **0.7.0** | Test and CI maturity: pytest CVE bump, loop/verifier unit tests at 99% line coverage, four quality gates flipped to blocking. |
-| **0.8.0** | Packaging: flat `tools/` became an importable `src/darwin` package, hatchling build, six console scripts, `pip install .`. |
-| **0.9.0** | Corpus expansion: 5-case validation set → 30-case hand-authored corpus across 7 categories; the authoritative one-shot finding (143/150, 95.3%); corpus-wide temporal-freeze proof. |
-| **1.0.0** | The freeze: results reconciled to evidence, single-user-trusted posture finalized, benchmark made externally extendable, stable surface declared. Not a capability change; the forgery boundary stays open by design ([decision 0046](docs/decisions/0046-v1.0-freeze-single-user-trusted-benchmark.md)). |
-
----
-
-## Roadmap
-
-Only genuinely remaining work:
-
-- **Split the trusted emitter out of the candidate's process** to close the in-process verdict-forgery residual — required *only* if the verdict becomes a third-party-trusted artifact (and even then compute-and-lie remains). This is the headline 2.0 item.
-- **Multi-distro and kernel-hardening native-Linux audit.** The native-Linux writeup is done and CI verifies the lockdown on a `ubuntu-22.04` + `ubuntu-24.04` cgroup-v2 matrix; cgroup v1, non-Ubuntu distros, and kernel hardening remain.
-- **Tighter multi-file references and a real-world benchmark** — the prerequisite for any benchmark-grade claim.
-- **A robustness fix to `_require_image`** so a transient Docker daemon error no longer reads as a missing image.
-
----
-
 ## License
 
 Darwin is licensed under the Apache License 2.0. See [LICENSE](./LICENSE).
