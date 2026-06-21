@@ -1,151 +1,148 @@
-# Self-Evolving Code-Optimization Engine — Validation Results
+# Self-Evolving Code-Optimization Engine: Single-Function Results (30-case authoritative corpus)
 
-_Generated 2026-06-13 17:20 UTC · model `claude-opus-4-8` · loop config cap=5, plateau=2 · run UNMODIFIED over every case in `cases/`, each candidate executed inside the I0 locked-down container (v2 OS isolation)._
+_Authoritative single-function dataset, v0.9 P9.5a. Run-and-record only: the frozen corpus was run under one fixed config, with no engine, scoring, gate, build_case, or case change. Every number below traces to `reports/v0.9-dataset.json` (the machine-readable 150-run dataset). No number here comes from a batch report or memory._
 
-## Headline finding
+## Config and provenance (the fixed run)
 
-**Single-function optimization is effectively one-shot on this corpus, with 2 marginal exception(s).** 3 of the 5 improved cases reached their best in **generation 1**; the remaining 2 reached their best at generation 2+ but only by a sliver: `format_duration` reached its best in generation 2, but generation 1 alone had already removed 99.6% of the bloat and the later gain was only +0.37 percentage points (logical_loc 18→17); `int_to_words` reached its best in generation 2, but generation 1 alone had already removed 99.2% of the bloat and the later gain was only +0.4 percentage points (logical_loc 35→34). So directed feedback did **real but marginal** work on 2 case and none at all on the other 3. Its v1 value is verification (the gates), best-of-N retention, and the never-worse-than-baseline guarantee; load-bearing multi-generation feedback is expected only at multi-file / system scope (deferred to v2).
+- frozen corpus git HEAD: `8b2dd60279c55f251a2ec357ee11dfa561df1359`
+- loop config: cap=5, plateau_limit=2, runs_per_case=5
+- model: `claude-opus-4-8`, temperature=1.0, max_tokens=8192
+- sdk_version: 0.107.1, thinking={adaptive: true, effort: medium}
+- corpus: 30 single-function cases run 5 times each = 150 runs (multi-file mcases excluded: doc_history, rate_limiter, task_scheduler)
+- transients re-run: 0
+- reproducible source: `reports/v0.9-dataset.json` (human-readable companion: `reports/v0.9-dataset.md`)
 
-## Scope and honest framing
+## Headline finding (Finding 1)
 
-**This is a 5-case validation set, not a benchmark.** Five hand-built cases (2 seeds + 3 hard) exercise the engine end to end; they do not constitute a statistically meaningful benchmark. A benchmark-grade claim needs the originally planned 25-30 cases spread across categories and difficulties. Growing the corpus to that size is the prerequisite for benchmark claims and is the explicit next step (deferred here). Corpus size is the headline limitation of these results.
+**Across 30 controlled single-function cases run 5 times each (150 runs), optimization is effectively one-shot: 143/150 = 95.3% of runs reached the returned-best candidate in generation 1.** The directed multi-generation loop is verified-present but not load-bearing in the general case at single-function scope. This is the authoritative 30-case confirmation of the one-shot finding (decision 0006), which the earlier 5-case validation set could only suggest.
 
-## Generations used (the key honesty metric)
+Global `best_gen` distribution across all 150 runs:
 
-If every case reached its result in generation 1, the feedback loop was not load-bearing on this corpus — and that is exactly what `best gen` shows. `gens run` is how many generations the loop *attempted* before stopping (it can exceed 1 due to the plateau rule even when the kept best is gen 1); `best gen` is the generation that produced the candidate actually returned.
+| best_gen | runs |
+|---------:|-----:|
+| 1 | 143 |
+| 2 | 4 |
+| 3 | 3 |
 
-| case | category | difficulty | result | best gen | gens run | floor? |
-|------|----------|-----------|--------|---------:|---------:|:------:|
-| `format_duration` | verbose_patterns | hard | improved | 2 | 2 | yes |
-| `income_tax` | duplication | hard | improved | 1 | 1 | yes |
-| `int_to_words` | excessive_nesting | hard | improved | 2 | 4 | no |
-| `merge_intervals` | over_abstraction | medium | improved | 1 | 1 | yes |
-| `sum_evens` | verbose_patterns | easy | improved | 1 | 1 | yes |
+`best_gen` is the generation that produced the candidate actually returned. Only 7 of 150 runs (4.7%) returned a candidate first found in generation 2 or 3. The loop's demonstrated value at this scope is verification (the correctness and behavior gates), best-of-N retention, and the never-worse-than-baseline guarantee (decision 0002), not iterative feedback.
 
+## Headline limitation: the corpus is synthetic
 
-**Summary:** 5/5 cases improved over baseline; 0/5 returned the baseline original. Of the improved cases, **3 were one-shot (best from generation 1)** and **2 required generation 2+**. The magnitude of those gen-2+ gains is broken out below — direction is not magnitude.
+**Every case is an authored clean reference degraded by the bloat tool, not real-world code.** This is the headline limitation, stated the way the prior RESULTS.md stated its 5-case size. The claim is about the engine's behavior on controlled degradations of hand-authored functions, not about real-world optimization. A real-world-grade claim needs a corpus drawn from real-world code, which this is not. Both ends of the measured span are synthetic: the 1.0 baseline is the tool-generated bloated original (synthetic ceiling) and the 0.0 floor is the hand-authored reference (synthetic floor). See "Magnitude" below for why magnitude is never the headline here.
 
-### Magnitude of the gen-2+ gains (direction ≠ load-bearing)
+## The corpus (30-case roster)
 
-A best candidate arriving in generation 2+ only matters if the later generation did **real** work. For each such case, here is what generation 1 alone already achieved versus what the feedback added on top:
+Seven degradation categories (decision: Amendment 1 added `defensive_overengineering` as the seventh). Composition: over_abstraction 6, defensive_overengineering 5, unnecessary_dependency 5, duplication 4, verbose_patterns 4, dead_code 3, excessive_nesting 3. Difficulty: easy 11, medium 12, hard 7. Per-case `best_gen` and `best_cost` distributions are the 5 runs in order.
 
-| case | best gen | gen 1 alone removed | best removed | feedback added | structural change |
-|------|---------:|--------------------:|-------------:|---------------:|-------------------|
-| `format_duration` | 2 | 99.6% | 100.0% | +0.37 pp | logical_loc 18→17 |
-| `int_to_words` | 2 | 99.2% | 99.6% | +0.4 pp | logical_loc 35→34 |
+| case | category | difficulty | best_gen dist | best_cost dist |
+|------|----------|------------|---------------|----------------|
+| apply_discount | defensive_overengineering | medium | [1, 1, 1, 1, 1] | [-0.0588, -0.0588, -0.0588, -0.0588, -0.0588] |
+| apply_shipping | dead_code | easy | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| average | unnecessary_dependency | easy | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| binary_search | dead_code | hard | [1, 1, 1, 1, 1] | [-0.0045, -0.0045, -0.0045, -0.0045, -0.0045] |
+| categorize_number | excessive_nesting | easy | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| celsius_to_fahrenheit | over_abstraction | easy | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| chunk | unnecessary_dependency | easy | [1, 1, 1, 1, 1] | [-0.0691, -0.0691, -0.0691, -0.0691, -0.0691] |
+| clamp | defensive_overengineering | easy | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| classify_triangle | dead_code | medium | [1, 1, 1, 1, 1] | [-0.0096, 0.0, -0.0129, 0.0, 0.0] |
+| compute_stats | defensive_overengineering | hard | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| dedupe | unnecessary_dependency | easy | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| evaluate_postfix | over_abstraction | hard | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| first_or_default | defensive_overengineering | easy | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| format_duration | verbose_patterns | hard | [1, 1, 1, 1, 1] | [0.0037, 0.0, 0.0, 0.0, 0.0] |
+| format_phone | verbose_patterns | easy | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| group_by_key | unnecessary_dependency | medium | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| income_tax | duplication | hard | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| int_to_words | excessive_nesting | hard | [1, 2, 2, 1, 1] | [0.004, 0.004, 0.004, 0.004, 0.004] |
+| merge_intervals | over_abstraction | medium | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| merge_inventory | duplication | medium | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| min_max | duplication | easy | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| normalize_scores | defensive_overengineering | medium | [1, 1, 1, 1, 1] | [0.0029, 0.0029, 0.0, 0.0029, 0.0029] |
+| parse_time | over_abstraction | medium | [1, 1, 1, 1, 1] | [0.0099, 0.0099, 0.0099, 0.0099, 0.0099] |
+| parse_version | over_abstraction | medium | [1, 3, 3, 3, 2] | [0.063, 0.0, 0.0, 0.0, 0.0] |
+| roman_from_int | over_abstraction | medium | [1, 1, 1, 1, 1] | [0.004, 0.004, 0.004, 0.004, 0.004] |
+| roman_to_int | verbose_patterns | medium | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| rps_result | excessive_nesting | medium | [1, 1, 1, 1, 1] | [-0.0036, -0.0036, -0.0036, -0.0036, -0.0036] |
+| sum_evens | verbose_patterns | easy | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
+| total_price | duplication | medium | [1, 1, 1, 2, 1] | [0.0107, 0.0107, 0.0107, 0.0, 0.0107] |
+| transpose | unnecessary_dependency | hard | [1, 1, 1, 1, 1] | [0.0, 0.0, 0.0, 0.0, 0.0] |
 
-## Reduction achieved (verified by the gates)
+## Finding 2: the loop's role is variance, not shape
 
-Every `best` candidate below passed the correctness gate (test suite) and the behavior gate (exact golden I/O replay) before it was scored — these are not merely "smaller" numbers, they are verified behavior-preserving simplifications. `weighted cost` is the engine's own Method-A score on the case's original→floor scale (1.0 = the bloated original, 0.0 = the clean reference floor; lower is better); `bloat removed` is (1 − best cost) — i.e. the fraction of the original→floor span the engine closed. A value above 100% (marked `↓floor`) would mean the candidate closed the whole gap and scored *below* the clean reference floor; the engine flags such candidates `suspiciously-simple` rather than rewarding them (there is no objective readability oracle).
+On 7 of 150 runs (4.7%), generation 1 fell just short of the floor and the directed loop recovered the returned-best candidate in a later generation. These 7 runs occurred in exactly three cases:
 
-| case | weighted cost (orig→best) | bloat removed | cost (USD) |
-|------|:-------------------------:|:-------------:|-----------:|
-| `format_duration` | 1.0 → 0.0 | 100.0% | $0.034015 |
-| `income_tax` | 1.0 → 0.0 | 100.0% | $0.016285 |
-| `int_to_words` | 1.0 → 0.004 | 99.6% | $0.104545 |
-| `merge_intervals` | 1.0 → 0.0 | 100.0% | $0.00813 |
-| `sum_evens` | 1.0 → 0.0 | 100.0% | $0.006145 |
+| case | best_gen dist | runs with best_gen > 1 |
+|------|---------------|-----------------------:|
+| int_to_words | [1, 2, 2, 1, 1] | 2 |
+| parse_version | [1, 3, 3, 3, 2] | 4 |
+| total_price | [1, 1, 1, 2, 1] | 1 |
 
+**This is run-to-run stochastic recovery near the floor, not a property of function shape or category.** The data states this plainly:
 
-**Totals:** $0.16912 across 5 cases (17709 input / 3223 output tokens), real API token counts straight from the loop's own logs.
+- The same case is one-shot on some runs and loop-recovered on others. `int_to_words` is `[1, 2, 2, 1, 1]` and `total_price` is `[1, 1, 1, 2, 1]`: identical function, identical config, different generation count run to run.
+- The three loop-recovery cases do not cluster by category. They span three different categories: `int_to_words` is excessive_nesting, `parse_version` is over_abstraction, `total_price` is duplication.
+- A case that looked load-bearing in earlier validation, `parse_time`, was one-shot on all 5 runs here (`best_gen [1, 1, 1, 1, 1]`).
 
-## Per-metric structural reduction
+The loop therefore functions as occasional insurance against a generation-1 miss, not as a structural requirement for any identifiable class of function. This report makes **no shape-based or category-based claim** that the loop helps on any kind of function. The generator is a stochastic model at temperature 1.0; on near-floor cases it usually lands on the floor in generation 1 and occasionally lands one step above it, in which case a later generation closes the gap. The never-worse-than-baseline guarantee and best-of-N retention bound the result either way.
 
-Per case, the structural metrics that drive the score (original → best, with the clean reference floor for reference). `norm cost` is 0.0 at the floor and 1.0 at the original; `n/a` means the case offers no signal on that axis (original already equals the floor). maintainability_index is omitted here — it is weight-0 / informational because it is cosmetic-gameable at single-function scale.
+## Finding 3: the authored floor is an anchor, not a hard minimum
 
+Five cases produced at least one run with a candidate scored marginally below the 0.0 floor, where the engine found a simpler form than the hand-authored reference:
 
-**`format_duration`** — structural metrics (original → best, with floor and remaining distance to it):
+| case | sub-floor best_cost | runs sub-floor | suspiciously-simple flag |
+|------|---------------------|---------------:|--------------------------|
+| chunk | -0.0691 | 5 of 5 | yes (all 5) |
+| apply_discount | -0.0588 | 5 of 5 | no (see Finding 4) |
+| classify_triangle | -0.0096 (run 1), -0.0129 (run 3) | 2 of 5 | yes (the 2 sub-floor runs) |
+| binary_search | -0.0045 | 5 of 5 | yes (all 5) |
+| rps_result | -0.0036 | 5 of 5 | yes (all 5) |
 
-| metric | original | best | floor | to floor | norm cost |
-|--------|---------:|-----:|------:|---------:|----------:|
-| cyclomatic_total | 51 | 9 | 9 | 0 | 0.000 |
-| logical_loc | 94 | 17 | 17 | 0 | 0.000 |
-| max_nesting_depth | 3 | 3 | 3 | 0 | n/a |
-| dependency_count | 5 | 0 | 0 | 0 | 0.000 |
-| dead_code_count | 9 | 1 | 1 | 0 | 0.000 |
-| cyclomatic_max | 4 | 9 | 9 | 0 | n/a |
+For the four genuine cases (chunk, binary_search, rps_result, classify_triangle) the candidate is dependency-free and genuinely simpler than the authored reference. These are reported as-is, not corrected. The authored reference is a **0.0 anchor, not a hard minimum**: when a genuinely simpler correct candidate exists, it is scored and returned. There is no objective readability oracle, so the `suspiciously-simple` guard only flags such candidates, it never rejects them (decision 0001). All four genuine sub-floor cases carry the `suspiciously-simple` flag, which is the guard doing exactly its disclosed job: marking the candidate, then returning it.
 
-**`income_tax`** — structural metrics (original → best, with floor and remaining distance to it):
+apply_discount is the fifth sub-floor case and is the exception: it carries no `suspiciously-simple` flag, because it is not simpler. It is the subject of Finding 4.
 
-| metric | original | best | floor | to floor | norm cost |
-|--------|---------:|-----:|------:|---------:|----------:|
-| cyclomatic_total | 37 | 7 | 7 | 0 | 0.000 |
-| logical_loc | 72 | 14 | 14 | 0 | 0.000 |
-| max_nesting_depth | 3 | 3 | 3 | 0 | n/a |
-| dependency_count | 4 | 0 | 0 | 0 | 0.000 |
-| dead_code_count | 6 | 1 | 1 | 0 | 0.000 |
-| cyclomatic_max | 3 | 7 | 7 | 0 | n/a |
+## Finding 4: a disclosed scorer limitation (the apply_discount case)
 
-**`int_to_words`** — structural metrics (original → best, with floor and remaining distance to it):
+apply_discount's sub-floor candidate (`best_cost -0.0588`, identical on all 5 runs) is the hand-authored reference verbatim plus one line, `__all__ = ["apply_discount"]`. That single line is not a structural simplification. It scored below the floor through a non-structural metric trick:
 
-| metric | original | best | floor | to floor | norm cost |
-|--------|---------:|-----:|------:|---------:|----------:|
-| cyclomatic_total | 42 | 13 | 13 | 0 | 0.000 |
-| logical_loc | 104 | 34 | 33 | 1 | 0.014 |
-| max_nesting_depth | 3 | 3 | 3 | 0 | n/a |
-| dependency_count | 3 | 0 | 0 | 0 | 0.000 |
-| dead_code_count | 3 | 0 | 0 | 0 | 0.000 |
-| cyclomatic_max | 5 | 8 | 8 | 0 | n/a |
+- `dead_code_count`: original 3 -> best 0, floor 1. The `__all__` export marks the lone public function as an explicit export, so the dead-code detector no longer counts it as dead. norm_cost -0.5. This is the **sole** metric scored below the floor, and it alone pulls the weighted cost negative.
+- `logical_loc`: original 73 -> best 7, floor 6. The candidate's logical_loc is one **above** the floor, not below it. The +1 is the `__all__` line itself. norm_cost +0.0149.
 
-**`merge_intervals`** — structural metrics (original → best, with floor and remaining distance to it):
+So the candidate scored lower **without being simpler**: its only below-floor metric is the suppressed dead-code count, while its line count actually rose. The dataset confirms the artifact directly (`confirmed_dead_code_suppression_artifact: true`).
 
-| metric | original | best | floor | to floor | norm cost |
-|--------|---------:|-----:|------:|---------:|----------:|
-| cyclomatic_total | 26 | 4 | 4 | 0 | 0.000 |
-| logical_loc | 63 | 8 | 8 | 0 | 0.000 |
-| max_nesting_depth | 4 | 3 | 3 | 0 | 0.000 |
-| dependency_count | 4 | 0 | 0 | 0 | 0.000 |
-| dead_code_count | 5 | 1 | 1 | 0 | 0.000 |
-| cyclomatic_max | 3 | 4 | 4 | 0 | n/a |
+This is stated plainly as a demonstrated limitation of structural-only scoring: a non-structural metric trick can produce a below-floor score without any genuine improvement, and it does so without tripping the `suspiciously-simple` guard (which is why apply_discount, unlike the four genuine sub-floor cases, is unflagged). It is disclosed here as a finding about the scorer, not hidden. This is on-brand for the project's trust-over-capability posture: the scorer's gameability is reported, not buried. Closing it would require a non-structural detector or a process split for the gate; neither is in scope for this run.
 
-**`sum_evens`** — structural metrics (original → best, with floor and remaining distance to it):
+## Magnitude (secondary, carries the double-synthetic caveat)
 
-| metric | original | best | floor | to floor | norm cost |
-|--------|---------:|-----:|------:|---------:|----------:|
-| cyclomatic_total | 25 | 3 | 3 | 0 | 0.000 |
-| logical_loc | 56 | 2 | 2 | 0 | 0.000 |
-| max_nesting_depth | 3 | 1 | 1 | 0 | 0.000 |
-| dependency_count | 5 | 0 | 0 | 0 | 0.000 |
-| dead_code_count | 5 | 1 | 1 | 0 | 0.000 |
-| cyclomatic_max | 3 | 3 | 3 | 0 | n/a |
+Magnitude is not the headline; `best_gen` is. With that caveat stated, the per-run cost distribution across all 150 runs is:
 
-## Breakdown by category and difficulty
+| best_cost band | runs |
+|----------------|-----:|
+| below floor (cost < 0) | 22 |
+| exactly at floor (cost == 0.0) | 103 |
+| above floor (0 < cost) | 25 |
 
-("bloat removed" is always relative to each case's own reference floor; 100% means the case reached its floor, not absolute optimality.)
+Every one of the 150 runs improved over baseline (`baseline_cost` 1.0 -> `best_cost` near 0.0 on every run) and every run returned a best candidate, never the baseline original. **This magnitude is doubly synthetic and must be read with that caveat.** The 1.0 baseline is a tool-generated bloated original and the 0.0 floor is a hand-authored reference, so "bloat removed" (1 - cost) is measured against a span whose two endpoints are both authored, not observed in real-world code. The honest unit of the headline is the generation count, which does not depend on the synthetic span: 95.3% of runs reach their best in generation 1 regardless of how the span is anchored.
 
-**By category:**
+## Cost (from the dataset, for reproducibility)
 
-| category | cases | improved | one-shot | avg bloat removed (vs floor) |
-|------|------:|---------:|---------:|----------------------------:|
-| duplication | 1 | 1 | 1 | 100.0% |
-| excessive_nesting | 1 | 1 | 0 | 99.6% |
-| over_abstraction | 1 | 1 | 1 | 100.0% |
-| verbose_patterns | 2 | 2 | 1 | 100.0% |
+- total cost: $2.601205 across 150 runs
+- mean cost per run: $0.017341
+- tokens: 338456 input / 36357 output
 
-
-**By difficulty:**
-
-| difficulty | cases | improved | one-shot | avg bloat removed (vs floor) |
-|------|------:|---------:|---------:|----------------------------:|
-| easy | 1 | 1 | 1 | 100.0% |
-| hard | 3 | 3 | 1 | 99.9% |
-| medium | 1 | 1 | 1 | 100.0% |
-
-## A note on run-to-run variance (stochastic loop)
-
-The generator is a stochastic LLM, so a single live run is one sample, not a fixed point. On near-floor cases the model usually lands on the exact reference floor in generation 1, but occasionally lands one logical line above it and a second generation closes that line — observed run-to-run variance is about ±1 generation on at most one case, and the generation-2 gain when it happens is a fraction of a percentage point. The takeaway is unchanged across runs: **generation 1 does substantially all of the reduction**, and whatever the sample, the never-worse-than-baseline guarantee and best-of-N retention bound the result. This report reflects the single run stamped above; re-running may shift one case's generation count by one without changing the headline.
+These are the real API token counts recorded in `reports/v0.9-dataset.json`.
 
 ## Limitations (stated plainly)
 
-- **Small corpus.** 5 cases is a validation set, not a benchmark; numbers here establish that the machinery works, not a population-level claim. Benchmark-grade claims need ~25-30 cases across categories/difficulties (next step).
-- **Single-function scope.** Every case is one function. At this scope a capable model reaches the structural floor in a single pass, which is why the feedback loop is not load-bearing here.
-- **Directed feedback is a v2 lever.** Multi-generation feedback is expected to matter at multi-file / system scope (cross-module refactors that cannot be one-shot), which is out of scope for v1 and deferred to v2.
-- **Behavior-gate forgery boundary (v2 — under OS isolation).** Every candidate in these runs executes inside the I0 locked-down container (no network, no host filesystem, memory/CPU/PID caps, non-root). That OS boundary CLOSES the access-based vectors: oracle-read (the golden file is not in the container), host-filesystem/secret reads, network, and the literal `import __main__` serializer-attribute form. It does NOT split the process, so the untrusted candidate and the trusted result emitter stay co-resident; in-process forgery (the frame-locals serializer hijack and compute-and-lie) is therefore still OPEN and is pinned, known-open, in `tools/test_behavior_gate_limits.py`. Closing it needs a process split (architecture change), deferred by decision — not patched here.
-- **No objective readability oracle.** The `suspiciously-simple` / `fragmentation-smell` guards FLAG golfed-but-correct candidates rather than rejecting them, because there is no LLM-free readability oracle and rejecting a genuinely simpler correct answer would violate "objective only."
+- **Synthetic corpus.** Every case is a hand-authored reference degraded by the bloat tool. The results characterize the engine's behavior on controlled degradations, not real-world optimization. This is the headline limitation.
+- **Single-function scope.** Every case is one function. At this scope a capable model reaches the structural floor in a single pass on 95.3% of runs, which is why the feedback loop is not load-bearing here. Multi-file results are reported separately.
+- **Structural-only scoring is gameable.** Finding 4 demonstrates a non-structural metric trick (the `__all__` dead-code suppression) producing a below-floor score without genuine improvement. Reported, not patched.
+- **No objective readability oracle.** The `suspiciously-simple` and `fragmentation-smell` guards flag golfed-but-correct candidates rather than rejecting them, because there is no LLM-free readability oracle and rejecting a genuinely simpler correct answer would violate "objective only" (decision 0001).
+- **Behavior-gate in-process forgery is known-open.** The behavior gate runs each candidate inside the locked-down container, which closes the access-based vectors. In-process forgery (the frame-locals serializer hijack and compute-and-lie) stays open and is pinned known-open; closing it needs a process split, deferred by decision 0008. No part of Darwin is described as forgery-proof.
 
 ## What these results do NOT claim
 
-- They do **not** claim emergent self-improvement: the generations-used data does not support it at single-function scope.
-- They do **not** present 5 cases as a benchmark.
-- They do **not** credit multi-generation feedback with any returned result that the data attributes to generation 1.
-
+- They do **not** claim emergent self-improvement: the generations-used data (95.3% one-shot) does not support it at single-function scope.
+- They do **not** make any shape-based or category-based claim about when the loop helps. The 7 loop-recovery runs are run-to-run variance near the floor, spread across three unrelated categories (Finding 2).
+- They do **not** credit generation 2 or later with any returned result the data attributes to generation 1 (decision 0006).
+- They do **not** present the synthetic corpus as a real-world benchmark, and they do **not** lead with magnitude, whose span is doubly synthetic.
