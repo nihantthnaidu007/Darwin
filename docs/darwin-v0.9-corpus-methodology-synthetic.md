@@ -222,12 +222,54 @@ raise, None guards on values that cannot be None, redundant re-validation after 
 This is structurally distinct from dead_code (the guards are reachable, not dead) and from
 over_abstraction (the excess is defensive, not structural).
 
-This amendment adds defensive_overengineering as a seventh category, on the record and before
-the cases carrying it are built. The category composition target (Section 3) is updated: the
-corpus now spans seven categories rather than six. The integrity guarantee is preserved
-because this amendment is committed before the defensive_overengineering cases enter the
-corpus; the contract on disk describes the corpus at every commit. This addition is disclosed
-here rather than applied silently, consistent with the milestone's standard that a changed
-methodology is recorded, not hidden.
+This amendment adds defensive_overengineering as a seventh category, on the record ~~and before
+the cases carrying it are built~~ [corrected 2026-06-21; see the Correction below]. The category
+composition target (Section 3) is updated: the corpus now spans seven categories rather than
+six. ~~The integrity guarantee is preserved because this amendment is committed before the
+defensive_overengineering cases enter the corpus; the contract on disk describes the corpus at
+every commit.~~ [corrected 2026-06-21; the true ordering and the guarantee that actually holds
+are stated in the Correction below] This addition is disclosed here rather than applied
+silently, consistent with the milestone's standard that a changed methodology is recorded, not
+hidden.
 
-The three initial defensive_overengineering cases are compute_stats, apply_discount, and clamp.
+~~The three initial defensive_overengineering cases are compute_stats, apply_discount, and clamp.~~
+[corrected 2026-06-21] The first two defensive_overengineering cases were first_or_default and
+normalize_scores (committed at 96a681d); compute_stats, apply_discount, and clamp were the last
+three (committed at 8b2dd60, after this amendment). See the Correction below.
+
+### Correction (2026-06-21): the ordering claim above was wrong
+
+The struck sentences above asserted that Amendment 1 was committed before the
+defensive_overengineering cases entered the corpus, and that "the contract on disk describes
+the corpus at every commit." Git disproves both. They are corrected here on the record, not
+erased.
+
+True ordering (verifiable in git):
+
+- 96a681d (2026-06-20T16:38:33Z) committed first_or_default and normalize_scores already
+  carrying category defensive_overengineering. The contract at 96a681d does not contain the
+  string defensive_overengineering (the amendment did not yet exist).
+- 2f2cd74 (2026-06-20T23:29:59Z) recorded Amendment 1, about 6h51m later. 96a681d is an
+  ancestor of 2f2cd74.
+- 8b2dd60 (2026-06-20T23:47:24Z) committed compute_stats, apply_discount, and clamp, after the
+  amendment.
+
+So Amendment 1 formalized a category two of whose five cases (first_or_default,
+normalize_scores) already existed in the corpus. The taxonomy-fixed-before-build discipline of
+Section 3 was therefore violated for 2 of the 5 defensive_overengineering cases: the category
+was committed on those two cases before it was written into the contract.
+
+The guarantee that actually holds is NOT "the contract describes the corpus at every commit."
+It is the stronger, outcome-blind freeze-before-run property proven in
+reports/v0.9-temporal-freeze.md: every case was committed (frozen) before any run was executed
+against it, and the frozen case content is byte-identical to the content that was later scored
+(verified 30/30; 150/150 run inputs). No case was selected, relabeled, or altered after its
+performance was known.
+
+This ordering error affects no finding. Category is descriptive metadata that never enters
+scoring: the scorer (src/darwin/evaluator.py) reads no category field; category is used only
+for build-time validation (build_case.py) and report grouping (benchmark.py). A category
+committed before it was named in the contract therefore changes no measured number. The honest
+position is exactly that: the taxonomy-fixed-before-build discipline was violated for 2 of 5
+defensive_overengineering cases, that violation is contained to descriptive metadata, and the
+result-protecting freeze (cases before runs, content byte-identical) is fully intact.
