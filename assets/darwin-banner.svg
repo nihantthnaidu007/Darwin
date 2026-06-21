@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" role="img" aria-label="Darwin">
+  <defs>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#67E8F9"/>
+      <stop offset="0.5" stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#06B6D4"/>
+    </linearGradient>
+    <linearGradient id="faint" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22D3EE" stop-opacity="0.0"/>
+      <stop offset="0.5" stop-color="#22D3EE" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0.0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="300" fill="#0B1220"/>
+  <!-- subtle node-network motif: selection / evolution nod, kept minimal -->
+  <g stroke="url(#faint)" stroke-width="2" fill="none" opacity="0.7">
+    <path d="M120 210 L210 150 L300 190 L390 120"/>
+    <path d="M210 150 L300 110"/>
+    <path d="M810 120 L900 180 L990 140 L1080 190"/>
+    <path d="M900 180 L990 220"/>
+  </g>
+  <g fill="url(#cyan)">
+    <circle cx="120" cy="210" r="6"/>
+    <circle cx="210" cy="150" r="6"/>
+    <circle cx="300" cy="190" r="6"/>
+    <circle cx="300" cy="110" r="6"/>
+    <circle cx="390" cy="120" r="6"/>
+    <circle cx="810" cy="120" r="6"/>
+    <circle cx="900" cy="180" r="6"/>
+    <circle cx="990" cy="140" r="6"/>
+    <circle cx="990" cy="220" r="6"/>
+    <circle cx="1080" cy="190" r="6"/>
+  </g>
+  <text x="600" y="178" text-anchor="middle"
+        font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+        font-size="120" font-weight="700" letter-spacing="14"
+        fill="url(#cyan)">DARWIN</text>
+  <text x="600" y="232" text-anchor="middle"
+        font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+        font-size="26" letter-spacing="6" fill="#7DD3FC" opacity="0.85">
+    SELF-VERIFYING CODE OPTIMIZER
+  </text>
+</svg>
