@@ -11,6 +11,45 @@ it contains none of the v0.4 work. Per the never-force-push-tags rule (decisions
 0015 and 0005) it is treated as void and left in place, so the first 0.4.x release
 is 0.4.1. See decision 0020.
 
+## 0.9.0, corpus expansion
+
+Grew the single-function corpus from the retired 5-case validation set to a 30-case
+synthetic corpus and ran it under one frozen config to produce the authoritative
+one-shot finding. Run-and-record only: no change to the optimization, scoring,
+equivalence, gate, `build_case`, or default-lockdown behavior.
+
+- **30-case synthetic single-function corpus.** The single-function corpus expanded to
+  30 hand-authored cases degraded by the bloat tool, spread across seven degradation
+  categories (over_abstraction 6, defensive_overengineering 5, unnecessary_dependency 5,
+  duplication 4, verbose_patterns 4, dead_code 3, excessive_nesting 3) and three
+  difficulties (easy 11, medium 12, hard 7). The corpus is synthetic: both ends of the
+  measured span are authored (the tool-bloated original and the hand-authored reference
+  floor), so the claim is about controlled degradations, not real-world code. This is
+  the headline limitation (decision 0043).
+- **Seventh category, `defensive_overengineering`.** Amendment 1 added
+  `defensive_overengineering` as the seventh degradation category (decision 0044). The
+  earlier ordering claim was corrected during the freeze audit: the two cases
+  `first_or_default` and `normalize_scores` were entered at `96a681d`, about 6h51m
+  before Amendment 1 at `2f2cd74`; the prior claim is struck, not erased, not back-dated.
+- **Authoritative one-shot finding (143/150, 95.3 percent).** The frozen corpus ran
+  under one fixed config (cap=5, plateau=2, 5 runs per case = 150 runs), model
+  `claude-opus-4-8`, temperature 1.0. Across the 150 runs, 143 (95.3 percent) reached
+  the returned-best candidate in generation 1 (`best_gen` distribution gen 1: 143,
+  gen 2: 4, gen 3: 3). This is the authoritative 30-case confirmation of the one-shot
+  finding (decision 0006) that the 5-case validation set could only suggest, and it
+  supersedes that grounding (decision 0045). The loop's role is run-to-run near-floor
+  variance, not function shape: the 7 later-generation runs span three unrelated
+  categories. Total cost $2.601205 across 150 runs. Every number traces to
+  `reports/v0.9-dataset.json`; `reports/RESULTS.md` is the narrative authority.
+- **Methodology switch to run-and-record.** The path switched from authoring new
+  optimization machinery to running the frozen corpus under a fixed config and recording
+  the result, with no engine, scoring, gate, or `build_case` change in the measured run
+  (decision 0043).
+- **Corpus-wide temporal-freeze proof.** Every case was frozen before it was run: all
+  freeze commits are ancestors of the dataset git HEAD (`8b2dd60`), and the committed
+  `original.py` is byte-identical to the scored generation-0 input in all 150 runs. See
+  `reports/v0.9-temporal-freeze.md`.
+
 ## 0.8.0, packaging
 
 Converted Darwin from flat `tools/` scripts to an installable `darwin` package, added a

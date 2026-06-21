@@ -1,6 +1,9 @@
 # Darwin
 
-**A verified Python code simplifier for single-function and multi-file units, with a never-worse-than-baseline guarantee.**
+**A research engine and reproducible benchmark for studying LLM-driven Python code
+simplification, single-user-trusted.** Inside that frame, Darwin is a verified code
+simplifier for single-function and multi-file units, with a never-worse-than-baseline
+guarantee.
 
 Darwin takes one working-but-bloated Python unit (a single function, or a small
 multi-file package) and rewrites it into the simplest version that *still behaves
@@ -8,11 +11,16 @@ the same* (exact golden-I/O proof for a single function, strong differential
 equivalence at the public API for a multi-file unit), or returns the original
 unchanged if it cannot beat it. An LLM proposes rewrites; a deterministic, LLM-free
 evaluator decides whether each rewrite is correct, behavior-equivalent, and
-structurally simpler. Nothing is accepted on
-the model's say-so.
+structurally simpler. Nothing is accepted on the model's say-so.
 
-**0.8.0 is the current version** (packaging; the `v0.8.0` tag lands at the merge to
-`main`). It stays in the 0.x line on purpose: a 1.0 would signal a stable,
+Darwin is built to study and reproduce that behavior on a controlled corpus, **not** to
+run on untrusted code and trust the verdict. It is **single-user-trusted**: it does
+**not** defend against adversarial code, and its in-process verdict-forgery boundary is
+open by design ([decision 0008](docs/decisions/0008-in-process-verdict-forgery-deferred.md),
+deferred to 2.0), so **its verdicts are not to be trusted on untrusted code**.
+
+**0.9.0 is the current version** (corpus expansion; the `v0.9.0` tag lands at the merge
+to `main`). It stays in the 0.x line on purpose: a 1.0 would signal a stable,
 production-grade release, and Darwin is not there yet. The release line, all done and
 merged:
 
@@ -64,18 +72,29 @@ merged:
   installed CLIs. The coverage floor was re-based to the package-scoped number
   (`--cov-fail-under=62`, from ~64.6 percent production coverage). No change to the
   optimization, scoring, or equivalence behavior.
+- **v0.9, corpus expansion (0.9.0).** The single-function corpus grew from the retired
+  5-case validation set to a 30-case synthetic corpus across seven degradation
+  categories (a seventh, `defensive_overengineering`, added by Amendment 1), each case
+  run 5 times under one frozen config (run-and-record only; no engine, scoring, gate, or
+  `build_case` change). The run produced the authoritative one-shot finding: 143 of 150
+  runs (95.3 percent) reached the returned-best candidate in generation 1, superseding
+  the 5-case validation that could only suggest it; the loop's role is run-to-run
+  near-floor variance, not function shape. A corpus-wide temporal-freeze proof (every
+  case frozen before it was run; the committed `original.py` byte-identical to the scored
+  input in all 150 runs) backs the run. No change to the optimization, scoring, or
+  equivalence behavior.
 
 It can be installed from a local checkout (`pip install .`) or run straight from the
 source tree, and is **not published to PyPI** (see [pyproject.toml](pyproject.toml)).
 
-> **0.8.0 is an honest early release, not a finished product.** Read
+> **0.9.0 is an honest early release, not a finished product.** Read
 > [Scope and limitations](#scope-and-limitations-read-this-first) before anything
 > else. It states plainly what the container closes (untrusted candidate code cannot
 > touch your host, network, or secrets), what it still does **not** do (the behavior
-> gate is **not** forgery-proof against in-process adversarial code), the small-corpus
-> and soft-reference caveats, and the two empirical findings (single-function
-> effectively one-shot; multi-file generation 1 does the bulk while directed feedback
-> is opportunistic and high-variance).
+> gate is **not** forgery-proof against in-process adversarial code), the
+> synthetic-corpus, small-corpus, and soft-reference caveats, and the two empirical
+> findings (single-function effectively one-shot; multi-file generation 1 does the bulk
+> while directed feedback is opportunistic and high-variance).
 
 ---
 
@@ -87,30 +106,39 @@ project.
 - **Single-function and multi-file, both validation-scale.** A single-function case
   is one Python function; a multi-file case (an `mcase`) is a small stateful,
   order-dependent package. Both run end to end through the engine. Neither corpus is
-  a benchmark: 5 single-function cases plus 3 multi-file cases (all medium
-  difficulty) establish that the machinery works, not a population-level claim. A
-  benchmark-grade claim would need a larger, difficulty-spread corpus.
-- **Single-function is effectively one-shot.** On the 5-case single-function corpus,
-  a capable model reaches the structural complexity floor effectively in
-  generation 1: 3 of 5 improved cases returned their best from generation 1, and the
-  other 2 reached their best at generation 2 by only a sliver (a fraction of a
-  percentage point). The multi-generation directed-feedback loop is *built and
-  verified to work*, but it was **not load-bearing** at single-function scope. See
-  [reports/RESULTS.md](reports/RESULTS.md).
+  a benchmark: 30 single-function cases (seven degradation categories, difficulties
+  easy/medium/hard) plus 3 multi-file cases (all medium difficulty) establish that the
+  machinery works, not a population-level claim. A benchmark-grade claim would need a
+  larger, real-world corpus.
+- **The corpus is synthetic (the headline limitation).** Every single-function case is
+  a hand-authored clean reference degraded by the bloat tool, not real-world code, so
+  the result characterizes the engine's behavior on *controlled degradations* of
+  authored functions, not real-world optimization. Both ends of the measured span are
+  synthetic: the bloated original is tool-generated and the reference floor is
+  hand-authored. A real-world-grade claim needs a corpus drawn from real-world code,
+  which this is not. See [reports/RESULTS.md](reports/RESULTS.md).
+- **Single-function is effectively one-shot.** On the 30-case single-function corpus
+  run 5 times each (150 runs), a capable model reaches the structural complexity floor
+  effectively in generation 1: 143 of 150 runs (95.3 percent) returned their best from
+  generation 1. The 7 runs (4.7 percent) that returned a later generation's candidate
+  are run-to-run stochastic recovery near the floor, spread across three unrelated
+  categories, **not** a property of function shape. The multi-generation
+  directed-feedback loop is *built and verified to work*, but it was **not
+  load-bearing** at single-function scope. See [reports/RESULTS.md](reports/RESULTS.md).
 - **Multi-file: generation 1 does the bulk, feedback is opportunistic.** Over six
   runs of the 3-case multi-file corpus, generation 1 alone removes most of each
-  case's bloat every run (roughly 79 to 104 percent of the original-to-floor span),
+  case's bloat every run (roughly 87 to 114.9 percent of the original-to-floor span),
   but reaching the floor in a single pass is run-dependent. When generation 1 falls
   short, the directed loop opportunistically closes the rest, with high run-to-run
   variance. Directed feedback is therefore **not reliably load-bearing** at this
   scope, and **not zero** either. See [reports/MRESULTS.md](reports/MRESULTS.md),
   [reports/mvariance.json](reports/mvariance.json), and
   [decision 0014](docs/decisions/0014-multi-file-feedback-opportunistic-variance.md).
-- **The multi-file references are soft.** Across the 18 multi-file case-runs, 17
-  returned a best at or below the reference floor (flagged `suspiciously-simple` or
-  `fragmentation-smell`). So bloat-removed above 100 percent measures reference
-  looseness, not candidate excellence. Tightening the references is a prerequisite
-  for any benchmark-grade multi-file claim.
+- **The multi-file references are soft.** Across the 18 multi-file case-runs, all 18
+  returned a best at or below the reference floor; 14 of the 18 carried a below-floor
+  flag (`suspiciously-simple` or `fragmentation-smell`). So bloat-removed above 100
+  percent measures reference looseness, not candidate excellence. Tightening the
+  references is a prerequisite for any benchmark-grade multi-file claim.
 - **Multi-file correctness is a strong signal, not proof.** Single-function
   correctness is exact golden-I/O replay. Multi-file correctness is differential
   equivalence at the public API
@@ -359,24 +387,29 @@ Present both findings honestly. They are different.
 ### Single-function (v1)
 
 Summarized in **[reports/RESULTS.md](reports/RESULTS.md)** (machine-readable:
-[reports/aggregate.json](reports/aggregate.json)). Headline numbers from that run
-(`claude-opus-4-8`, `cap=5`, `plateau=2`, every gate run inside the container):
+[reports/v0.9-dataset.json](reports/v0.9-dataset.json)). The authoritative 30-case run
+(`claude-opus-4-8`, `cap=5`, `plateau=2`, every gate run inside the container), 30 cases
+across 7 degradation categories run 5 times each:
 
 | metric | value |
 |---|---|
-| cases improved over baseline | **5 / 5** |
-| baseline returned (nothing beat it) | 0 / 5 |
-| improved cases that were one-shot (best from generation 1) | **3 / 5** |
-| cases that reached their best at generation 2+ | 2 / 5 (marginal: `format_duration` +0.37 pp, `int_to_words` +0.4 pp) |
+| single-function cases / total runs | 30 cases (7 categories) / 150 runs |
+| runs that reached the returned best in generation 1 (one-shot) | **143 / 150 = 95.3 percent** |
+| `best_gen` distribution across 150 runs | gen 1: 143, gen 2: 4, gen 3: 3 |
+| runs that returned a best first found in generation 2 or 3 | 7 / 150 (4.7 percent) |
+| every run improved over baseline; baseline original never returned | 150 / 150 |
 | feedback loop load-bearing on this corpus? | **no** |
-| total cost (real API token counts) | $0.16912 |
+| total cost (real API token counts) | $2.601205 |
 
-A capable model reaches the structural floor effectively one-shot here. The two
-generation-2 bests added only a fraction of a percentage point on top of what
-generation 1 had already removed (99.6 percent and 99.2 percent of the bloat
-respectively), so directed feedback did real but marginal work on 2 cases and none on
-the other 3. The feedback loop's verified value at this scope is the gates,
-best-of-N retention, and the never-worse-than-baseline guarantee, not multi-generation
+A capable model reaches the structural floor effectively one-shot here: 143 of 150 runs
+returned their best from generation 1. The 7 runs (4.7 percent) that returned a later
+generation's candidate occurred in three cases (`int_to_words`, `parse_version`,
+`total_price`) and are **run-to-run stochastic recovery near the floor, not a property
+of function shape or category**: the same case is one-shot on some runs and
+loop-recovered on others, and the three cases span three unrelated categories. The loop
+therefore functions as occasional insurance against a generation-1 miss, not a
+structural requirement; its verified value at this scope is the gates, best-of-N
+retention, and the never-worse-than-baseline guarantee, not multi-generation
 improvement.
 
 ### Multi-file (v3)
@@ -391,26 +424,26 @@ generation 2," which would have supported opposite headlines.
 
 | case | best generation (6 runs) | one-shot | `feedback_gain_pp` range |
 |------|--------------------------|:--------:|:------------------------:|
-| `doc_history` | 1, 2, 2, 1, 2, 1 | 3 / 6 | 0 to 24.02 |
-| `rate_limiter` | 1, 2, 3, 2, 2, 3 | 1 / 6 | 0 to 22.48 |
-| `task_scheduler` | 1, 2, 2, 2, 1, 2 | 2 / 6 | 0 to 10.81 |
+| `doc_history` | 1, 2, 2, 1, 2, 2 | 2 / 6 | 0 to 20.47 |
+| `rate_limiter` | 2, 2, 2, 2, 1, 2 | 1 / 6 | 0 to 15.11 |
+| `task_scheduler` | 1, 2, 2, 2, 1, 3 | 2 / 6 | 0 to 13.14 |
 
 Stable across all six runs: every run improved all three cases over baseline; the
 baseline original was never returned; zero regressions across all 18 case-runs;
-generation 1 alone removes roughly 79 to 104 percent of the original-to-floor span on
-every case, every run; and 17 of 18 case-runs returned a best at or below the
+generation 1 alone removes roughly 87 to 114.9 percent of the original-to-floor span on
+every case, every run; and all 18 of 18 case-runs returned a best at or below the
 reference floor. Unstable: the one-shot versus needs-generation-2-or-more split flips
-run to run, and **only 1 of the 6 runs had all three cases one-shot at once**;
-`feedback_gain_pp` ranges from 0 to about 24 percentage points for the same case
+run to run, and **none of the 6 runs had all three cases one-shot at once**;
+`feedback_gain_pp` ranges from 0 to about 20 percentage points for the same case
 across runs.
 
 Two honesty notes carried straight from the report. First, the references are soft:
-because 17 of 18 bests sit at or below the floor (the one exception, `task_scheduler`
-run 1, landed at 98.2 percent of its span, about 1.8 percent above the floor),
-**bloat-removed above 100 percent reflects reference looseness, not candidate
-excellence**, and the `feedback_gain_pp` magnitudes are upper bounds. Second, this is
-**3 medium-difficulty cases over six runs, a directional validation result, not a
-benchmark**.
+because all 18 of 18 bests sit at or below the floor (this regeneration had no
+above-floor exception, unlike the 2026-06-13 dataset whose single `task_scheduler`
+exception did not recur), **bloat-removed above 100 percent reflects reference
+looseness, not candidate excellence**, and the `feedback_gain_pp` magnitudes are upper
+bounds. Second, this is **3 medium-difficulty cases over six runs, a directional
+validation result, not a benchmark**.
 
 ### Provenance
 
@@ -550,10 +583,12 @@ Only genuinely remaining work (v1 through v4 are done and merged):
 - **A formal native-Linux security writeup** in SECURITY.md. CI verifies the lockdown
   on one ubuntu-latest runner; a multi-distro and kernel-hardening audit is
   outstanding before any production deployment with untrusted users.
-- **Tighter multi-file references and a real benchmark.** The references are soft
-  (most bests sit at or below the floor), and the corpus is small (5 single-function
-  plus 3 multi-file cases). Tightening the references and growing the corpus across
-  categories and difficulties is the prerequisite for any benchmark-grade claim.
+- **Tighter multi-file references and a real-world benchmark.** The multi-file
+  references are soft (all 18 of 18 bests sit at or below the floor), and the corpus is
+  synthetic and small (30 single-function cases across 7 categories, all hand-authored
+  references degraded by the bloat tool, plus 3 medium multi-file cases). Tightening the
+  references and drawing a corpus from real-world code is the prerequisite for any
+  benchmark-grade claim.
 - **A robustness fix to `_require_image`** (the sandbox-image preflight in
   `src/darwin/sandbox_container.py`): it treats any non-zero `docker image inspect` as
   image-absent, so a transient daemon error reads as a missing image rather than a
