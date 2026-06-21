@@ -36,7 +36,7 @@ It is built to **study and reproduce** that behavior on a controlled corpus, not
 
 ## The finding
 
-A 30-case synthetic single-function corpus across seven degradation categories, run 5 times each (**150 runs**) under one frozen config (`claude-opus-4-8`, `cap=5`, `plateau=2`, every gate run inside the container).
+A 30-case single-function corpus across seven degradation categories, run 5 times each (**150 runs**) under one frozen config (`claude-opus-4-8`, `cap=5`, `plateau=2`, every gate run inside the container). Each case is a clean reference I authored by hand, then degraded into a bloated input the engine has to simplify back down.
 
 | metric | value |
 |---|---|
@@ -142,7 +142,7 @@ Darwin 1.0 commits to a **CLI-and-file-format surface**, not an importable Pytho
 These are not footnotes. They are the most important thing to understand about the project, and stating them plainly is the point.
 
 - **Single-user-trusted, not adversarial-safe.** The container closes the *access* vectors (a candidate cannot touch your host, network, or secrets, and cannot read its own answer key). It does **not** make the behavior gate forgery-proof: the candidate and the trusted result-emitter still share one process *inside* the container, so an adversarial candidate can forge the verdict in-process. This is a **non-issue for single-user optimization** (you have no incentive to forge your own result) and matters **only** if the verdict becomes a third-party-trusted artifact (a public leaderboard, a certification, a multi-tenant service). It is deferred by deliberate decision ([decision 0008](docs/decisions/0008-in-process-verdict-forgery-deferred.md)), not overlooked, and is the headline 2.0 item.
-- **The corpus is synthetic.** Every single-function case is a hand-authored clean reference degraded by a bloat tool, not real-world code. The results characterize the engine on *controlled degradations*, not real-world optimization. Both ends of the measured span are authored. A real-world-grade claim needs a corpus drawn from real-world code, which this is not.
+- **A controlled, hand-authored corpus.** Every case starts as a clean reference function I wrote by hand, which a tool then degrades into the bloated input the engine optimizes. This is deliberate: it gives a known-clean target to measure against, so "how close did the engine get" has an exact answer. The trade-off is that the inputs are controlled degradations of authored functions rather than samples of arbitrary real-world code, so the results characterize the engine on this controlled corpus. A population-level claim over real-world code would need a corpus drawn from real-world code.
 - **Validation-scale, not a benchmark-grade population.** 30 single-function cases plus 3 multi-file cases establish that the machinery works, not a population-level claim.
 - **The multi-file references are soft.** Across 18 multi-file case-runs, all 18 returned a best at or below the reference floor, so "bloat-removed above 100%" measures reference looseness, not candidate excellence. Tightening them is a prerequisite for any benchmark-grade multi-file claim.
 - **Multi-file correctness is a strong signal, not proof.** It is differential equivalence at the public API ([decision 0009](docs/decisions/0009-multi-file-equivalence-differential-testing.md)) — strong, but strictly weaker than golden I/O, and sequence- and API-relative.
@@ -250,7 +250,7 @@ The multi-file loop (`mloop.py`) mirrors the same contract across the same conta
 | **0.6.0** | Supply-chain and isolation hardening: digest-pinned base image, hash-locked lockfiles, SBOM + pip-audit, native-Linux CI matrix, seccomp plumbing, the VerdictEmitter seam. |
 | **0.7.0** | Test and CI maturity: pytest CVE bump, loop/verifier unit tests at 99% line coverage, four quality gates flipped to blocking. |
 | **0.8.0** | Packaging: flat `tools/` became an importable `src/darwin` package, hatchling build, six console scripts, `pip install .`. |
-| **0.9.0** | Corpus expansion: 5-case validation set → 30-case synthetic corpus across 7 categories; the authoritative one-shot finding (143/150, 95.3%); corpus-wide temporal-freeze proof. |
+| **0.9.0** | Corpus expansion: 5-case validation set → 30-case hand-authored corpus across 7 categories; the authoritative one-shot finding (143/150, 95.3%); corpus-wide temporal-freeze proof. |
 | **1.0.0** | The freeze: results reconciled to evidence, single-user-trusted posture finalized, benchmark made externally extendable, stable surface declared. Not a capability change; the forgery boundary stays open by design ([decision 0046](docs/decisions/0046-v1.0-freeze-single-user-trusted-benchmark.md)). |
 
 ---
@@ -269,4 +269,9 @@ Only genuinely remaining work:
 ## License
 
 Darwin is licensed under the Apache License 2.0. See [LICENSE](./LICENSE).
-Built by Nihanth Naidu Kalisetti
+
+---
+
+<p align="center">
+  Built by <a href="https://www.nihanthnaiduk.tech/"><b>Nihanth Naidu Kalisetti</b></a>
+</p>
