@@ -1,4 +1,13 @@
-# Security & Threat Model (v2.0)
+# Security & Threat Model — Darwin 1.0 (single-user-trusted)
+
+> **Numbering note.** In this document `v1` and `v2.0` name the **access-isolation
+> boundary generations**, not the Darwin release line: `v1` is the retired in-process
+> subprocess boundary, and `v2.0` is the current locked-down-container boundary that
+> ships in Darwin 1.0. On the release line, **1.0 is current and single-user-trusted**,
+> the in-process verdict-forgery boundary is **open by design and deferred to 2.0**
+> (decision 0008), and multi-file scope is 3.0. Read every "v2.0 boundary" below as the
+> container boundary shipped in Darwin 1.0; nothing here implies 1.0 closes the forgery
+> boundary.
 
 **One sentence:** v2.0 runs every candidate inside a **locked-down container**, so
 untrusted candidate code can no longer touch your host, network, or secrets — but

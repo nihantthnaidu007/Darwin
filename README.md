@@ -19,10 +19,17 @@ run on untrusted code and trust the verdict. It is **single-user-trusted**: it d
 open by design ([decision 0008](docs/decisions/0008-in-process-verdict-forgery-deferred.md),
 deferred to 2.0), so **its verdicts are not to be trusted on untrusted code**.
 
-**0.9.0 is the current version** (corpus expansion; the `v0.9.0` tag lands at the merge
-to `main`). It stays in the 0.x line on purpose: a 1.0 would signal a stable,
-production-grade release, and Darwin is not there yet. The release line, all done and
-merged:
+**1.0.0 is the current version** — the v1.0 freeze. 1.0 marks Darwin as a stable,
+reproducible **single-user-trusted** research benchmark and engine, with a committed
+[stable surface](#stable-surface-the-10-compatibility-boundary). It does **not** mean
+production-grade against adversarial code: the in-process verdict-forgery boundary stays
+**open by design** and is deferred to 2.0
+([decision 0008](docs/decisions/0008-in-process-verdict-forgery-deferred.md)), and the
+synthetic-corpus, small-corpus, and soft-reference limitations below stand. The 0.x-to-1.0
+reframing (1.0 commits to a reproducible single-user-trusted benchmark, not to closing the
+forgery boundary that decision 0005 originally reserved 1.0 for) is recorded in
+[decision 0046](docs/decisions/0046-v1.0-freeze-single-user-trusted-benchmark.md). The
+release line, all done and merged:
 
 - **v1, single-function (0.1.0).** The directed generate, evaluate, feedback loop on
   one function, with the never-worse guarantee and the objective evaluator.
@@ -83,11 +90,21 @@ merged:
   case frozen before it was run; the committed `original.py` byte-identical to the scored
   input in all 150 runs) backs the run. No change to the optimization, scoring, or
   equivalence behavior.
+- **v1.0, the freeze (1.0.0).** Results reconciled to the v0.9 evidence, the
+  single-user-trusted trust posture and threat model finalized, the benchmark made
+  externally extendable (a documented case-authoring schema,
+  [docs/authoring-a-case.md](docs/authoring-a-case.md)), and the
+  [stable 1.0 surface](#stable-surface-the-10-compatibility-boundary) declared (the six
+  console scripts, the case directory format, and the dataset JSON schema; internal
+  modules carry no import-stability guarantee). Explicitly **not** a capability change and
+  **not** a closing of the in-process forgery boundary, which stays open by design and
+  deferred to 2.0 (decision 0046).
 
 It can be installed from a local checkout (`pip install .`) or run straight from the
 source tree, and is **not published to PyPI** (see [pyproject.toml](pyproject.toml)).
 
-> **0.9.0 is an honest early release, not a finished product.** Read
+> **1.0.0 is an honest, reproducible benchmark release under a single-user-trusted
+> posture, not a production-grade-against-adversarial-code product.** Read
 > [Scope and limitations](#scope-and-limitations-read-this-first) before anything
 > else. It states plainly what the container closes (untrusted candidate code cannot
 > touch your host, network, or secrets), what it still does **not** do (the behavior
@@ -166,11 +183,14 @@ project.
   overlooked. See [SECURITY.md](SECURITY.md).
 - **Native Linux is CI-verified, with restraint.** The container previously ran only
   on macOS Docker Desktop; v4 fixed the bind-mount staging so it runs on native Linux
-  Docker hosts, and CI exercises the container lockdown probes green on
-  ubuntu-latest, so the isolation is no longer macOS-only. This is **one** Linux
-  runner, not a multi-distro or kernel-hardening audit, and a formal
-  [SECURITY.md](SECURITY.md) writeup of the native-Linux verification is still
-  outstanding. Darwin does **not** claim production-grade isolation.
+  Docker hosts, and CI now runs the container lockdown probe green on a native-Linux
+  matrix (`ubuntu-22.04` and `ubuntu-24.04`, both cgroup v2), so the isolation is no
+  longer macOS-only. The formal native-Linux writeup is **done**: it is the native-Linux
+  section of [SECURITY.md](SECURITY.md)
+  ([decision 0030](docs/decisions/0030-native-linux-lockdown-verification-ci.md)). What
+  remains genuinely open is **cgroup v1, non-Ubuntu distributions, and a kernel-hardening
+  audit**, none of which this matrix exercises (a documented self-hosted follow-up).
+  Darwin does **not** claim production-grade isolation.
 - **"Simpler" means structurally simpler by a fixed metric** (cyclomatic complexity,
   logical LOC, nesting, dependencies, dead code). It makes **no** claim about runtime
   performance, readability, or any property the metric does not measure.
@@ -272,12 +292,13 @@ sandbox image built once:
 docker build -f docker/Dockerfile.sandbox -t darwin-sandbox:py313 docker/
 ```
 
-CI builds this same image and exercises the container lockdown probes green on
-ubuntu-latest, so the container runs on native Linux Docker hosts as well as macOS
-Docker Desktop. The native-Linux verification is one CI runner, not a multi-distro or
-kernel-hardening audit, and the formal native-Linux writeup in
-[SECURITY.md](SECURITY.md) is still outstanding (it currently carries the pre-CI
-Docker-Desktop-only caveat).
+CI builds this same image, and the container lockdown probe runs green on a native-Linux
+matrix (`ubuntu-22.04` and `ubuntu-24.04`, both cgroup v2) in
+[.github/workflows/isolation.yml](.github/workflows/isolation.yml), so the container runs
+on native Linux Docker hosts as well as macOS Docker Desktop. The native-Linux writeup is
+done (the native-Linux section of [SECURITY.md](SECURITY.md), decision 0030); cgroup v1,
+non-Ubuntu distributions, and kernel hardening are not exercised and remain a documented
+self-hosted follow-up.
 
 **API key (only needed to *run the loop*, that is, to call the LLM).** Set
 `ANTHROPIC_API_KEY` in your environment, or put it in a `.env` file at the repository
@@ -448,13 +469,15 @@ validation result, not a benchmark**.
 ### Provenance
 
 The per-generation candidate logs that back these numbers live in `runs/` (and the
-multi-file aggregate in `maggregate.json`), which are **gitignored**. The committed
-`reports/` are derived summaries; to verify independently, **re-run** the harness
-rather than trusting committed logs. The six multi-file variance rows are
-hand-recorded from the printed `mbenchmark.py` output; only the most recent run is
-independently corroborable from the gitignored on-disk aggregate. Retaining per-run
-snapshots or a fixed regeneration seed (so all six are reproducible if challenged) is
-a recorded follow-up item.
+single-function aggregate inputs), which are **gitignored**; to verify the
+single-function numbers independently, **re-run** the harness rather than trusting the
+gitignored logs. The six multi-file variance rows are **artifact-backed**: each run wrote
+its `maggregate.json` into a committed snapshot under
+[reports/variance_runs/](reports/variance_runs/) (`run_00` through `run_05`), and
+`reports/mvariance.json` and `reports/MRESULTS.md` are regenerated from those committed
+snapshots by `python -m darwin.variance_harness derive`, which is **byte-identical** on
+re-derive, so anyone with the repo can reproduce all six rows with no spend
+([decision 0035](docs/decisions/0035-artifact-backed-variance-regeneration.md)).
 
 ---
 
@@ -464,8 +487,9 @@ The project has a GitHub Actions workflow,
 [.github/workflows/ci.yml](.github/workflows/ci.yml), that builds the sandbox image
 and runs the full test suite on `ubuntu-latest`, gating pushes (so a phase branch can
 be seen green before merge) and pull requests to `main`. The expected result is
-indicative (the count grows as tests are added): **263 passed, 2 xfailed**, plus
-one Docker-gated skip when the daemon is absent. The two `xfailed` are the
+indicative (the count grows as tests are added): **331 passed, 2 xfailed** out of 333
+collected, with the Docker-gated seccomp smoke test skipping (330 passed, 1 skipped, 2
+xfailed) only when the sandbox image is not yet built. The two `xfailed` are the
 decision-0008 in-process forgery vectors in `tests/test_behavior_gate_limits.py`,
 pinned known-open; pytest's
 default exit codes fail CI on any failure or on an unexpected pass (an `xfail` that
@@ -564,12 +588,42 @@ when the verdict becomes a third-party-trusted artifact (leaderboard, certificat
 multi-tenant service); for single-user optimization it is a non-issue, and it is
 deferred by deliberate decision
 ([decision 0008](docs/decisions/0008-in-process-verdict-forgery-deferred.md)). The
-isolation now runs and holds on native Linux in CI as well as macOS Docker Desktop,
-but that is one Linux runner, not a multi-distro or kernel-hardening audit, and the
-formal native-Linux writeup is still outstanding. The full model (what the container
-closes, the open in-process residual and its trigger condition, and optional future
-hardening) is in **[SECURITY.md](SECURITY.md)**, which still carries the pre-CI
-Docker-Desktop-only native-Linux caveat pending that writeup.
+isolation now runs and holds on native Linux in CI (the lockdown probe is green on a
+`ubuntu-22.04` + `ubuntu-24.04` cgroup-v2 matrix) as well as macOS Docker Desktop; the
+formal native-Linux writeup is done (decision 0030), and what remains open is cgroup v1,
+non-Ubuntu distributions, and a kernel-hardening audit. The full model (what the container
+closes, the open in-process residual and its trigger condition, the native-Linux
+verification, and optional future hardening) is in **[SECURITY.md](SECURITY.md)**.
+
+---
+
+## Stable surface (the 1.0 compatibility boundary)
+
+Darwin 1.0 commits to a **CLI-and-file-format surface**, not to an importable Python API.
+Depend on these three things and a future 1.x will not break you:
+
+1. **The six console scripts** — `darwin-loop`, `darwin-mloop`, `darwin-benchmark`,
+   `darwin-mbenchmark`, `darwin-variance`, and `darwin-isolation-audit` (their command
+   names and documented arguments).
+2. **The case directory format** — the on-disk layout of a single-function case under
+   `cases/<id>/` (and a multi-file case under `mcases/<id>/`), and the seed inputs
+   (`reference.py`, `test_suite.py`, `spec.json`) documented in
+   [docs/authoring-a-case.md](docs/authoring-a-case.md).
+3. **The dataset JSON schema** — the shape of the committed result and case artifacts
+   (for example `reports/v0.9-dataset.json`, `reports/mvariance.json`, `spec.json`,
+   `golden_io.json`, `meta.json`).
+
+**Internal modules carry NO import-stability guarantee.** The package ships as
+`src/darwin/` and every module under it is importable, but `import darwin.<module>` is
+**not** a supported, versioned API: module names, function signatures, and internal
+structure may change within the 1.x line without notice. Build on the CLIs and the file
+formats above, not on importing internals.
+
+This boundary is stated rather than enforced in code on purpose. A package-level
+`__all__` would only govern `from darwin import *`; it does not prevent
+`import darwin.<submodule>`, so it cannot express "no import-stability guarantee" and
+would misstate the contract. The honest expression is this documented boundary (decision
+0046).
 
 ---
 
@@ -580,9 +634,11 @@ Only genuinely remaining work (v1 through v4 are done and merged):
 - **Split the trusted emitter out of the candidate's process** to close the
   in-process verdict-forgery residual, required *only* if the gate verdict becomes a
   third-party-trusted artifact (and even then compute-and-lie remains).
-- **A formal native-Linux security writeup** in SECURITY.md. CI verifies the lockdown
-  on one ubuntu-latest runner; a multi-distro and kernel-hardening audit is
-  outstanding before any production deployment with untrusted users.
+- **A multi-distro and kernel-hardening native-Linux audit.** The formal native-Linux
+  writeup is done (the SECURITY.md native-Linux section, decision 0030) and CI verifies
+  the lockdown on a `ubuntu-22.04` + `ubuntu-24.04` cgroup-v2 matrix; cgroup v1,
+  non-Ubuntu distributions, and a kernel-hardening audit remain outstanding before any
+  production deployment with untrusted users.
 - **Tighter multi-file references and a real-world benchmark.** The multi-file
   references are soft (all 18 of 18 bests sit at or below the floor), and the corpus is
   synthetic and small (30 single-function cases across 7 categories, all hand-authored
@@ -593,9 +649,6 @@ Only genuinely remaining work (v1 through v4 are done and merged):
   `src/darwin/sandbox_container.py`): it treats any non-zero `docker image inspect` as
   image-absent, so a transient daemon error reads as a missing image rather than a
   daemon problem.
-- **Variance-data reproducibility.** Retain per-run snapshots or a fixed regeneration
-  seed so all six multi-file variance rows are regenerable from a retained artifact,
-  not just the most recent run.
 - **Optional defense-in-depth** (a custom seccomp profile, a user-namespace remap).
   Not required for the current threat model; noted as possible future hardening only.
 

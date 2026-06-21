@@ -2,14 +2,53 @@
 
 All notable changes to Darwin, newest first. Darwin is installed from a local checkout
 (`pip install .`) or run from source, and GitHub-tagged (it is not published to PyPI);
-each release is tagged from its merge commit on main. Versions stay in the 0.x line
-until the open boundaries from decision 0005 close.
+each release is tagged from its merge commit on main. Versions stayed in the 0.x line
+through 0.9; 1.0 is the freeze under a single-user-trusted posture, which reframes
+decision 0005's original 1.0 criteria: 1.0 commits to a reproducible single-user-trusted
+benchmark, with the in-process verdict-forgery boundary still open by design and deferred
+to 2.0 (decision 0046).
 
 Note: there is no 0.4.0 release. The v0.4.0 tag was mis-created on the M0 merge
 commit (M0 does not bump the version) and is annotated with the M0 milestone name;
 it contains none of the v0.4 work. Per the never-force-push-tags rule (decisions
 0015 and 0005) it is treated as void and left in place, so the first 0.4.x release
 is 0.4.1. See decision 0020.
+
+## 1.0.0, the freeze
+
+The 1.0 freeze. Documentation, version metadata, and one new authoring doc only: no
+change to the optimization, scoring, equivalence, gate, `build_case`, dataset, or case
+behavior. The single non-doc change is the version bump.
+
+- **Tagged 1.0 as a single-user-trusted reproducible benchmark and engine (framing b).**
+  1.0 reframes decision 0005's original 1.0 criteria: it commits to a reproducible
+  single-user-trusted benchmark, **not** to closing the in-process verdict-forgery
+  boundary. That boundary stays **open by design** and is deferred to 2.0 (decisions 0008,
+  0046). 1.0 is **not** a capability change and does **not** support running on untrusted
+  code and trusting the verdict (framing (a) is 2.0 work).
+- **Results reconciled to the v0.9 evidence.** The freeze carries forward the P10.1
+  reconciliation: the authoritative 30-case single-function finding (143 of 150 runs =
+  95.3 percent one-shot, `reports/RESULTS.md` / `reports/v0.9-dataset.json`) and the
+  artifact-backed multi-file variance dataset (`reports/mvariance.json` /
+  `reports/MRESULTS.md`, decision 0035). Every number traces to a committed artifact.
+- **Trust posture and threat model finalized.** `SECURITY.md` and the README agree on the
+  single-user-trusted 1.0 posture. The `SECURITY.md` title now reads as the 1.0 posture,
+  and a numbering note disambiguates the container access-isolation boundary generation
+  (labeled `v2.0` in that document) from the Darwin release line. Nothing implies 1.0
+  closes the forgery boundary.
+- **Benchmark made externally extendable.** A user-facing case-authoring schema,
+  `docs/authoring-a-case.md`, specifies how an external author writes a new single-function
+  case (the seed inputs, the `spec.json` schema field by field, the reference rubric, and
+  the build command) without reading `build_case.py`, verified against the
+  `seeds/roman_to_int/` seed.
+- **Stable 1.0 surface declared.** The stable surface is the six console scripts, the case
+  directory format, and the dataset JSON schema; internal `darwin.<module>` imports carry
+  no import-stability guarantee. Stated as a documented boundary, not a package `__all__`
+  (which would govern only star-imports and misstate the contract) (decision 0046).
+- **Freeze polish.** Cleared the readiness-audit stale items: the native-Linux `SECURITY.md`
+  writeup and the multi-file variance-snapshot retention are stated as done (decisions
+  0030, 0035), and the CI suite count is refreshed to the measured 331 passed / 2 xfailed
+  out of 333 collected.
 
 ## 0.9.0, corpus expansion
 
