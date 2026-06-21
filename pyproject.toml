@@ -1,6 +1,6 @@
-# Darwin: release metadata for the 0.8.0 GitHub-tagged release.
+# Darwin: release metadata for the 0.9.0 GitHub-tagged release.
 #
-# Version is 0.8.0, staying in the 0.x line on purpose: a 1.0 would signal a
+# Version is 0.9.0, staying in the 0.x line on purpose: a 1.0 would signal a
 # stable, production-grade release. Over 0.2.0, the release line adds multi-file
 # simplification (the multi-file generator, the directed multi-file loop, and the
 # multi-file evaluator plus benchmark harness) on top of the single-function
@@ -52,14 +52,25 @@
 # (--cov-fail-under=62, from production coverage measured at about 64.6 percent under
 # --cov=darwin, floored to 64 less a 2-point margin) -- again with no change to the
 # optimization, scoring, or equivalence behavior.
+# Over 0.8.0, it adds corpus expansion (v0.9): the single-function validation set is
+# expanded from 5 to 30 controlled cases, each a hand-authored clean reference degraded
+# by the bloat tool, run 5 times under one fixed config (150 runs); the authoritative
+# dataset (reports/v0.9-dataset.json) and reports/RESULTS.md establish the one-shot
+# finding on 30 cases rather than 5 (95.3 percent of runs reach their returned-best
+# candidate in generation 1). The corpus is synthetic by construction and that is the
+# headline limitation; the real-world claim is explicitly out of scope. The milestone is
+# documentation and corpus only -- no change to the optimization, scoring, equivalence,
+# or default-lockdown behavior (decisions 0043 through 0045).
 # It still carries the in-process verdict-forgery residual (SECURITY.md, decision
 # 0008): the candidate and the trusted result-emitter share one process, so no
 # part of Darwin is forgery-proof, now with the VerdictEmitter seam prepared to
-# receive its 2.0 out-of-process fix. The multi-file references are soft and the
-# corpus is small (3 multi-file plus 5 single-function validation cases, not a
-# benchmark), so 0.8.0 makes no benchmark-grade claim. 0.8.0 honestly signals
-# "packaging added on top of test and CI maturity, supply-chain and isolation
-# hardening, correctness, determinism, and reproducibility, still early."
+# receive its 2.0 out-of-process fix. The multi-file references are soft, and the
+# single-function corpus, though expanded to 30 cases in v0.9, is synthetic by
+# construction (authored references degraded by a tool, not real-world code), with the
+# 3 multi-file cases still a small set, so 0.9.0 makes no benchmark-grade or real-world
+# claim. 0.9.0 honestly signals "the one-shot finding grounded on a 30-case synthetic
+# single-function corpus, on top of packaging, test and CI maturity, supply-chain and
+# isolation hardening, correctness, determinism, and reproducibility, still early."
 #
 # Multi-file finding, carried forward plainly (decision 0014): generation 1 does
 # most of the work, and the directed feedback loop is opportunistic and
@@ -77,9 +88,9 @@
 # flat tools/ scripts to an importable darwin package under src/ in P8.2, so a build
 # backend can advertise a `pip install .` path that actually works. The backend is
 # hatchling, configured for the src layout (it discovers the darwin package under src/).
-# [project].version is 0.8.0 as of the P8.4 close-out, the packaging release (decisions
-# 0040-0042); the wheel `pip install .` builds is the convenience artifact, still NOT
-# published to PyPI.
+# [project].version is 0.9.0 as of the P9.5 close-out, the corpus-expansion release
+# (decisions 0043-0045); the wheel `pip install .` builds is the convenience artifact,
+# still NOT published to PyPI.
 
 [build-system]
 requires = ["hatchling"]
@@ -87,7 +98,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "darwin"
-version = "0.8.0"
+version = "0.9.0"
 description = "A verified Python code simplifier for single-function and multi-file units with a never-worse-than-baseline guarantee; each candidate runs in a locked-down container that runs on Linux Docker hosts (CI-verified on ubuntu-latest), access-isolated but not a forgery-proof gate (in-process forgery residual open); still early (0.x)."
 readme = "README.md"
 requires-python = ">=3.12"
