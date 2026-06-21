@@ -1,4 +1,13 @@
-# Security & Threat Model (v2.0)
+# Security & Threat Model — Darwin 1.0 (single-user-trusted)
+
+> **Numbering note.** In this document `v1` and `v2.0` name the **access-isolation
+> boundary generations**, not the Darwin release line: `v1` is the retired in-process
+> subprocess boundary, and `v2.0` is the current locked-down-container boundary that
+> ships in Darwin 1.0. On the release line, **1.0 is current and single-user-trusted**,
+> the in-process verdict-forgery boundary is **open by design and deferred to 2.0**
+> (decision 0008), and multi-file scope is 3.0. Read every "v2.0 boundary" below as the
+> container boundary shipped in Darwin 1.0; nothing here implies 1.0 closes the forgery
+> boundary.
 
 **One sentence:** v2.0 runs every candidate inside a **locked-down container**, so
 untrusted candidate code can no longer touch your host, network, or secrets — but
@@ -206,9 +215,12 @@ documented **self-hosted / VM follow-up**, not coverage this CI matrix produced.
 
 - **`test_suite.py` is readable by the candidate** inside the Layer-1 `pytest`
   container (pytest needs the file present), and test assertions contain expected
-  values inline. A memorizing candidate could hardcode them. This is mitigated only
-  by **corpus design** — the golden I/O inputs are not a subset of the test inputs,
-  so Layer 2 catches a memorizer — not by any OS-enforced guarantee.
+  values inline. A memorizing candidate could hardcode them. The mitigation is
+  **corpus design**, not any OS-enforced guarantee: a case **may** include golden I/O
+  inputs that are not present in the test suite, so Layer 2 catches a candidate that
+  memorized only the visible test inputs. This is a **recommended** authoring practice
+  (see [docs/authoring-a-case.md](docs/authoring-a-case.md)), not a property guaranteed
+  of every case.
 - **On-disk audit logs keep the unstripped reason.** Golden expected outputs are
   stripped from rejection feedback *before it reaches the generator*, but the raw
   "expected R, got R" reason is still written into the per-generation records under

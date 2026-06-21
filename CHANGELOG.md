@@ -2,14 +2,92 @@
 
 All notable changes to Darwin, newest first. Darwin is installed from a local checkout
 (`pip install .`) or run from source, and GitHub-tagged (it is not published to PyPI);
-each release is tagged from its merge commit on main. Versions stay in the 0.x line
-until the open boundaries from decision 0005 close.
+each release is tagged from its merge commit on main. Versions stayed in the 0.x line
+through 0.9; 1.0 is the freeze under a single-user-trusted posture, which reframes
+decision 0005's original 1.0 criteria: 1.0 commits to a reproducible single-user-trusted
+benchmark, with the in-process verdict-forgery boundary still open by design and deferred
+to 2.0 (decision 0046).
 
 Note: there is no 0.4.0 release. The v0.4.0 tag was mis-created on the M0 merge
 commit (M0 does not bump the version) and is annotated with the M0 milestone name;
 it contains none of the v0.4 work. Per the never-force-push-tags rule (decisions
 0015 and 0005) it is treated as void and left in place, so the first 0.4.x release
 is 0.4.1. See decision 0020.
+
+## 1.0.0, the freeze
+
+The 1.0 freeze. Documentation, version metadata, and one new authoring doc only: no
+change to the optimization, scoring, equivalence, gate, `build_case`, dataset, or case
+behavior. The single non-doc change is the version bump.
+
+- **Tagged 1.0 as a single-user-trusted reproducible benchmark and engine (framing b).**
+  1.0 reframes decision 0005's original 1.0 criteria: it commits to a reproducible
+  single-user-trusted benchmark, **not** to closing the in-process verdict-forgery
+  boundary. That boundary stays **open by design** and is deferred to 2.0 (decisions 0008,
+  0046). 1.0 is **not** a capability change and does **not** support running on untrusted
+  code and trusting the verdict (framing (a) is 2.0 work).
+- **Results reconciled to the v0.9 evidence.** The freeze carries forward the P10.1
+  reconciliation: the authoritative 30-case single-function finding (143 of 150 runs =
+  95.3 percent one-shot, `reports/RESULTS.md` / `reports/v0.9-dataset.json`) and the
+  artifact-backed multi-file variance dataset (`reports/mvariance.json` /
+  `reports/MRESULTS.md`, decision 0035). Every number traces to a committed artifact.
+- **Trust posture and threat model finalized.** `SECURITY.md` and the README agree on the
+  single-user-trusted 1.0 posture. The `SECURITY.md` title now reads as the 1.0 posture,
+  and a numbering note disambiguates the container access-isolation boundary generation
+  (labeled `v2.0` in that document) from the Darwin release line. Nothing implies 1.0
+  closes the forgery boundary.
+- **Benchmark made externally extendable.** A user-facing case-authoring schema,
+  `docs/authoring-a-case.md`, specifies how an external author writes a new single-function
+  case (the seed inputs, the `spec.json` schema field by field, the reference rubric, and
+  the build command) without reading `build_case.py`, verified against the
+  `seeds/roman_to_int/` seed.
+- **Stable 1.0 surface declared.** The stable surface is the six console scripts, the case
+  directory format, and the dataset JSON schema; internal `darwin.<module>` imports carry
+  no import-stability guarantee. Stated as a documented boundary, not a package `__all__`
+  (which would govern only star-imports and misstate the contract) (decision 0046).
+- **Freeze polish.** Cleared the readiness-audit stale items: the native-Linux `SECURITY.md`
+  writeup and the multi-file variance-snapshot retention are stated as done (decisions
+  0030, 0035), and the CI suite count is refreshed to the measured 331 passed / 2 xfailed
+  out of 333 collected.
+
+## 0.9.0, corpus expansion
+
+Grew the single-function corpus from the retired 5-case validation set to a 30-case
+synthetic corpus and ran it under one frozen config to produce the authoritative
+one-shot finding. Run-and-record only: no change to the optimization, scoring,
+equivalence, gate, `build_case`, or default-lockdown behavior.
+
+- **30-case synthetic single-function corpus.** The single-function corpus expanded to
+  30 hand-authored cases degraded by the bloat tool, spread across seven degradation
+  categories (over_abstraction 6, defensive_overengineering 5, unnecessary_dependency 5,
+  duplication 4, verbose_patterns 4, dead_code 3, excessive_nesting 3) and three
+  difficulties (easy 11, medium 12, hard 7). The corpus is synthetic: both ends of the
+  measured span are authored (the tool-bloated original and the hand-authored reference
+  floor), so the claim is about controlled degradations, not real-world code. This is
+  the headline limitation (decision 0043).
+- **Seventh category, `defensive_overengineering`.** Amendment 1 added
+  `defensive_overengineering` as the seventh degradation category (decision 0044). The
+  earlier ordering claim was corrected during the freeze audit: the two cases
+  `first_or_default` and `normalize_scores` were entered at `96a681d`, about 6h51m
+  before Amendment 1 at `2f2cd74`; the prior claim is struck, not erased, not back-dated.
+- **Authoritative one-shot finding (143/150, 95.3 percent).** The frozen corpus ran
+  under one fixed config (cap=5, plateau=2, 5 runs per case = 150 runs), model
+  `claude-opus-4-8`, temperature 1.0. Across the 150 runs, 143 (95.3 percent) reached
+  the returned-best candidate in generation 1 (`best_gen` distribution gen 1: 143,
+  gen 2: 4, gen 3: 3). This is the authoritative 30-case confirmation of the one-shot
+  finding (decision 0006) that the 5-case validation set could only suggest, and it
+  supersedes that grounding (decision 0045). The loop's role is run-to-run near-floor
+  variance, not function shape: the 7 later-generation runs span three unrelated
+  categories. Total cost $2.601205 across 150 runs. Every number traces to
+  `reports/v0.9-dataset.json`; `reports/RESULTS.md` is the narrative authority.
+- **Methodology switch to run-and-record.** The path switched from authoring new
+  optimization machinery to running the frozen corpus under a fixed config and recording
+  the result, with no engine, scoring, gate, or `build_case` change in the measured run
+  (decision 0043).
+- **Corpus-wide temporal-freeze proof.** Every case was frozen before it was run: all
+  freeze commits are ancestors of the dataset git HEAD (`8b2dd60`), and the committed
+  `original.py` is byte-identical to the scored generation-0 input in all 150 runs. See
+  `reports/v0.9-temporal-freeze.md`.
 
 ## 0.8.0, packaging
 

@@ -1,7 +1,11 @@
-# Darwin: release metadata for the 0.9.0 GitHub-tagged release.
+# Darwin: release metadata for the 1.0.0 GitHub-tagged release.
 #
-# Version is 0.9.0, staying in the 0.x line on purpose: a 1.0 would signal a
-# stable, production-grade release. Over 0.2.0, the release line adds multi-file
+# Version is 1.0.0, the single-user-trusted reproducible-benchmark freeze (framing
+# (b); decisions 0046, 0008). 1.0.0 marks a stable, reproducible surface, NOT a
+# production-grade release for any user. It deliberately does NOT adopt decision
+# 0005's retired framing that reserved 1.0 to signal production-grade stability; the
+# in-process verdict-forgery boundary stays open by design and is deferred to 2.0.
+# Over 0.2.0, the release line adds multi-file
 # simplification (the multi-file generator, the directed multi-file loop, and the
 # multi-file evaluator plus benchmark harness) on top of the single-function
 # engine and the v2.0 OS-level isolation boundary; it adds the project's first
@@ -88,8 +92,9 @@
 # flat tools/ scripts to an importable darwin package under src/ in P8.2, so a build
 # backend can advertise a `pip install .` path that actually works. The backend is
 # hatchling, configured for the src layout (it discovers the darwin package under src/).
-# [project].version is 0.9.0 as of the P9.5 close-out, the corpus-expansion release
-# (decisions 0043-0045); the wheel `pip install .` builds is the convenience artifact,
+# [project].version is 1.0.0 as of the P10.2 freeze, the single-user-trusted reproducible
+# benchmark release (decision 0046; the corpus-expansion finding that grounds it is
+# decisions 0043-0045); the wheel `pip install .` builds is the convenience artifact,
 # still NOT published to PyPI.
 
 [build-system]
@@ -98,8 +103,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "darwin"
-version = "0.9.0"
-description = "A verified Python code simplifier for single-function and multi-file units with a never-worse-than-baseline guarantee; each candidate runs in a locked-down container that runs on Linux Docker hosts (CI-verified on ubuntu-latest), access-isolated but not a forgery-proof gate (in-process forgery residual open); still early (0.x)."
+version = "1.0.0"
+description = "A verified Python code simplifier for single-function and multi-file units with a never-worse-than-baseline guarantee; each candidate runs in a locked-down container that runs on Linux Docker hosts (CI-verified on ubuntu-latest), access-isolated but not a forgery-proof gate (in-process forgery residual open by design, deferred to 2.0); a single-user-trusted research benchmark and engine at 1.0."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"
@@ -114,7 +119,7 @@ keywords = [
     "vulture",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
