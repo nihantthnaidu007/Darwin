@@ -8,4 +8,4 @@
 #
 # Regenerate on Python 3.13 (the container version), from the repo root:
 #   pip-compile --generate-hashes --output-file=docker/requirements-sandbox.txt docker/requirements-sandbox.in
-pytest==9.0.3
+pytest==9.1.1
