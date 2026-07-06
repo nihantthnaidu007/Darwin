@@ -140,7 +140,7 @@ dependencies = [
     "radon==6.0.1",
     "vulture==2.16",
     "pytest==9.0.3",
-    "anthropic==0.107.1",
+    "anthropic==0.116.0",
     "httpx==0.28.1",
 ]
 
