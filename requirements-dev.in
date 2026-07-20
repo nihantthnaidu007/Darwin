@@ -14,7 +14,7 @@
 #   pip-compile --generate-hashes --output-file=requirements-dev.txt requirements-dev.in
 -r requirements.in
 ruff==0.15.17
-mypy==2.1.0
+mypy==2.3.0
 pytest-cov==7.1.0
 # Supply-chain CI tooling (P6.2.2), both pip-ecosystem to match pip-tools:
 # cyclonedx-bom provides the cyclonedx-py SBOM generator (the sbom job in ci.yml);
