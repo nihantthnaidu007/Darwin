@@ -327,9 +327,9 @@ coverage[toml]==7.14.1 \
     --hash=sha256:fc459e5d73be2d6332fcfe8dbf3d8994671fe33c700f4565988ecfa511547253 \
     --hash=sha256:fd86572566fb40189a8260446158235159bc7a82dfbc87a3b39cf4fb57fcec1c
     # via pytest-cov
-cyclonedx-bom==7.3.0 \
-    --hash=sha256:73d7d76b3a28ebadc50eabf424cbcf128785a74b8a59ce7893da2e29cfaab585 \
-    --hash=sha256:d54080d65731980945de38e52009a5e5711f4a3c31377a3d13af96eaca5fcf3d
+cyclonedx-bom==7.3.1 \
+    --hash=sha256:8c5adccefd593e89c0500463649c232625cee8e38dae1a433e057dfa495eff08 \
+    --hash=sha256:ebd99dc2cf62a7067e327bef2b2ffada99d57ed3fda2db6c4c8f3004e5bfd3cf
     # via -r requirements-dev.in
 cyclonedx-python-lib[validation]==11.11.0 \
     --hash=sha256:3049fc83e06a059b5c5907a527625a8ed5073caab10607ed4c9e5503b590fd44 \
@@ -1332,9 +1332,12 @@ typing-extensions==4.15.0 \
     --hash=sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548
     # via
     #   anthropic
+    #   anyio
+    #   cyclonedx-python-lib
     #   mypy
     #   pydantic
     #   pydantic-core
+    #   referencing
     #   typing-inspection
 typing-inspection==0.4.2 \
     --hash=sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7 \

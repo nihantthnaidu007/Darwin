@@ -21,5 +21,5 @@ pytest-cov==7.1.0
 # pip-audit is the advisory dependency vulnerability scanner (the vuln-scan job in
 # quality.yml). Dev/CI tools only; they do not enter the runtime lock. See
 # decision 0029.
-cyclonedx-bom==7.3.0
+cyclonedx-bom==7.3.1
 pip-audit==2.10.1
