@@ -13,7 +13,7 @@
 # Regenerate on Python 3.13:
 #   pip-compile --generate-hashes --output-file=requirements-dev.txt requirements-dev.in
 -r requirements.in
-ruff==0.15.17
+ruff==0.16.0
 mypy==2.1.0
 pytest-cov==7.1.0
 # Supply-chain CI tooling (P6.2.2), both pip-ecosystem to match pip-tools:
