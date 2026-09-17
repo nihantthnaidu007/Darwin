@@ -1,0 +1,8 @@
+# Repo policy for obvious workers — nihanthnaidu007/Darwin
+# Auto-detected from GitHub repo settings on 2026-09-17.
+repo: nihanthnaidu007/Darwin
+defaultBranch: main
+# GitHub allows merge, squash, and rebase; repo history uses merge commits.
+mergeMethod: merge
+# A human must review and merge PRs into main (setup PRs never self-merge).
+requireHumanMerge: true
